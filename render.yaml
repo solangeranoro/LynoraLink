@@ -11,7 +11,8 @@ services:
     region: frankfurt
     branch: main
     autoDeploy: true
-    buildCommand: npm ci && npx prisma generate --schema backend/prisma/schema.prisma && npx prisma migrate deploy --schema backend/prisma/schema.prisma && npm run build --workspace lynoralink-backend
+    buildCommand: npm ci && npx prisma generate --schema backend/prisma/schema.prisma && npm run build --workspace lynoralink-backend
+    preDeployCommand: npx prisma migrate deploy --schema backend/prisma/schema.prisma
     startCommand: npm run start --workspace lynoralink-backend
     healthCheckPath: /api/health
     envVars:
@@ -23,6 +24,8 @@ services:
         sync: false
       - key: NEXTAUTH_URL
         sync: false
+      - key: AUTH_TRUST_HOST
+        value: "true"
       - key: NEXTAUTH_SECRET
         generateValue: true
       - key: GOOGLE_CLIENT_ID
@@ -37,6 +40,12 @@ services:
         sync: false
       - key: EMAIL_FROM
         sync: false
+      - key: BREVO_API_KEY
+        sync: false
+      - key: BREVO_FROM_EMAIL
+        sync: false
+      - key: BREVO_FROM_NAME
+        value: LynoraLink
       - key: CONTACT_EMAIL
         sync: false
       - key: CLOUDINARY_CLOUD_NAME
@@ -48,6 +57,28 @@ services:
       - key: NEXT_PUBLIC_APP_URL
         sync: false
       - key: CODING_WS_URL
+        sync: false
+      - key: PADDLE_API_KEY
+        sync: false
+      - key: PADDLE_WEBHOOK_SECRET
+        sync: false
+      - key: PADDLE_ENVIRONMENT
+        value: sandbox
+      - key: PADDLE_MARKETPLACE_APPROVED
+        value: "false"
+      - key: PADDLE_COPILOT_PRICE_ID_MONTHLY
+        sync: false
+      - key: PADDLE_COPILOT_PRICE_ID_YEARLY
+        sync: false
+      - key: PADDLE_SELLER_VERIFICATION_PRICE_ID_MONTHLY
+        sync: false
+      - key: PADDLE_SELLER_VERIFICATION_PRICE_ID_YEARLY
+        sync: false
+      - key: GROQ_API_KEY
+        sync: false
+      - key: CLOUDFLARE_ACCOUNT_ID
+        sync: false
+      - key: CLOUDFLARE_AI_API_TOKEN
         sync: false
   - type: web
     name: lynoralink-collaboration

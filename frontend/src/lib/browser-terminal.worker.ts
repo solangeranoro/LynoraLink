@@ -109,18 +109,19 @@ function ensureQuickJs(): Promise<QuickJSRuntime> {
           memoryLimitBytes: 32 * 1024 * 1024,
           maxStackSizeBytes: 512 * 1024,
         })
-        quickJsContext = quickJsRuntime.newContext()
-        const consoleHandle = quickJsContext.newObject()
-        const logHandle = quickJsContext.newFunction('log', (...args) => {
+        const context = quickJsRuntime.newContext()
+        quickJsContext = context
+        const consoleHandle = context.newObject()
+        const logHandle = context.newFunction('log', (...args) => {
           const values = args.map((value) => {
-            const dumped = quickJsContext?.dump(value)
+            const dumped = context.dump(value)
             return typeof dumped === 'string' ? dumped : JSON.stringify(dumped)
           })
           post({ type: 'output', stream: 'stdout', text: `${values.join(' ')}\r\n` })
-          return quickJsContext?.undefined ?? 0
+          return context.undefined
         })
-        quickJsContext.setProp(consoleHandle, 'log', logHandle)
-        quickJsContext.setProp(quickJsContext.global, 'console', consoleHandle)
+        context.setProp(consoleHandle, 'log', logHandle)
+        context.setProp(context.global, 'console', consoleHandle)
         logHandle.dispose()
         consoleHandle.dispose()
       }
@@ -135,20 +136,23 @@ function runJavaScript(source: string, filename: string): number {
   const deadline = Date.now() + 5_000
   quickJsRuntime.setInterruptHandler(() => Date.now() >= deadline)
   const result = quickJsContext.evalCode(source, filename)
-  try {
-    if (result.error) {
+  if (result.error) {
+    try {
       const error = quickJsContext.dump(result.error)
       post({ type: 'output', stream: 'stderr', text: `${String(error)}\r\n` })
-      return 1
+    } finally {
+      result.error.dispose()
     }
+    return 1
+  }
+  try {
     const value = quickJsContext.dump(result.value)
     if (value !== undefined) {
       post({ type: 'output', stream: 'stdout', text: `${String(value)}\r\n` })
     }
     return 0
   } finally {
-    result.error?.dispose()
-    result.value?.dispose()
+    result.value.dispose()
   }
 }
 
@@ -344,7 +348,7 @@ async function execute(command: string, cwd: string): Promise<void> {
       pythonRunDeadline = Date.now() + 10_000
       const interruptBuffer = new SharedArrayBuffer(1)
       const interruptView = new Uint8Array(interruptBuffer)
-      pyodide.setInterruptBuffer(interruptBuffer)
+      pyodide.setInterruptBuffer(interruptView)
       const timer = setTimeout(() => {
         Atomics.store(interruptView, 0, 2)
         post({ type: 'output', stream: 'stderr', text: 'Python execution time limit reached.\r\n' })
@@ -357,7 +361,6 @@ async function execute(command: string, cwd: string): Promise<void> {
         emitResult(currentCwd, Date.now() > pythonRunDeadline ? 124 : 0)
       } finally {
         clearTimeout(timer)
-        pyodide.setInterruptBuffer(null)
       }
     } catch (error) {
       post({

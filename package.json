@@ -11,7 +11,7 @@
     "db:local:stop": "powershell.exe -NoProfile -ExecutionPolicy Bypass -File backend/scripts/local-postgres.ps1 stop",
     "build:api": "prisma generate --schema backend/prisma/schema.prisma && npm --workspace lynoralink-backend run build",
     "type-check:api": "npm --workspace lynoralink-backend run type-check",
-    "start:api": "npm --workspace lynoralink-backend run start",
+    "start:api": "npm --workspace lynoralink-backend run start -- --port 4000",
     "build": "npm --workspace lynoralink-frontend run build",
     "start": "npm --workspace lynoralink-frontend run start",
     "lint": "npm --workspace lynoralink-frontend run lint",

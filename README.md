@@ -78,6 +78,68 @@ Sur Windows, `npm run dev`, `npm run dev:api` et `npm run dev:web` redémarrent 
 
 ---
 
+## 🚀 Déploiement en production (Vercel + Render)
+
+Le dépôt est organisé en workspaces npm : le frontend et le backend doivent être
+déployés comme deux projets distincts. Le fichier `render.yaml` déclare le
+backend API et le serveur WebSocket de collaboration ; `frontend/vercel.json`
+configure le projet Vercel.
+
+### 1. Backend API et collaboration sur Render
+
+1. Dans Render, crée un **Blueprint** depuis le dépôt GitHub et sélectionne
+   `render.yaml`. Déploie les deux services `lynoralink-backend` et
+   `lynoralink-collaboration` dans la même région.
+2. Prépare une base PostgreSQL de production. Renseigne `DATABASE_URL` avec
+   l'URL de connexion de l'application et `DIRECT_URL` avec l'URL directe
+   recommandée par ton fournisseur (les migrations Prisma utilisent cette
+   dernière). Ne réutilise pas la base PostgreSQL locale.
+3. Dans les variables Render du backend, configure `NEXTAUTH_URL` et
+   `NEXT_PUBLIC_APP_URL` avec l'URL publique du frontend Vercel, sans slash
+   final. `NEXTAUTH_SECRET` est généré par le Blueprint ; copie exactement sa
+   valeur dans `NEXTAUTH_SECRET` du service de collaboration.
+4. Configure `BREVO_API_KEY` et `BREVO_FROM_EMAIL` : Brevo est nécessaire pour
+   les codes de connexion et de vérification par e-mail. Ajoute aussi les
+   identifiants OAuth, Cloudinary, Paddle et IA si ces fonctionnalités sont
+   activées.
+5. Après le premier déploiement, renseigne `CODING_WS_URL` dans le backend avec
+   l'URL WebSocket publique du service Render de collaboration, en `wss://`.
+   Cette fonctionnalité requiert les deux services actifs. Les commandes de
+   terminal de l'IDE, qui démarrent des conteneurs Docker, ne sont pas prises
+   en charge par un service Render Node standard.
+
+Le Blueprint génère et applique les migrations Prisma avant le déploiement du
+backend. Garde `PADDLE_ENVIRONMENT=sandbox` et
+`PADDLE_MARKETPLACE_APPROVED=false` jusqu'à ce que Paddle ait approuvé la mise
+en production et que les identifiants live soient configurés.
+
+### 2. Frontend sur Vercel
+
+1. Importe le même dépôt dans Vercel et choisis **`frontend` comme Root
+   Directory**. Active l'option qui inclut les fichiers situés en dehors de ce
+   répertoire : les workspaces npm et le lockfile sont à la racine du dépôt.
+2. Laisse le framework Next.js détecté automatiquement. Le fichier
+   `frontend/vercel.json` définit l'installation reproductible avec `npm ci`,
+   la région et les en-têtes HTTP.
+3. Ajoute la variable de production `API_BACKEND_URL` avec l'URL HTTPS publique
+   du service `lynoralink-backend` sur Render, sans slash final, puis relance
+   le déploiement. Le frontend transmet les requêtes `/api/*` au backend par
+   cette URL.
+4. Si Paddle est activé, configure aussi
+   `NEXT_PUBLIC_PADDLE_CLIENT_TOKEN` et
+   `NEXT_PUBLIC_PADDLE_ENVIRONMENT` dans Vercel.
+5. Ajoute le domaine personnalisé dans Vercel, puis vérifie que
+   `NEXTAUTH_URL` et `NEXT_PUBLIC_APP_URL` sur Render correspondent à ce
+   domaine. Configure les URI de retour OAuth avec
+   `https://<domaine>/api/auth/callback/google` et/ou
+   `https://<domaine>/api/auth/callback/facebook`.
+
+Les domaines publics Render peuvent différer selon le compte ou la région :
+utilise dans les variables d'environnement les URL réellement affichées dans
+les tableaux de bord Render et Vercel.
+
+---
+
 ## 🗄️ Schéma de données (Prisma)
 
 - **User** — profil maker : bio, skills[], liens GitHub/X, langue préférée, statut en ligne.
