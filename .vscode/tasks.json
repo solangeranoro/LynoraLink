@@ -1,0 +1,311 @@
+{
+	"version": "2.0.0",
+	"tasks": [
+		{
+			"label": "Validate Prisma schema",
+			"type": "shell",
+			"command": "npx",
+			"args": [
+				"prisma",
+				"validate",
+				"--schema",
+				"backend/prisma/schema.prisma"
+			],
+			"isBackground": false,
+			"problemMatcher": []
+		},
+		{
+			"label": "Inspect local migration state",
+			"type": "shell",
+			"command": "psql",
+			"args": [
+				"-P",
+				"pager=off",
+				"-h",
+				"127.0.0.1",
+				"-p",
+				"5433",
+				"-U",
+				"lynora",
+				"-d",
+				"lynora",
+				"-c",
+				"SELECT t.typname, e.enumlabel FROM pg_type t JOIN pg_enum e ON t.oid = e.enumtypid WHERE t.typname IN ('TwoFactorPurpose','PollType') ORDER BY t.typname, e.enumsortorder; SELECT migration_name, finished_at IS NOT NULL AS applied, rolled_back_at IS NOT NULL AS rolled_back FROM _prisma_migrations WHERE migration_name IN ('20260929100000_add_user_notification_preferences','20260929110000_add_account_deletion_code_purpose','20260930100000_add_star_and_text_polls') ORDER BY migration_name;"
+			],
+			"isBackground": false,
+			"problemMatcher": []
+		},
+		{
+			"label": "Start local Lynora PostgreSQL",
+			"type": "shell",
+			"command": "powershell.exe",
+			"args": [
+				"-NoProfile",
+				"-ExecutionPolicy",
+				"Bypass",
+				"-File",
+				"backend/scripts/local-postgres.ps1",
+				"start"
+			],
+			"isBackground": false,
+			"problemMatcher": []
+		},
+		{
+			"label": "Generate Prisma client",
+			"type": "shell",
+			"command": "npx",
+			"args": [
+				"prisma",
+				"generate",
+				"--schema",
+				"backend/prisma/schema.prisma"
+			],
+			"isBackground": false,
+			"problemMatcher": []
+		},
+		{
+			"label": "Type-check backend",
+			"type": "shell",
+			"command": "npm",
+			"args": [
+				"run",
+				"type-check:api"
+			],
+			"isBackground": false,
+			"problemMatcher": []
+		},
+		{
+			"label": "Type-check frontend",
+			"type": "shell",
+			"command": "npm",
+			"args": [
+				"run",
+				"type-check"
+			],
+			"isBackground": false,
+			"problemMatcher": []
+		},
+		{
+			"label": "Check local PostgreSQL metadata",
+			"type": "shell",
+			"command": "psql",
+			"args": [
+				"-P",
+				"pager=off",
+				"-At",
+				"-h",
+				"127.0.0.1",
+				"-p",
+				"5433",
+				"-U",
+				"lynora",
+				"-d",
+				"lynora",
+				"-c",
+				"SELECT t.typname || ':' || e.enumlabel FROM pg_type t JOIN pg_enum e ON t.oid = e.enumtypid WHERE t.typname = chr(80)||chr(111)||chr(108)||chr(108)||chr(84)||chr(121)||chr(112)||chr(101) OR t.typname = chr(84)||chr(119)||chr(111)||chr(70)||chr(97)||chr(99)||chr(116)||chr(111)||chr(114)||chr(80)||chr(117)||chr(114)||chr(112)||chr(111)||chr(115)||chr(101) ORDER BY t.typname, e.enumsortorder; SELECT migration_name || ':' || coalesce(finished_at::text, 'unfinished') || ':' || coalesce(rolled_back_at::text, 'active') FROM _prisma_migrations ORDER BY started_at DESC LIMIT 5;"
+			],
+			"isBackground": false,
+			"problemMatcher": []
+		},
+		{
+			"label": "Inspect PostgreSQL enums",
+			"type": "shell",
+			"command": "psql",
+			"args": [
+				"-P",
+				"pager=off",
+				"-At",
+				"-F",
+				":",
+				"-h",
+				"127.0.0.1",
+				"-p",
+				"5433",
+				"-U",
+				"lynora",
+				"-d",
+				"lynora",
+				"-c",
+				"SELECT t.typname,e.enumlabel FROM pg_type t JOIN pg_enum e ON t.oid = e.enumtypid WHERE t.typname=chr(80)||chr(111)||chr(108)||chr(108)||chr(84)||chr(121)||chr(112)||chr(101) OR t.typname=chr(84)||chr(119)||chr(111)||chr(70)||chr(97)||chr(99)||chr(116)||chr(111)||chr(114)||chr(80)||chr(117)||chr(114)||chr(112)||chr(111)||chr(115)||chr(101) ORDER BY t.typname,e.enumsortorder; SELECT migration_name,finished_at,rolled_back_at FROM _prisma_migrations ORDER BY started_at DESC LIMIT 5;"
+			],
+			"isBackground": false,
+			"problemMatcher": []
+		},
+		{
+			"label": "Resolve notification migration history",
+			"type": "shell",
+			"command": "npx",
+			"args": [
+				"prisma",
+				"migrate",
+				"resolve",
+				"--applied",
+				"20260929100000_add_user_notification_preferences",
+				"--schema",
+				"backend/prisma/schema.prisma"
+			],
+			"isBackground": false,
+			"problemMatcher": []
+		},
+		{
+			"label": "Resolve account code migration history",
+			"type": "shell",
+			"command": "npx",
+			"args": [
+				"prisma",
+				"migrate",
+				"resolve",
+				"--applied",
+				"20260929110000_add_account_deletion_code_purpose",
+				"--schema",
+				"backend/prisma/schema.prisma"
+			],
+			"isBackground": false,
+			"problemMatcher": []
+		},
+		{
+			"label": "Resolve poll migration history",
+			"type": "shell",
+			"command": "npx",
+			"args": [
+				"prisma",
+				"migrate",
+				"resolve",
+				"--applied",
+				"20260930100000_add_star_and_text_polls",
+				"--schema",
+				"backend/prisma/schema.prisma"
+			],
+			"isBackground": false,
+			"problemMatcher": []
+		},
+		{
+			"label": "Deploy gamification migration",
+			"type": "shell",
+			"command": "npx",
+			"args": [
+				"prisma",
+				"migrate",
+				"deploy",
+				"--schema",
+				"backend/prisma/schema.prisma"
+			],
+			"isBackground": false,
+			"problemMatcher": []
+		},
+		{
+			"label": "Lint gamification UI",
+			"type": "shell",
+			"command": "npm",
+			"args": [
+				"--workspace",
+				"lynoralink-frontend",
+				"run",
+				"lint",
+				"--",
+				"--file",
+				"src/components/GamificationBadges.tsx",
+				"--file",
+				"src/components/PostCard.tsx",
+				"--file",
+				"src/app/(app)/profile/page.tsx",
+				"--file",
+				"src/app/(app)/makers/[handle]/page.tsx",
+				"--file",
+				"src/app/(app)/projects/[id]/page.tsx",
+				"--file",
+				"src/app/(app)/top-makers/page.tsx",
+				"--file",
+				"src/components/Sidebar.tsx"
+			],
+			"isBackground": false,
+			"problemMatcher": []
+		},
+		{
+			"label": "Lint frontend",
+			"type": "shell",
+			"command": "npm",
+			"args": [
+				"--workspace",
+				"lynoralink-frontend",
+				"run",
+				"lint"
+			],
+			"isBackground": false,
+			"problemMatcher": []
+		},
+		{
+			"label": "Verify migration status",
+			"type": "shell",
+			"command": "npx",
+			"args": [
+				"prisma",
+				"migrate",
+				"status",
+				"--schema",
+				"backend/prisma/schema.prisma"
+			],
+			"isBackground": false,
+			"problemMatcher": []
+		},
+		{
+			"label": "Check gamification backfill",
+			"type": "shell",
+			"command": "psql",
+			"args": [
+				"-P",
+				"pager=off",
+				"-At",
+				"-F",
+				":",
+				"-h",
+				"127.0.0.1",
+				"-p",
+				"5433",
+				"-U",
+				"lynora",
+				"-d",
+				"lynora",
+				"-c",
+				"SELECT count(*) FROM \"Badge\"; SELECT count(*) FROM \"Interaction\"; SELECT \"key\",\"name\" FROM \"Badge\" ORDER BY \"key\";"
+			],
+			"isBackground": false,
+			"problemMatcher": []
+		},
+		{
+			"label": "Check local frontend server",
+			"type": "shell",
+			"command": "curl.exe",
+			"args": [
+				"-I",
+				"--max-time",
+				"3",
+				"http://localhost:3000"
+			],
+			"isBackground": false,
+			"problemMatcher": []
+		},
+		{
+			"label": "Check local API server",
+			"type": "shell",
+			"command": "curl.exe",
+			"args": [
+				"-i",
+				"--max-time",
+				"3",
+				"http://127.0.0.1:4000/api/health"
+			],
+			"isBackground": false,
+			"problemMatcher": []
+		},
+		{
+			"label": "Type check frontend",
+			"type": "shell",
+			"command": "cd frontend && npm run type-check",
+			"isBackground": false,
+			"problemMatcher": [
+				"$tsc"
+			]
+		}
+	]
+}

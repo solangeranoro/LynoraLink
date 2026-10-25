@@ -1,0 +1,1179 @@
+// LynoraLink — Prisma Schema
+// Base de données : PostgreSQL (Neon / Render / Supabase)
+// Hub mondial de Co-Building pour Indie Makers & Solopreneurs
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+/// Langues supportées par la plateforme
+enum Language {
+  EN
+  FR
+}
+
+/// Statut d'un projet (Build in Public)
+enum ProjectStatus {
+  IDEA
+  DEVELOPMENT
+  LAUNCHED
+}
+
+enum AdminReviewStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+enum PlanType {
+  FREE
+  PREMIUM
+}
+
+enum AccountStatus {
+  ACTIVE
+  SUSPENDED
+  BANNED
+}
+
+enum TwoFactorPurpose {
+  LOGIN
+  ENABLE
+  DISABLE
+  REGISTER
+  DELETE_ACCOUNT
+}
+
+enum MarketplaceItemType {
+  TEMPLATE
+  MICRO_SAAS
+  SERVICE
+}
+
+enum MarketplaceOrderStatus {
+  PENDING
+  PAID
+  REFUNDED
+  CANCELLED
+}
+
+enum LiveEventBookingStatus {
+  PENDING
+  CONFIRMED
+  CANCELLED
+}
+
+enum ProjectTaskStatus {
+  TODO
+  IN_PROGRESS
+  DONE
+}
+
+enum FeedbackKind {
+  IDEA
+  QUESTION
+  BUG
+}
+
+enum AssociationStatus {
+  PENDING
+  ACCEPTED
+  REJECTED
+}
+
+enum NotificationType {
+  WELCOME
+  POST_REACTION
+  POST_COMMENT
+  ASSOCIATION_REQUEST
+  ASSOCIATION_ACCEPTED
+  PROJECT_REQUEST
+  PROJECT_INVITE
+  PROJECT_ACCEPTED
+  PROJECT_DECLINED
+}
+
+enum PostType {
+  PERSONAL
+  TEAM
+  PROJECT
+}
+
+enum PollType {
+  OPTIONS
+  STAR
+  TEXT
+}
+
+enum InteractionType {
+  POST
+  COMMENT
+  PROJECT
+  TEAM
+  POLL
+  FEEDBACK
+  LIKE
+  LIVE_SESSION
+}
+
+/// Rôle d'un collaborateur au sein d'un projet
+enum CollaboratorRole {
+  FOUNDER
+  CO_BUILDER
+  DESIGNER
+  MARKETER
+  DEVELOPER
+  PRODUCT
+}
+
+/// Statut d'une demande de collaboration
+enum CollaborationStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+enum CodingWorkspaceRole {
+  CONTRIBUTOR
+  OBSERVER
+}
+
+/// Statut d'une session "Live Huddle"
+enum HuddleStatus {
+  SCHEDULED
+  LIVE
+  ENDED
+}
+
+enum AdminRole {
+  SUPERADMIN
+  MODERATOR
+}
+
+// ---------------------------------------------------------------------------
+// AUTHENTIFICATION (NextAuth)
+// ---------------------------------------------------------------------------
+
+model User {
+  id                   String    @id @default(cuid())
+  name                 String?
+  email                String    @unique
+  emailVerified        DateTime?
+  image                String?
+  passwordHash         String?
+  handle               String?   @unique
+  twoFactorEnabled     Boolean   @default(false)
+  notifyProjectUpdates Boolean   @default(true)
+  notifyMessages       Boolean   @default(true)
+  notifyProductNews    Boolean   @default(false)
+  lynaiPremium         Boolean   @default(false)
+
+  // Profil Indie Maker
+  bio                      String?                   @db.Text
+  headline                 String?
+  age                      Int?
+  city                     String?
+  phoneNumber              String?
+  skills                   String[]                  @default([])
+  githubUrl                String?
+  twitterUrl               String?
+  websiteUrl               String?
+  location                 String?
+  preferredLang            Language                  @default(EN)
+  isOnline                 Boolean                   @default(false)
+  openToCoBuild            Boolean                   @default(false)
+  lastSeenAt               DateTime?
+  isVerified               Boolean                   @default(false)
+  accountStatus            AccountStatus             @default(ACTIVE)
+  suspendedUntil           DateTime?
+  // Relations
+  accounts                 Account[]
+  sessions                 Session[]
+  projects                 Project[]                 @relation("ProjectCreator")
+  codingWorkspaces         CodingWorkspace[]
+  codingFileVersions       CodingFileVersion[]       @relation("CodingFileVersionAuthor")
+  codingWorkspaceMessages  CodingWorkspaceMessage[]
+  codingExtensions         CodingExtension[]
+  collaborations           ProjectCollaborator[]
+  posts                    Post[]
+  postPreferences          PostPreference[]
+  comments                 Comment[]
+  commentReactions         CommentReaction[]
+  likes                    Like[]
+  pollVotes                PollVote[]
+  createdTasks             ProjectTask[]             @relation("ProjectTaskCreator")
+  assignedTasks            ProjectTask[]             @relation("ProjectTaskAssignee")
+  projectFeedback          ProjectFeedback[]
+  reviews                  Review[]
+  sentAssociations         Association[]             @relation("AssociationRequester")
+  receivedAssociations     Association[]             @relation("AssociationAddressee")
+  sentProjectInvitations   ProjectCollaborator[]     @relation("ProjectInviter")
+  receivedNotifications    Notification[]            @relation("NotificationRecipient")
+  sentNotifications        Notification[]            @relation("NotificationActor")
+  postReports              PostReport[]
+  sentMessages             Message[]                 @relation("MessageSender")
+  hiddenMessages           MessageHiddenForUser[]
+  messageReactions         MessageReaction[]
+  conversations            ConversationMember[]
+  verificationTokens       VerificationToken[]
+  twoFactorChallenges      TwoFactorChallenge[]
+  userBadges               UserBadge[]
+  interactions             Interaction[]
+  passwordResetTokens      PasswordResetToken[]
+  subscription             Subscription?
+  paymentCheckouts         PaymentCheckout[]
+  boosts                   Boost[]
+  marketplaceItems         MarketplaceItem[]         @relation("MarketplaceSeller")
+  marketplacePurchases     MarketplaceOrder[]        @relation("MarketplaceBuyer")
+  marketplaceSales         MarketplaceOrder[]        @relation("MarketplaceSellerOrder")
+  hostedLiveEvents         LiveEvent[]
+  liveEventBookings        LiveEventBooking[]
+  aiSessions               AiSession[]
+  lynoAIQuotas             LynoAIQuota[]
+  lynoAIUsageEvents        LynoAIUsageEvent[]
+  lynoAISubscription       LynoAISubscription?
+  paddleCopilotSubscription PaddleCopilotSubscription?
+  lemonSqueezySubscription LemonSqueezySubscription?
+  marketplaceVerification  MarketplaceVerification?
+  marketplaceVendor        MarketplaceVendor?
+  adminProfile             Admin?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([isOnline])
+  @@index([preferredLang])
+  @@index([accountStatus, suspendedUntil])
+}
+
+model TwoFactorChallenge {
+  id        String           @id @default(cuid())
+  userId    String
+  purpose   TwoFactorPurpose
+  codeHash  String
+  expiresAt DateTime
+  attempts  Int              @default(0)
+  createdAt DateTime         @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, purpose])
+  @@index([expiresAt])
+}
+
+model Badge {
+  id        String      @id @default(cuid())
+  key       String      @unique
+  name      String
+  icon      String
+  criteria  String      @db.Text
+  createdAt DateTime    @default(now())
+  users     UserBadge[]
+}
+
+model UserBadge {
+  id        String   @id @default(cuid())
+  userId    String
+  badgeId   String
+  awardedAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  badge     Badge    @relation(fields: [badgeId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, badgeId])
+  @@index([userId, awardedAt])
+}
+
+model Interaction {
+  id        String          @id @default(cuid())
+  eventKey  String          @unique
+  userId    String
+  type      InteractionType
+  targetId  String?
+  createdAt DateTime        @default(now())
+  user      User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt])
+  @@index([type, createdAt])
+}
+
+model Admin {
+  id        String    @id @default(cuid())
+  userId    String    @unique
+  role      AdminRole @default(SUPERADMIN)
+  createdAt DateTime  @default(now())
+
+  user      User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  auditLogs AuditLog[]
+}
+
+model AiSession {
+  id             String   @id @default(cuid())
+  userId         String
+  input          String   @db.Text
+  output         String   @db.Text
+  provider       String
+  action         String?
+  conversationId String?  @db.Text
+  createdAt      DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt])
+  @@index([userId, conversationId, createdAt])
+}
+
+model LynoAIQuota {
+  id        String   @id @default(cuid())
+  userId    String
+  platform  String
+  used      Int      @default(0)
+  limit     Int      @default(100)
+  resetAt   DateTime
+  premium   Boolean  @default(false)
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, platform])
+  @@index([resetAt])
+}
+
+model LynoAIUsageEvent {
+  id                String   @id @default(cuid())
+  userId            String
+  platform          String
+  actionType        String   @default("legacy_usage")
+  countsTowardQuota Boolean  @default(true)
+  createdAt         DateTime @default(now())
+  user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt])
+  @@index([userId, platform, createdAt])
+  @@index([userId, countsTowardQuota, createdAt])
+}
+
+model LynoAISubscription {
+  id                   String    @id @default(cuid())
+  userId               String    @unique
+  stripeCustomerId     String?
+  stripeSubscriptionId String    @unique
+  plan                 String
+  status               String
+  currentPeriodEnd     DateTime?
+  stripeEventCreatedAt DateTime?
+  createdAt            DateTime  @default(now())
+  updatedAt            DateTime  @updatedAt
+  user                 User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model PaddleCopilotSubscription {
+  id                   String    @id @default(cuid())
+  userId               String    @unique
+  paddleSubscriptionId String    @unique
+  paddleCustomerId     String?
+  customerPortalUrl    String?   @db.Text
+  priceId              String?
+  status               String
+  currentPeriodEnd     DateTime?
+  createdAt            DateTime  @default(now())
+  updatedAt            DateTime  @updatedAt
+  user                 User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([status, currentPeriodEnd])
+}
+
+model LemonSqueezySubscription {
+  id                String    @id @default(cuid())
+  userId            String    @unique
+  subscriptionId    String    @unique
+  customerId        String
+  variantId         String
+  plan              String
+  status            String
+  customerPortalUrl String?   @db.Text
+  currentPeriodEnd  DateTime?
+  eventCreatedAt    DateTime?
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+  user              User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([status, currentPeriodEnd])
+}
+
+model MarketplaceVendor {
+  id               String   @id @default(cuid())
+  userId           String   @unique
+  stripeAccountId  String   @unique
+  country          String   @db.VarChar(2)
+  chargesEnabled   Boolean  @default(false)
+  payoutsEnabled   Boolean  @default(false)
+  detailsSubmitted Boolean  @default(false)
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+  user             User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([chargesEnabled, payoutsEnabled, detailsSubmitted])
+}
+
+model MarketplaceVerification {
+  id                  String    @id @default(cuid())
+  userId              String    @unique
+  fullName            String
+  email               String
+  country             String
+  city                String
+  profession          String
+  phoneNumber         String?
+  plan                String
+  status              String    @default("pending_email")
+  emailToken          String    @unique
+  emailTokenExpiresAt DateTime
+  emailVerifiedAt     DateTime?
+  subscriptionId      String?   @unique
+  customerId          String?
+  variantId           String?
+  customerPortalUrl   String?   @db.Text
+  currentPeriodEnd    DateTime?
+  eventCreatedAt      DateTime?
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
+  user                User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([status, currentPeriodEnd])
+}
+
+model AuditLog {
+  id        String   @id @default(cuid())
+  adminId   String
+  action    String
+  targetId  String?
+  createdAt DateTime @default(now())
+
+  admin Admin @relation(fields: [adminId], references: [id], onDelete: Cascade)
+
+  @@index([adminId, createdAt])
+}
+
+model AnalyticsSnapshot {
+  id     String   @id @default(cuid())
+  metric String
+  value  Int
+  date   DateTime @default(now())
+
+  @@index([metric, date])
+}
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.Text
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+  @@index([userId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  userId String?
+  user   User?   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([identifier, token])
+}
+
+model PasswordResetToken {
+  id      String    @id @default(cuid())
+  userId  String
+  token   String    @unique
+  expires DateTime
+  usedAt  DateTime?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+// ---------------------------------------------------------------------------
+// PROJETS & COLLABORATION
+// ---------------------------------------------------------------------------
+
+model Project {
+  id               String            @id @default(cuid())
+  title            String
+  slug             String            @unique
+  tagline          String
+  description      String            @db.Text
+  teamName         String?
+  teamDescription  String?           @db.Text
+  teamRules        String?           @db.Text
+  isPrivate        Boolean           @default(false)
+  status           ProjectStatus     @default(IDEA)
+  moderationStatus AdminReviewStatus @default(PENDING)
+  reviewedBy       String?
+  reviewDate       DateTime?
+  isTeamVerified   Boolean           @default(false)
+
+  // Liens & médias
+  githubUrl    String?
+  liveUrl      String?
+  docsUrl      String?
+  pitchDeckUrl String?
+  logoUrl      String?
+  coverUrl     String?
+  techStack    String[] @default([])
+  tags         String[] @default([])
+
+  // Métriques
+  lookingFor String[] @default([]) // rôles recherchés
+  isFeatured Boolean  @default(false)
+
+  creatorId String
+  creator   User   @relation("ProjectCreator", fields: [creatorId], references: [id], onDelete: Cascade)
+
+  parentTeamId String?
+  parentTeam   Project?  @relation("TeamProjects", fields: [parentTeamId], references: [id], onDelete: SetNull)
+  teamProjects Project[] @relation("TeamProjects")
+
+  collaborators ProjectCollaborator[]
+  codingWorkspace CodingWorkspace?
+  posts         Post[]
+  teamPosts     Post[]                @relation("TeamPosts")
+  tasks         ProjectTask[]
+  feedback      ProjectFeedback[]
+  huddles       Huddle[]
+  boosts        Boost[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([parentTeamId])
+  @@index([status])
+  @@index([moderationStatus, createdAt])
+  @@index([creatorId])
+  @@index([isFeatured])
+}
+
+model CodingWorkspace {
+  id        String       @id @default(cuid())
+  ownerId   String
+  clientId  String       @default("legacy")
+  teamId    String?      @unique
+  owner     User         @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  team      Project?     @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  files     CodingFile[]
+  messages  CodingWorkspaceMessage[]
+  name      String       @default("LynoraCoding Workspace")
+  settings  String       @default("{}")
+  createdAt DateTime     @default(now())
+  updatedAt DateTime     @updatedAt
+
+  @@unique([ownerId, clientId])
+}
+
+model CodingFile {
+  id          String          @id @default(cuid())
+  workspaceId String
+  workspace   CodingWorkspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  path        String
+  isDirectory Boolean         @default(false)
+  content     String          @default("") @db.Text
+  versions    CodingFileVersion[]
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+
+  @@unique([workspaceId, path])
+}
+
+model CodingFileVersion {
+  id        String       @id @default(cuid())
+  fileId    String
+  authorId  String
+  content   String       @db.Text
+  createdAt DateTime     @default(now())
+  file      CodingFile   @relation(fields: [fileId], references: [id], onDelete: Cascade)
+  author    User         @relation("CodingFileVersionAuthor", fields: [authorId], references: [id], onDelete: Cascade)
+
+  @@index([fileId, createdAt])
+}
+
+model CodingWorkspaceMessage {
+  id          String          @id @default(cuid())
+  workspaceId String
+  authorId    String
+  content     String          @db.VarChar(2000)
+  createdAt   DateTime        @default(now())
+  workspace   CodingWorkspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  author      User            @relation(fields: [authorId], references: [id], onDelete: Cascade)
+
+  @@index([workspaceId, createdAt])
+}
+
+model CodingExtension {
+  id          String   @id @default(cuid())
+  ownerId     String
+  owner       User     @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  slug        String
+  name        String
+  description String
+  version     String
+  permissions String   @default("[]")
+  source      String   @db.Text
+  published   Boolean  @default(false)
+  enabled     Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@unique([ownerId, slug])
+  @@index([published, name])
+}
+
+model ProjectCollaborator {
+  id          String              @id @default(cuid())
+  projectId   String
+  userId      String
+  invitedById String?
+  role        CollaboratorRole    @default(CO_BUILDER)
+  codingRole  CodingWorkspaceRole @default(CONTRIBUTOR)
+  status      CollaborationStatus @default(PENDING)
+  message     String?             @db.Text
+
+  project   Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  user      User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  invitedBy User?   @relation("ProjectInviter", fields: [invitedById], references: [id], onDelete: SetNull)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([projectId, userId])
+  @@index([status])
+  @@index([userId])
+  @@index([invitedById])
+}
+
+model ProjectTask {
+  id          String            @id @default(cuid())
+  title       String
+  description String?           @db.Text
+  status      ProjectTaskStatus @default(TODO)
+  position    Int               @default(0)
+  projectId   String
+  creatorId   String
+  assigneeId  String?
+  project     Project           @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  creator     User              @relation("ProjectTaskCreator", fields: [creatorId], references: [id], onDelete: Cascade)
+  assignee    User?             @relation("ProjectTaskAssignee", fields: [assigneeId], references: [id], onDelete: SetNull)
+  createdAt   DateTime          @default(now())
+  updatedAt   DateTime          @updatedAt
+
+  @@index([projectId, status, position])
+  @@index([assigneeId])
+}
+
+model ProjectFeedback {
+  id        String       @id @default(cuid())
+  kind      FeedbackKind @default(IDEA)
+  content   String       @db.Text
+  projectId String
+  authorId  String
+  project   Project      @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  author    User         @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  createdAt DateTime     @default(now())
+
+  @@index([projectId, createdAt])
+  @@index([authorId])
+}
+
+model Review {
+  id        String   @id @default(cuid())
+  userId    String
+  targetId  String
+  rating    Int
+  label     String
+  comment   String?  @db.Text
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, targetId])
+  @@index([targetId, createdAt])
+  @@index([targetId, rating, createdAt])
+}
+
+model Association {
+  id          String            @id @default(cuid())
+  requesterId String
+  addresseeId String
+  status      AssociationStatus @default(PENDING)
+  requester   User              @relation("AssociationRequester", fields: [requesterId], references: [id], onDelete: Cascade)
+  addressee   User              @relation("AssociationAddressee", fields: [addresseeId], references: [id], onDelete: Cascade)
+  createdAt   DateTime          @default(now())
+  updatedAt   DateTime          @updatedAt
+
+  @@unique([requesterId, addresseeId])
+  @@index([addresseeId, status])
+}
+
+model Notification {
+  id          String           @id @default(cuid())
+  recipientId String
+  actorId     String?
+  type        NotificationType
+  targetId    String
+  readAt      DateTime?
+  recipient   User             @relation("NotificationRecipient", fields: [recipientId], references: [id], onDelete: Cascade)
+  actor       User?            @relation("NotificationActor", fields: [actorId], references: [id], onDelete: SetNull)
+  createdAt   DateTime         @default(now())
+
+  @@index([recipientId, readAt, createdAt])
+}
+
+// ---------------------------------------------------------------------------
+// FEED "BUILD IN PUBLIC"
+// ---------------------------------------------------------------------------
+
+model Post {
+  id               String            @id @default(cuid())
+  type             PostType          @default(PERSONAL)
+  content          String            @db.Text
+  codeSnippet      String?           @db.Text
+  codeLang         String?
+  imageUrl         String?
+  tags             String[]          @default([])
+  moderationStatus AdminReviewStatus @default(APPROVED)
+  reviewedBy       String?
+  reviewDate       DateTime?
+  isFeatured       Boolean           @default(false)
+
+  authorId  String
+  author    User     @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  projectId String?
+  project   Project? @relation(fields: [projectId], references: [id], onDelete: SetNull)
+  teamId    String?
+  team      Project? @relation("TeamPosts", fields: [teamId], references: [id], onDelete: SetNull)
+
+  comments    Comment[]
+  likes       Like[]
+  attachments PostAttachment[]
+  reports     PostReport[]
+  preferences PostPreference[]
+  poll        Poll?
+  shareCount  Int              @default(0)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([authorId])
+  @@index([projectId])
+  @@index([teamId])
+  @@index([createdAt])
+  @@index([moderationStatus, createdAt])
+  @@index([isFeatured, createdAt])
+}
+
+model PostAttachment {
+  id                     String   @id @default(cuid())
+  name                   String
+  mimeType               String
+  size                   Int
+  data                   Bytes?
+  cloudinaryPublicId     String?  @unique
+  cloudinaryResourceType String?
+  cloudinaryFormat       String?
+  postId                 String
+  post                   Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
+  createdAt              DateTime @default(now())
+
+  @@index([postId])
+}
+
+model PostReport {
+  id         String   @id @default(cuid())
+  reason     String
+  details    String?  @db.Text
+  postId     String
+  post       Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
+  reporterId String
+  reporter   User     @relation(fields: [reporterId], references: [id], onDelete: Cascade)
+  createdAt  DateTime @default(now())
+
+  @@unique([postId, reporterId])
+  @@index([createdAt])
+}
+
+model PostPreference {
+  id        String   @id @default(cuid())
+  userId    String
+  postId    String
+  saved     Boolean  @default(false)
+  hidden    Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  post Post @relation(fields: [postId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, postId])
+  @@index([userId, saved])
+  @@index([userId, hidden])
+}
+
+model Comment {
+  id          String            @id @default(cuid())
+  content     String            @db.Text
+  codeSnippet String?           @db.Text
+  imageUrl    String?
+  githubUrl   String?
+  authorId    String
+  author      User              @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  postId      String
+  post        Post              @relation(fields: [postId], references: [id], onDelete: Cascade)
+  parentId    String?
+  parent      Comment?          @relation("CommentReplies", fields: [parentId], references: [id], onDelete: Cascade)
+  replies     Comment[]         @relation("CommentReplies")
+  reactions   CommentReaction[]
+  createdAt   DateTime          @default(now())
+
+  @@index([postId])
+  @@index([parentId])
+}
+
+model CommentReaction {
+  id        String   @id @default(cuid())
+  reaction  String   @default("like")
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  commentId String
+  comment   Comment  @relation(fields: [commentId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  @@unique([userId, commentId])
+  @@index([commentId])
+}
+
+model Like {
+  id        String   @id @default(cuid())
+  reaction  String   @default("like")
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  postId    String
+  post      Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  @@unique([userId, postId])
+  @@index([postId])
+}
+
+model Poll {
+  id        String     @id @default(cuid())
+  type      PollType   @default(OPTIONS)
+  question  String
+  options   String[]
+  postId    String     @unique
+  post      Post       @relation(fields: [postId], references: [id], onDelete: Cascade)
+  votes     PollVote[]
+  createdAt DateTime   @default(now())
+}
+
+model PollVote {
+  id          String   @id @default(cuid())
+  pollId      String
+  userId      String
+  optionIndex Int?
+  answer      String?  @db.Text
+  poll        Poll     @relation(fields: [pollId], references: [id], onDelete: Cascade)
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt   DateTime @default(now())
+
+  @@unique([pollId, userId])
+  @@index([pollId, optionIndex])
+  @@index([pollId, answer])
+}
+
+// ---------------------------------------------------------------------------
+// MESSAGERIE
+// ---------------------------------------------------------------------------
+
+model Conversation {
+  id        String               @id @default(cuid())
+  title     String?
+  isGroup   Boolean              @default(false)
+  members   ConversationMember[]
+  messages  Message[]
+  createdAt DateTime             @default(now())
+  updatedAt DateTime             @updatedAt
+}
+
+model ConversationMember {
+  id             String       @id @default(cuid())
+  conversationId String
+  userId         String
+  conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  user           User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  lastReadAt     DateTime?
+  typingAt       DateTime?
+  createdAt      DateTime     @default(now())
+
+  @@unique([conversationId, userId])
+  @@index([userId])
+  @@index([conversationId, typingAt])
+}
+
+model Message {
+  id             String                 @id @default(cuid())
+  content        String                 @db.Text
+  conversationId String
+  conversation   Conversation           @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  senderId       String
+  sender         User                   @relation("MessageSender", fields: [senderId], references: [id], onDelete: Cascade)
+  replyToId      String?
+  replyTo        Message?               @relation("MessageReplies", fields: [replyToId], references: [id], onDelete: SetNull)
+  replies        Message[]              @relation("MessageReplies")
+  reactions      MessageReaction[]
+  attachments    MessageAttachment[]
+  hiddenForUsers MessageHiddenForUser[]
+  createdAt      DateTime               @default(now())
+
+  @@index([conversationId])
+  @@index([senderId])
+  @@index([replyToId])
+}
+
+model MessageHiddenForUser {
+  messageId String
+  userId    String
+  createdAt DateTime @default(now())
+  message   Message  @relation(fields: [messageId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([messageId, userId])
+  @@index([userId])
+}
+
+model MessageAttachment {
+  id                     String   @id @default(cuid())
+  name                   String
+  mimeType               String
+  size                   Int
+  data                   Bytes?
+  cloudinaryPublicId     String?  @unique
+  cloudinaryResourceType String?
+  cloudinaryFormat       String?
+  messageId              String
+  message                Message  @relation(fields: [messageId], references: [id], onDelete: Cascade)
+  createdAt              DateTime @default(now())
+
+  @@index([messageId])
+}
+
+model MessageReaction {
+  id        String   @id @default(cuid())
+  messageId String
+  userId    String
+  reaction  String
+  message   Message  @relation(fields: [messageId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  @@unique([messageId, userId])
+  @@index([userId])
+}
+
+// ---------------------------------------------------------------------------
+// LIVE HUDDLES (sessions de co-building en temps réel)
+// ---------------------------------------------------------------------------
+
+model Huddle {
+  id          String       @id @default(cuid())
+  title       String
+  description String?      @db.Text
+  status      HuddleStatus @default(SCHEDULED)
+  roomUrl     String?
+  startsAt    DateTime
+  endsAt      DateTime?
+  projectId   String?
+  project     Project?     @relation(fields: [projectId], references: [id], onDelete: SetNull)
+  createdAt   DateTime     @default(now())
+
+  @@index([status])
+  @@index([startsAt])
+}
+
+model Subscription {
+  id                   String    @id @default(cuid())
+  userId               String    @unique
+  plan                 PlanType  @default(FREE)
+  status               String    @default("active")
+  paymentProvider      String    @default("LEGACY")
+  stripeSubscriptionId String?   @unique
+  stripeCustomerId     String?   @unique
+  cancelAtPeriodEnd    Boolean   @default(false)
+  startedAt            DateTime  @default(now())
+  expiresAt            DateTime?
+  user                 User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([plan, status, expiresAt])
+}
+
+model Boost {
+  id              String   @id @default(cuid())
+  projectId       String
+  userId          String
+  paymentOrderId  String   @unique
+  paymentProvider String   @default("LEGACY")
+  createdAt       DateTime @default(now())
+  expiresAt       DateTime
+  project         Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([projectId, expiresAt])
+  @@index([userId, createdAt])
+}
+
+model MarketplaceItem {
+  id                   String              @id @default(cuid())
+  title                String
+  description          String              @db.Text
+  type                 MarketplaceItemType @default(TEMPLATE)
+  priceCents           Int
+  currency             String              @default("usd")
+  imageUrl             String?
+  deliveryUrl          String?
+  productUrl           String?
+  pitch                String?
+  language             String?
+  sellerCity           String?
+  includedItems        Json?
+  audience             Json?
+  financial            Json?
+  details              Json?
+  photos               String[]            @default([])
+  paddleProductId      String?
+  paddlePriceId        String?
+  complianceAccepted   Boolean             @default(false)
+  complianceAcceptedAt DateTime?
+  moderationStatus     AdminReviewStatus   @default(PENDING)
+  reviewedBy           String?
+  reviewDate           DateTime?
+  isFeatured           Boolean             @default(false)
+  isActive             Boolean             @default(true)
+  sellerId             String
+  seller               User                @relation("MarketplaceSeller", fields: [sellerId], references: [id], onDelete: Cascade)
+  orders               MarketplaceOrder[]
+  createdAt            DateTime            @default(now())
+  updatedAt            DateTime            @updatedAt
+
+  @@index([isActive, createdAt])
+  @@index([moderationStatus, createdAt])
+  @@index([isFeatured, createdAt])
+  @@index([sellerId])
+}
+
+model MarketplaceOrder {
+  id               String                 @id @default(cuid())
+  itemId           String
+  buyerId          String
+  sellerId         String
+  paymentOrderId   String                 @unique
+  paymentProvider  String                 @default("LEGACY")
+  amountCents      Int
+  platformFeeCents Int
+  status           MarketplaceOrderStatus @default(PENDING)
+  paidAt           DateTime?
+  item             MarketplaceItem        @relation(fields: [itemId], references: [id], onDelete: Restrict)
+  buyer            User                   @relation("MarketplaceBuyer", fields: [buyerId], references: [id], onDelete: Cascade)
+  seller           User                   @relation("MarketplaceSellerOrder", fields: [sellerId], references: [id], onDelete: Cascade)
+  createdAt        DateTime               @default(now())
+
+  @@index([buyerId, status, createdAt])
+  @@index([sellerId, status, createdAt])
+}
+
+model LiveEvent {
+  id           String             @id @default(cuid())
+  title        String
+  description  String             @db.Text
+  startsAt     DateTime
+  durationMins Int                @default(60)
+  priceCents   Int
+  currency     String             @default("xof")
+  capacity     Int?
+  imageUrl     String?
+  isActive     Boolean            @default(true)
+  hostId       String
+  host         User               @relation(fields: [hostId], references: [id], onDelete: Cascade)
+  bookings     LiveEventBooking[]
+  createdAt    DateTime           @default(now())
+  updatedAt    DateTime           @updatedAt
+
+  @@index([isActive, startsAt])
+  @@index([hostId])
+}
+
+model LiveEventBooking {
+  id              String                 @id @default(cuid())
+  eventId         String
+  userId          String
+  paymentOrderId  String                 @unique
+  paymentProvider String                 @default("LEGACY")
+  amountCents     Int
+  status          LiveEventBookingStatus @default(PENDING)
+  expiresAt       DateTime?
+  event           LiveEvent              @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  user            User                   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt       DateTime               @default(now())
+
+  @@index([eventId, status])
+  @@index([eventId, status, expiresAt])
+  @@index([userId, status])
+}
+
+model PaymentCheckout {
+  id             String    @id
+  userId         String
+  paymentOrderId String?   @unique
+  kind           String
+  metadata       Json
+  amountCents    Int
+  currency       String
+  returnPath     String
+  status         String    @default("PENDING")
+  createdAt      DateTime  @default(now())
+  paidAt         DateTime?
+  user           User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, status, createdAt])
+}
+
+model PaymentWebhookEvent {
+  id          String   @id
+  type        String
+  processedAt DateTime @default(now())
+}

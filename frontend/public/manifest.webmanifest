@@ -1,0 +1,18 @@
+{
+  "name": "LynoraLink — Global Co-Building Hub",
+  "short_name": "LynoraLink",
+  "description": "Team up with indie makers worldwide and ship micro-projects.",
+  "start_url": "/dashboard",
+  "display": "standalone",
+  "background_color": "#0B132B",
+  "theme_color": "#0B132B",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "/logo_lynora.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
+  ]
+}

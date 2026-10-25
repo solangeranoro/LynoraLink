@@ -1,0 +1,66 @@
+{
+  "name": "lynoralink",
+  "version": "1.0.0",
+  "private": true,
+  "description": "LynoraLink — Global Co-Building Hub for Indie Makers & Solopreneurs",
+  "scripts": {
+    "dev": "node scripts/dev.mjs",
+    "dev:web": "node scripts/dev.mjs web",
+    "dev:api": "node scripts/dev.mjs api",
+    "db:local:setup": "powershell.exe -NoProfile -ExecutionPolicy Bypass -File backend/scripts/local-postgres.ps1 start && prisma db push --schema backend/prisma/schema.prisma",
+    "db:local:stop": "powershell.exe -NoProfile -ExecutionPolicy Bypass -File backend/scripts/local-postgres.ps1 stop",
+    "build:api": "prisma generate --schema backend/prisma/schema.prisma && npm --workspace lynoralink-backend run build",
+    "type-check:api": "npm --workspace lynoralink-backend run type-check",
+    "start:api": "npm --workspace lynoralink-backend run start",
+    "build": "npm --workspace lynoralink-frontend run build",
+    "start": "npm --workspace lynoralink-frontend run start",
+    "lint": "npm --workspace lynoralink-frontend run lint",
+    "type-check": "npm --workspace lynoralink-frontend run type-check",
+    "postinstall": "prisma generate --schema backend/prisma/schema.prisma",
+    "db:push": "prisma db push --schema backend/prisma/schema.prisma",
+    "db:migrate": "prisma migrate dev --schema backend/prisma/schema.prisma",
+    "db:attachments:migrate": "tsx backend/scripts/migrate-cloudinary-attachments.ts",
+    "db:studio": "prisma studio --schema backend/prisma/schema.prisma",
+    "cap:sync": "cap sync --config frontend/capacitor.config.ts",
+    "cap:add:android": "cap add android --config frontend/capacitor.config.ts",
+    "cap:open:android": "cap open android --config frontend/capacitor.config.ts",
+    "cap:build:android": "npm --workspace lynoralink-frontend run build && cap sync android --config frontend/capacitor.config.ts && cap open android --config frontend/capacitor.config.ts"
+  },
+  "dependencies": {
+    "@auth/prisma-adapter": "2.11.3",
+    "@capacitor/android": "7.6.9",
+    "@capacitor/core": "7.6.9",
+    "@prisma/client": "^5.19.1",
+    "@tanstack/react-query": "^5.51.23",
+    "bcryptjs": "^2.4.3",
+    "clsx": "^2.1.1",
+    "date-fns": "^3.6.0",
+    "next": "16.4.2",
+    "next-auth": "5.0.0-beta.32",
+    "react": "19.3.0",
+    "react-dom": "19.3.0",
+    "tailwind-merge": "^2.5.2",
+    "zod": "^3.23.8"
+  },
+  "devDependencies": {
+    "@capacitor/cli": "7.6.9",
+    "@types/bcryptjs": "^2.4.6",
+    "@types/node": "^20.16.5",
+    "@types/react": "19.3.0",
+    "@types/react-dom": "19.3.0",
+    "eslint": "9.39.5",
+    "eslint-config-next": "16.4.2",
+    "postcss": "8.5.29",
+    "prisma": "^5.19.1",
+    "tailwindcss": "4.3.3",
+    "tsx": "^4.19.1",
+    "typescript": "^5.6.2"
+  },
+  "overrides": {
+    "dompurify": "3.4.17"
+  },
+  "workspaces": ["frontend", "backend"],
+  "engines": {
+    "node": ">=20.9.0"
+  }
+}
