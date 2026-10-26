@@ -8,6 +8,8 @@ WORKDIR /app
 # --- Dependencies ---
 FROM base AS deps
 COPY package.json package-lock.json* ./
+COPY frontend/package.json ./frontend/package.json
+COPY backend/package.json ./backend/package.json
 COPY backend/prisma ./backend/prisma
 RUN npm ci
 

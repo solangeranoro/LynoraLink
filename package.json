@@ -16,7 +16,7 @@
     "start": "npm --workspace lynoralink-frontend run start",
     "lint": "npm --workspace lynoralink-frontend run lint",
     "type-check": "npm --workspace lynoralink-frontend run type-check",
-    "postinstall": "prisma generate --schema backend/prisma/schema.prisma",
+    "postinstall": "node scripts/postinstall.mjs",
     "db:push": "prisma db push --schema backend/prisma/schema.prisma",
     "db:migrate": "prisma migrate dev --schema backend/prisma/schema.prisma",
     "db:attachments:migrate": "tsx backend/scripts/migrate-cloudinary-attachments.ts",

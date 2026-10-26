@@ -228,6 +228,7 @@ Le débogueur intégré exécute uniquement du JavaScript dans une iframe isolé
 2. Définir `frontend/` comme répertoire racine du projet Vercel; le build est défini dans `frontend/vercel.json`.
 3. Définir `API_BACKEND_URL` avec l'URL Render de l'API.
 4. Définir `NEXTAUTH_SECRET` et `NEXTAUTH_URL` avec les mêmes valeurs que sur l'API, puis les identifiants OAuth.
+   Le `postinstall` racine saute la génération Prisma sur Vercel; le service API Render la génère pendant son build.
 
 ### Render (API)
 - Blueprint fourni : `render.yaml`; il construit et démarre le workspace `lynoralink-backend` depuis la racine du dépôt.
