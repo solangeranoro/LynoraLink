@@ -1,7 +1,6 @@
 "use client";
 
-import { useQuery } from "@tanstack/react-query";
-import { getProviders, signIn } from "next-auth/react";
+import { signIn } from "next-auth/react";
 import { useTranslation } from "@/lib/i18n";
 
 function GoogleIcon() {
@@ -25,21 +24,6 @@ function FacebookIcon() {
 
 export function OAuthButtons({ callbackUrl = "/dashboard" }: { callbackUrl?: string }) {
   const { t } = useTranslation();
-  const providersQuery = useQuery({
-    queryKey: ["auth", "providers"],
-    queryFn: async () => {
-      const providers = await getProviders();
-      if (!providers) throw new Error("AUTH_PROVIDERS_UNAVAILABLE");
-      return providers;
-    },
-    staleTime: 5 * 60_000,
-  });
-  const googleUnavailable = providersQuery.isSuccess && !providersQuery.data.google;
-  const facebookUnavailable = providersQuery.isSuccess && !providersQuery.data.facebook;
-  const googleDisabled = providersQuery.isLoading || providersQuery.isError || googleUnavailable;
-  const facebookDisabled = providersQuery.isLoading || providersQuery.isError || facebookUnavailable;
-  const googleUnavailableLabel = t("auth.errors.googleSignInUnavailable");
-  const facebookUnavailableLabel = t("auth.errors.facebookSignInUnavailable");
 
   return (
     <>
@@ -52,9 +36,7 @@ export function OAuthButtons({ callbackUrl = "/dashboard" }: { callbackUrl?: str
         <button
           type="button"
           onClick={() => void signIn("google", { callbackUrl })}
-          disabled={googleDisabled}
-          title={googleDisabled ? googleUnavailableLabel : undefined}
-          className="btn-ghost w-full min-w-0 !gap-2 !px-2 text-xs leading-tight disabled:cursor-not-allowed disabled:opacity-50 sm:text-sm"
+          className="btn-ghost w-full min-w-0 !gap-2 !px-2 text-xs leading-tight sm:text-sm"
         >
           <GoogleIcon />
           <span className="min-w-0 whitespace-nowrap">{t("auth.continueGoogle")}</span>
@@ -62,9 +44,7 @@ export function OAuthButtons({ callbackUrl = "/dashboard" }: { callbackUrl?: str
         <button
           type="button"
           onClick={() => void signIn("facebook", { callbackUrl })}
-          disabled={facebookDisabled}
-          title={facebookDisabled ? facebookUnavailableLabel : undefined}
-          className="btn-ghost w-full min-w-0 !gap-2 !px-2 text-xs leading-tight disabled:cursor-not-allowed disabled:opacity-50 sm:text-sm"
+          className="btn-ghost w-full min-w-0 !gap-2 !px-2 text-xs leading-tight sm:text-sm"
         >
           <FacebookIcon />
           <span className="min-w-0 whitespace-nowrap">{t("auth.continueFacebook")}</span>

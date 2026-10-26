@@ -20,6 +20,7 @@ import {
 export { hashTwoFactorCode } from "@/lib/two-factor-crypto";
 
 export const authOptions: NextAuthConfig = {
+  trustHost: true,
   adapter: PrismaAdapter(prisma),
   session: { strategy: "jwt", maxAge: 30 * 24 * 60 * 60 },
   pages: { signIn: "/login", error: "/login", verifyRequest: "/verify" },
