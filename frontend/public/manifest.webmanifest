@@ -9,9 +9,9 @@
   "orientation": "portrait",
   "icons": [
     {
-      "src": "/favicon.png",
-      "sizes": "512x512",
-      "type": "image/png",
+      "src": "/logo_lynora.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
       "purpose": "any"
     }
   ]
