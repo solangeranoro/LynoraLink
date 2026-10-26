@@ -141,7 +141,7 @@ export default function Home() {
               <span className="h-px w-8 bg-[#69dfcf]" />{text.eyebrow}
             </p>
             <h1 className="font-display text-5xl font-semibold leading-[1.02] text-white sm:text-6xl lg:text-7xl">
-              Lynora<span className="text-[#43c8d0]">Link</span>
+              Lynora<span className="text-gold-soft">Link</span>
             </h1>
             <p className="mt-6 max-w-xl text-base leading-7 text-white/85 sm:text-lg sm:leading-8">{text.heroCopy}</p>
             <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:items-center">
@@ -266,9 +266,8 @@ export default function Home() {
               size={38}
               withWordmark
               className="gap-2.5"
-              wordmarkClassName="!text-white !text-xl"
             />
-            <p className="mt-2 text-xs text-white/55">{text.footerLine}</p>
+            <p className="mt-2 text-xs text-white/75">{text.footerLine}</p>
           </div>
           <div className="flex flex-wrap gap-x-6 gap-y-3 text-sm text-white/70">
             <a href="#how-it-works" className="transition hover:text-white">{text.footerExplore}</a>
@@ -279,7 +278,7 @@ export default function Home() {
             <Link href="/login" className="transition hover:text-white">{text.signIn}</Link>
             <Link href="/register" className="transition hover:text-white">{text.footerAccount}</Link>
           </div>
-          <p className="text-xs text-white/45">© {new Date().getFullYear()} LynoraLink</p>
+          <p className="text-xs text-white/75">© {new Date().getFullYear()} LynoraLink</p>
         </div>
       </footer>
     </main>

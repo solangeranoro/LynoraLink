@@ -25,8 +25,9 @@ export const metadata: Metadata = {
   },
   manifest: "/manifest.webmanifest",
   icons: {
-    icon: [{ url: "/logo_lynora.svg", type: "image/svg+xml" }],
-    shortcut: ["/logo_lynora.svg"],
+    icon: [{ url: "/favicon.png", type: "image/png", sizes: "512x512" }],
+    shortcut: ["/favicon.png"],
+    apple: [{ url: "/favicon.png", sizes: "512x512" }],
   },
   appleWebApp: {
     capable: true,
@@ -39,7 +40,7 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  themeColor: "#ffffff",
+  themeColor: "#0B132B",
   width: "device-width",
   initialScale: 1,
   maximumScale: 1,

@@ -35,7 +35,6 @@ export function LandingTopNav() {
           <Logo
             size={44}
             className="landing-brand-logo gap-2"
-            wordmarkClassName="!text-white !text-2xl sm:!text-[1.75rem]"
             withWordmark
           />
         </Link>

@@ -4,10 +4,7 @@ import Image from "next/image";
 import { useEffect, useRef, useState } from "react";
 
 export function SplashScreen({ minDuration = 4200 }: { minDuration?: number }) {
-  const [visible, setVisible] = useState(() => {
-    if (typeof window === "undefined") return true;
-    return !(window as Window & { __lynoraSplashShown?: boolean }).__lynoraSplashShown;
-  });
+  const [visible, setVisible] = useState(true);
   const [leaving, setLeaving] = useState(false);
   const hasStartedRef = useRef(false);
 
