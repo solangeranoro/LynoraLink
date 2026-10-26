@@ -195,19 +195,20 @@ html:has(.landing-page)::-webkit-scrollbar {
 }
 
 :root:not([data-theme="light"]) .landing-brand-logo .brand-logo-mark {
-  filter: brightness(1.55) saturate(0.85) drop-shadow(0 0 14px rgb(var(--brand-glow) / 0.36));
+  filter: drop-shadow(0 0 14px rgb(var(--brand-glow) / 0.36));
 }
 
+.landing-page .landing-brand-logo .brand-logo-mark,
 .landing-page footer .brand-logo-mark {
-  filter: brightness(0) invert(1) drop-shadow(0 0 10px rgba(79, 140, 255, 0.55));
+  filter: drop-shadow(0 0 10px rgb(var(--brand-glow) / 0.3));
 }
 
-.landing-page footer .font-display {
+.landing-page .landing-brand-wordmark {
   color: #fff;
 }
 
-.landing-page footer .font-display > span {
-  color: #8ec5ff;
+.landing-page .landing-brand-wordmark > span {
+  color: #22b8a0;
 }
 
 .landing-hero-image {

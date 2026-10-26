@@ -266,6 +266,7 @@ export default function Home() {
               size={38}
               withWordmark
               className="gap-2.5"
+              wordmarkClassName="landing-brand-wordmark"
             />
             <p className="mt-2 text-xs text-white/75">{text.footerLine}</p>
           </div>

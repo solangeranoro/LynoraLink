@@ -22,18 +22,15 @@ export function HeroImageSlider({ variant = "landing" }: { variant?: "landing" |
     if (variant !== "landing") return;
 
     const motionPreference = window.matchMedia("(prefers-reduced-motion: reduce)");
-    const connection = (navigator as Navigator & { connection?: { saveData?: boolean; addEventListener?: (type: string, listener: () => void) => void; removeEventListener?: (type: string, listener: () => void) => void } }).connection;
     const updateVideoPreference = () => {
-      setVideoEnabled(!motionPreference.matches && !connection?.saveData);
+      setVideoEnabled(!motionPreference.matches);
     };
 
     updateVideoPreference();
     motionPreference.addEventListener("change", updateVideoPreference);
-    connection?.addEventListener?.("change", updateVideoPreference);
 
     return () => {
       motionPreference.removeEventListener("change", updateVideoPreference);
-      connection?.removeEventListener?.("change", updateVideoPreference);
     };
   }, [variant]);
 
@@ -57,7 +54,7 @@ export function HeroImageSlider({ variant = "landing" }: { variant?: "landing" |
             muted
             loop
             playsInline
-            preload="none"
+            preload="auto"
             poster="/landing/ideas-workshop.webp"
           >
             <source src="/hero_video.mp4" type="video/mp4" />

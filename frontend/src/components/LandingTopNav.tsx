@@ -36,6 +36,7 @@ export function LandingTopNav() {
             size={44}
             className="landing-brand-logo gap-2"
             withWordmark
+            wordmarkClassName="landing-brand-wordmark"
           />
         </Link>
         <nav id="landing-primary-navigation" className={`${mobileMenuOpen ? "flex" : "hidden"} landing-mobile-nav absolute inset-x-0 top-full flex-col gap-0 border-b border-white/20 bg-[#081827] px-5 py-2 shadow-xl md:static md:flex md:flex-row md:items-center md:gap-8 md:border-0 md:bg-transparent md:p-0 md:shadow-none`} aria-label={isFrench ? "Navigation principale" : "Main navigation"}>
