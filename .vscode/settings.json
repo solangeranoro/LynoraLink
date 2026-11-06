@@ -1,0 +1,34 @@
+{
+  "files.exclude": {
+    "**/.git": true,
+    "**/node_modules": true,
+    "**/.next": true,
+    "**/.next-*": true,
+    "**/out": true,
+    "**/coverage": true,
+    "**/.cache": true,
+    ".local-postgres": true,
+    "**/*.tsbuildinfo": true,
+    "**/next-env.d.ts": true,
+    "**/*.log": true
+  },
+  "search.exclude": {
+    "**/.git": true,
+    "**/node_modules": true,
+    "**/.next": true,
+    "**/.next-*": true,
+    "**/out": true,
+    "**/coverage": true,
+    "**/.cache": true,
+    ".local-postgres": true,
+    "**/*.tsbuildinfo": true,
+    "**/next-env.d.ts": true,
+    "**/*.log": true
+  },
+  "files.watcherExclude": {
+    "**/node_modules/**": true,
+    "**/.next/**": true,
+    "**/.next-*/**": true,
+    "**/.local-postgres/**": true
+  }
+}

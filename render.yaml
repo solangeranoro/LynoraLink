@@ -1,0 +1,80 @@
+# ---------------------------------------------------------------------------
+# Render Blueprint — LynoraLink backend (API + WebSocket)
+# Le frontend est hébergé séparément.
+# Définir DATABASE_URL et DIRECT_URL avec l'URL de la base PostgreSQL Render.
+# ---------------------------------------------------------------------------
+services:
+  - type: web
+    name: lynoralink-backend
+    runtime: node
+    plan: starter
+    region: frankfurt
+    branch: main
+    autoDeploy: true
+    buildCommand: npm ci && npx prisma generate --schema backend/prisma/schema.prisma && npm run build --workspace lynoralink-backend
+    preDeployCommand: npx prisma migrate deploy --schema backend/prisma/schema.prisma
+    startCommand: npm run start --workspace lynoralink-backend
+    healthCheckPath: /api/health
+    envVars:
+      - key: NODE_VERSION
+        value: 20.20.2
+      - key: DATABASE_URL
+        sync: false
+      - key: DIRECT_URL
+        sync: false
+      - key: NEXTAUTH_URL
+        sync: false
+      - key: AUTH_TRUST_HOST
+        value: "true"
+      - key: NEXTAUTH_SECRET
+        generateValue: true
+      - key: GOOGLE_CLIENT_ID
+        sync: false
+      - key: GOOGLE_CLIENT_SECRET
+        sync: false
+      - key: FACEBOOK_CLIENT_ID
+        sync: false
+      - key: FACEBOOK_CLIENT_SECRET
+        sync: false
+      - key: RESEND_API_KEY
+        sync: false
+      - key: EMAIL_FROM
+        sync: false
+      - key: BREVO_API_KEY
+        sync: false
+      - key: BREVO_FROM_EMAIL
+        sync: false
+      - key: BREVO_FROM_NAME
+        value: LynoraLink
+      - key: CONTACT_EMAIL
+        sync: false
+      - key: CLOUDINARY_CLOUD_NAME
+        sync: false
+      - key: CLOUDINARY_API_KEY
+        sync: false
+      - key: CLOUDINARY_API_SECRET
+        sync: false
+      - key: NEXT_PUBLIC_APP_URL
+        sync: false
+      - key: CODING_WS_URL
+        value: wss://api.lynoralink.com
+      - key: CO_BUILDING_WS_URL
+        value: wss://api.lynoralink.com/co-building
+      - key: FIREBASE_SERVICE_ACCOUNT_JSON
+        sync: false
+      - key: PADDLE_API_KEY
+        sync: false
+      - key: PADDLE_WEBHOOK_SECRET
+        sync: false
+      - key: PADDLE_ENVIRONMENT
+        value: sandbox
+      - key: PADDLE_COPILOT_PRICE_ID_MONTHLY
+        sync: false
+      - key: PADDLE_COPILOT_PRICE_ID_YEARLY
+        sync: false
+      - key: GROQ_API_KEY
+        sync: false
+      - key: CLOUDFLARE_ACCOUNT_ID
+        sync: false
+      - key: CLOUDFLARE_AI_API_TOKEN
+        sync: false

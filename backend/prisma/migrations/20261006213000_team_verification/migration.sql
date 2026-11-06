@@ -1,0 +1,2 @@
+ALTER TABLE "Project"
+ADD COLUMN "isTeamVerified" BOOLEAN NOT NULL DEFAULT false;

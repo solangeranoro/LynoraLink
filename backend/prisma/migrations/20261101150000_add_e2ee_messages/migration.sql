@@ -1,0 +1,21 @@
+CREATE TABLE "UserE2EEKey" (
+    "id" TEXT NOT NULL,
+    "userId" TEXT NOT NULL,
+    "publicKey" TEXT NOT NULL,
+    "encryptedBackup" TEXT NOT NULL,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT "UserE2EEKey_pkey" PRIMARY KEY ("id")
+);
+
+CREATE UNIQUE INDEX "UserE2EEKey_userId_key" ON "UserE2EEKey"("userId");
+
+ALTER TABLE "UserE2EEKey"
+ADD CONSTRAINT "UserE2EEKey_userId_fkey"
+FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+ALTER TABLE "Message"
+ADD COLUMN "encryptionVersion" INTEGER,
+ADD COLUMN "keyEnvelopes" JSONB;
+
+ALTER TABLE "MessageAttachment"
+ADD COLUMN "position" INTEGER NOT NULL DEFAULT 0;

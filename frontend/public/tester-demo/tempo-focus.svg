@@ -1,0 +1,29 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="800" viewBox="0 0 1280 800">
+  <defs><linearGradient id="bg" x2="1" y2="1"><stop stop-color="#12251f"/><stop offset="1" stop-color="#0b1513"/></linearGradient><linearGradient id="g" x2="1" y2="1"><stop stop-color="#54deb1"/><stop offset="1" stop-color="#1b9a79"/></linearGradient></defs>
+  <rect width="1280" height="800" rx="36" fill="url(#bg)"/>
+  <rect x="32" y="32" width="1216" height="736" rx="26" fill="#111c19" stroke="#263b33" stroke-width="2"/>
+  <rect x="32" y="32" width="250" height="736" rx="26" fill="#101a17"/>
+  <path d="M256 32h26v736h-26z" fill="#101a17"/>
+  <rect x="64" y="65" width="42" height="42" rx="13" fill="url(#g)"/><path d="m88 73-12 22h12l-8 13 22-25H89l7-10z" fill="#0c251d"/>
+  <text x="120" y="94" fill="#e7f2ed" font-family="Arial,sans-serif" font-size="27" font-weight="700">tempo</text>
+  <text x="66" y="160" fill="#6c8378" font-family="Arial,sans-serif" font-size="13" letter-spacing="2">ESPACE PERSONNEL</text>
+  <rect x="54" y="180" width="206" height="48" rx="12" fill="#19352b"/><circle cx="79" cy="204" r="8" fill="#4dd8a8"/><text x="100" y="210" fill="#d9f6e8" font-family="Arial,sans-serif" font-size="16">Aujourd’hui</text>
+  <text x="100" y="269" fill="#9eb1a6" font-family="Arial,sans-serif" font-size="16">Mes projets</text><text x="100" y="324" fill="#9eb1a6" font-family="Arial,sans-serif" font-size="16">Statistiques</text><text x="100" y="379" fill="#9eb1a6" font-family="Arial,sans-serif" font-size="16">Préférences</text>
+  <circle cx="83" cy="711" r="21" fill="#253b32"/><text x="120" y="707" fill="#e4eee8" font-family="Arial,sans-serif" font-size="15">Camille Martin</text><text x="120" y="730" fill="#72877b" font-family="Arial,sans-serif" font-size="12">Espace gratuit</text>
+  <text x="338" y="103" fill="#e8f4ed" font-family="Arial,sans-serif" font-size="31" font-weight="700">Bonjour Camille, prêt à avancer ?</text>
+  <text x="338" y="137" fill="#83968c" font-family="Arial,sans-serif" font-size="16">Votre journée, sans dispersion.</text>
+  <rect x="1045" y="76" width="164" height="46" rx="13" fill="url(#g)"/><text x="1083" y="105" fill="#0b251c" font-family="Arial,sans-serif" font-size="15" font-weight="700">+ Nouvelle tâche</text>
+  <rect x="338" y="178" width="827" height="265" rx="24" fill="#16231e" stroke="#2b4036"/>
+  <text x="374" y="220" fill="#a9b9af" font-family="Arial,sans-serif" font-size="14">SESSION DE CONCENTRATION</text>
+  <circle cx="749" cy="322" r="86" fill="none" stroke="#294238" stroke-width="10"/><path d="M749 236a86 86 0 1 1-77 124" fill="none" stroke="url(#g)" stroke-width="10" stroke-linecap="round"/>
+  <text x="695" y="328" fill="#f1faf4" font-family="Arial,sans-serif" font-size="35" font-weight="700">24:18</text>
+  <text x="665" y="360" fill="#8ca398" font-family="Arial,sans-serif" font-size="14">Sprint de conception</text>
+  <rect x="694" y="386" width="111" height="34" rx="11" fill="#214436"/><text x="727" y="409" fill="#baf4d9" font-family="Arial,sans-serif" font-size="13">Pause</text>
+  <rect x="338" y="472" width="827" height="243" rx="24" fill="#16231e" stroke="#2b4036"/>
+  <text x="374" y="515" fill="#e4eee8" font-family="Arial,sans-serif" font-size="20" font-weight="700">Priorités du jour</text><text x="1032" y="515" fill="#4dd8a8" font-family="Arial,sans-serif" font-size="14">Voir tout</text>
+  <circle cx="390" cy="564" r="10" fill="none" stroke="#48d6a5" stroke-width="2"/><text x="418" y="570" fill="#dce8e0" font-family="Arial,sans-serif" font-size="16">Finaliser la maquette d’accueil</text><text x="964" y="570" fill="#71877b" font-family="Arial,sans-serif" font-size="13">09:30</text>
+  <path d="M374 592h755" stroke="#2a3a32"/>
+  <circle cx="390" cy="626" r="10" fill="none" stroke="#52685c" stroke-width="2"/><text x="418" y="632" fill="#bdcac1" font-family="Arial,sans-serif" font-size="16">Relire les retours des testeurs</text><text x="964" y="632" fill="#71877b" font-family="Arial,sans-serif" font-size="13">11:00</text>
+  <path d="M374 654h755" stroke="#2a3a32"/>
+  <circle cx="390" cy="687" r="10" fill="none" stroke="#52685c" stroke-width="2"/><text x="418" y="693" fill="#bdcac1" font-family="Arial,sans-serif" font-size="16">Préparer la session de démonstration</text><text x="964" y="693" fill="#71877b" font-family="Arial,sans-serif" font-size="13">14:00</text>
+</svg>

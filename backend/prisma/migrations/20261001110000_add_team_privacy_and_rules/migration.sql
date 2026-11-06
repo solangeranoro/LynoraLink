@@ -1,0 +1,3 @@
+ALTER TABLE "Project"
+  ADD COLUMN "teamRules" TEXT,
+  ADD COLUMN "isPrivate" BOOLEAN NOT NULL DEFAULT false;

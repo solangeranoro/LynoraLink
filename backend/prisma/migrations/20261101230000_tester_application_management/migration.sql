@@ -1,0 +1,4 @@
+ALTER TYPE "NotificationType" ADD VALUE 'TESTER_APPLICATION_BUG_REPORTED';
+
+ALTER TABLE "TesterApplication"
+ADD COLUMN "bugReportNotificationsEnabled" BOOLEAN NOT NULL DEFAULT true;

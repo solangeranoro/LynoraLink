@@ -1,0 +1,4 @@
+ALTER TABLE "User"
+ADD COLUMN "notifyProjectUpdates" BOOLEAN NOT NULL DEFAULT true,
+ADD COLUMN "notifyMessages" BOOLEAN NOT NULL DEFAULT true,
+ADD COLUMN "notifyProductNews" BOOLEAN NOT NULL DEFAULT false;
