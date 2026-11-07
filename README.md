@@ -109,10 +109,14 @@ est uniquement une option si tu choisis d'utiliser un Blueprint.
    de ce service, par exemple `wss://api.lynoralink.com` et
    `wss://api.lynoralink.com/co-building`; remplace le domaine par celui du
    service si nécessaire.
-5. Applique les migrations Prisma avant d'utiliser la nouvelle base, avec
-   `npx prisma migrate deploy --schema backend/prisma/schema.prisma`. Tu peux
-   définir cette commande comme **Pre-Deploy Command** si elle est disponible
-   pour ton service, ou l'exécuter depuis le Shell Render.
+5. Vérifie l'accès à la base avec
+   `npm run db:status:production --workspace lynoralink-backend`, puis applique
+   les migrations avec `npm run db:deploy --workspace lynoralink-backend`.
+   `render.yaml` exécute cette dernière commande avant chaque déploiement.
+   Localement, les commandes de production utilisent `.env.production` sans
+   reprendre les URL de `.env.local`; sur Render, les variables configurées
+   dans le service restent prioritaires. Les fichiers `.env` locaux ne sont
+   jamais transmis au service Render.
 
 Avant le démarrage du backend avec une base neuve ou modifiée, applique les
 migrations Prisma. Configure Paddle uniquement pour les fonctions qui l’utilisent,

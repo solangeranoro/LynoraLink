@@ -11,7 +11,8 @@
     "db:generate": "node scripts/prisma.mjs generate",
     "db:migrate": "node scripts/prisma.mjs migrate dev",
     "db:deploy": "node scripts/prisma.mjs --production migrate deploy",
-    "db:status": "node scripts/prisma.mjs migrate status"
+    "db:status": "node scripts/prisma.mjs migrate status",
+    "db:status:production": "node scripts/prisma.mjs --production migrate status"
   },
   "dependencies": {
     "@auth/prisma-adapter": "2.11.3",

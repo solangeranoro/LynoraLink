@@ -12,7 +12,7 @@ services:
     branch: main
     autoDeploy: true
     buildCommand: npm ci && npx prisma generate --schema backend/prisma/schema.prisma && npm run build --workspace lynoralink-backend
-    preDeployCommand: npx prisma migrate deploy --schema backend/prisma/schema.prisma
+    preDeployCommand: npm run db:deploy --workspace lynoralink-backend
     startCommand: npm run start --workspace lynoralink-backend
     healthCheckPath: /api/health
     envVars:

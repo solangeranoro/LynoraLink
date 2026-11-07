@@ -38,13 +38,13 @@ export function EditorWelcome() {
     <div className="h-full overflow-y-auto bg-background">
       <div className="max-w-4xl mx-auto px-8 py-10">
         <div className="text-center mb-10">
-          <div className="inline-flex items-center justify-center w-16 h-16 mb-4">
+          <div className="mb-4 inline-flex h-16 w-16 items-center justify-center rounded-full bg-white p-2">
             <Image
               src="/logo_lynoracoding.svg"
               alt="LynoraCoding"
               width={48}
               height={48}
-              className="h-12 w-12 object-contain"
+              className="h-full w-full object-contain"
             />
           </div>
           <h1 className="text-3xl font-bold mb-1">

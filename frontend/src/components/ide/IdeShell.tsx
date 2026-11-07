@@ -186,13 +186,15 @@ export function IdeShell() {
           aria-label="Loading LynoraCoding workspace"
           aria-live="polite"
         >
-          <object
-            className="coding-splash-logo"
-            data="/logo_lynoracoding_anime.svg"
-            type="image/svg+xml"
-            aria-label="LynoraCoding animated logo"
-            tabIndex={-1}
-          />
+          <div className="coding-splash-logo-badge">
+            <object
+              className="coding-splash-logo"
+              data="/logo_lynoracoding_anime.svg"
+              type="image/svg+xml"
+              aria-label="LynoraCoding animated logo"
+              tabIndex={-1}
+            />
+          </div>
           <div className="coding-splash-title" aria-label="LynoraCoding">
             <span className="coding-splash-word coding-splash-word-lynora">Lynora</span>
             <span className="coding-splash-word coding-splash-word-coding">Coding</span>

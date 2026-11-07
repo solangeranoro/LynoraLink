@@ -40,15 +40,17 @@ export function SplashScreen({ minDuration = 4200 }: { minDuration?: number }) {
       aria-live="polite"
     >
       <div className="splash-content">
-        <Image
-          src="/logo_lynoralink_brand_anime.svg"
-          alt="LynoraLink — Global Co-Building Hub"
-          width={512}
-          height={549}
-          priority
-          unoptimized
-          className="splash-logo"
-        />
+        <div className="splash-logo-badge">
+          <Image
+            src="/logo_lynoralink_brand_anime.svg"
+            alt="LynoraLink — Global Co-Building Hub"
+            width={512}
+            height={549}
+            priority
+            unoptimized
+            className="splash-logo"
+          />
+        </div>
       </div>
 
       <style>{`
@@ -70,9 +72,14 @@ export function SplashScreen({ minDuration = 4200 }: { minDuration?: number }) {
         }
         .splash-content {
           display: flex;
-          width: min(88vw, 512px);
+          width: 100%;
           align-items: center;
           justify-content: center;
+        }
+        .splash-logo-badge {
+          display: grid;
+          width: min(72vw, 360px);
+          place-items: center;
         }
         .splash-logo {
           display: block;

@@ -17,7 +17,7 @@ export function Logo({
   return (
     <div className={cn("flex items-center gap-3", className)}>
       <span
-        className="relative inline-flex shrink-0 items-center justify-center"
+        className="relative inline-flex shrink-0 items-center justify-center rounded-full bg-white p-1"
         style={{ width: size, height: size }}
       >
         <Image
@@ -27,7 +27,7 @@ export function Logo({
           width={size}
           height={size}
           priority={priority}
-          className="brand-logo-mark"
+          className="brand-logo-mark h-full w-full object-contain"
         />
       </span>
       {withWordmark && (

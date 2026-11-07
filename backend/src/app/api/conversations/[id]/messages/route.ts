@@ -190,23 +190,25 @@ export async function POST(request: Request, props: { params: Promise<{ id: stri
       }),
     ]);
 
-    try {
-      const recipients = await prisma.conversationMember.findMany({
-        where: { conversationId: params.id, userId: { not: userId } },
-        select: { userId: true },
-      });
-      if (recipients.length) {
-        const { sendFirebasePushNotification } = await import("@/lib/firebase-push");
-        const conversationLink = `/messages?conversationId=${encodeURIComponent(params.id)}`;
-        await Promise.all(recipients.map(({ userId: recipientId }) =>
-          sendFirebasePushNotification(recipientId, "MESSAGE", userId, conversationLink).catch((error: unknown) => {
-            console.error("Firebase message push notification is unavailable:", error);
-          }),
-        ));
+    void (async () => {
+      try {
+        const recipients = await prisma.conversationMember.findMany({
+          where: { conversationId: params.id, userId: { not: userId } },
+          select: { userId: true },
+        });
+        if (recipients.length) {
+          const { sendFirebasePushNotification } = await import("@/lib/firebase-push");
+          const conversationLink = `/messages?conversationId=${encodeURIComponent(params.id)}`;
+          await Promise.all(recipients.map(({ userId: recipientId }) =>
+            sendFirebasePushNotification(recipientId, "MESSAGE", userId, conversationLink).catch((error: unknown) => {
+              console.error("Firebase message push notification is unavailable:", error);
+            }),
+          ));
+        }
+      } catch (error) {
+        console.error("Unable to send Firebase message push notifications:", error);
       }
-    } catch (error) {
-      console.error("Unable to send Firebase message push notifications:", error);
-    }
+    })();
 
     return NextResponse.json({
       message: {

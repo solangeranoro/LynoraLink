@@ -33,13 +33,15 @@ export function TopBar() {
           title="Back to LynoraLink"
           aria-label="Back to LynoraLink"
         >
-          <Image
-            src="/logo_lynoracoding.svg"
-            alt="LynoraCoding"
-            width={20}
-            height={20}
-            className="h-5 w-5 object-contain"
-          />
+          <span className="inline-flex h-6 w-6 items-center justify-center rounded-full bg-white p-1">
+            <Image
+              src="/logo_lynoracoding.svg"
+              alt="LynoraCoding"
+              width={16}
+              height={16}
+              className="h-full w-full object-contain"
+            />
+          </span>
         </Link>
 
         <button

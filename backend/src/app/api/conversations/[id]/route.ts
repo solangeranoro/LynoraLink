@@ -100,10 +100,16 @@ export async function GET(_request: Request, props: { params: Promise<{ id: stri
     throw error;
   }
 
-  await prisma.conversationMember.update({
-    where: { conversationId_userId: { conversationId: params.id, userId } },
-    data: { lastReadAt: new Date() },
-  });
+  const latestIncomingMessage = messages.find((message) => message.senderId !== userId);
+  if (
+    latestIncomingMessage &&
+    (!membership.lastReadAt || latestIncomingMessage.createdAt > membership.lastReadAt)
+  ) {
+    await prisma.conversationMember.update({
+      where: { conversationId_userId: { conversationId: params.id, userId } },
+      data: { lastReadAt: new Date() },
+    });
+  }
 
   return NextResponse.json({
     conversation: {
@@ -111,6 +117,12 @@ export async function GET(_request: Request, props: { params: Promise<{ id: stri
       title: conversation.title,
       isGroup: conversation.isGroup,
       participants: conversation.members.filter((member) => member.userId !== userId).map((member) => member.user),
+      readBy: conversation.members
+        .filter((member) => member.userId !== userId)
+        .map((member) => ({
+          userId: member.userId,
+          lastReadAt: member.lastReadAt,
+        })),
       messages: visibleMessages,
     },
   }, { headers: { "Cache-Control": "private, no-store" } });

@@ -25,8 +25,8 @@ export const metadata: Metadata = {
   },
   manifest: "/manifest.webmanifest",
   icons: {
-    icon: [{ url: "/logo_lynora-brand.png", type: "image/png", sizes: "1254x1254" }],
-    shortcut: ["/logo_lynora-brand.png"],
+    icon: [{ url: "/favicon.png", type: "image/png", sizes: "512x512" }],
+    shortcut: ["/favicon.png"],
     apple: [{ url: "/logo_lynora-brand.png", sizes: "1254x1254" }],
   },
   appleWebApp: {

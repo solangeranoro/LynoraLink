@@ -23,6 +23,7 @@ type ConversationMessage = {
   id: string;
   content: string;
   encryptionVersion?: number | null;
+  deliveryStatus?: "sending" | "sent";
   senderId: string;
   createdAt: string;
   sender: { id: string; name: string | null; image: string | null };
@@ -48,7 +49,10 @@ type ConversationItem = {
   lastMessage: ConversationMessage | null;
 };
 
-type ConversationThread = ConversationItem & { messages: ConversationMessage[] };
+type ConversationThread = ConversationItem & {
+  messages: ConversationMessage[];
+  readBy: { userId: string; lastReadAt: string | null }[];
+};
 type TypingUser = Pick<ConversationPerson, "id" | "name" | "image">;
 type Maker = ConversationPerson;
 type MessageTimeFilter = "all" | "today" | "yesterday" | "last7Days" | "older";
@@ -288,7 +292,7 @@ export default function MessageCenter() {
       const result = await response.json();
       return result.conversations as ConversationItem[];
     },
-    refetchInterval: 15000,
+    refetchInterval: 3000,
   });
 
   const makersQuery = useQuery({
@@ -343,7 +347,7 @@ export default function MessageCenter() {
       const result = await response.json();
       return result.conversation as ConversationThread;
     },
-    refetchInterval: selectedId && !composeOpen ? 8000 : false,
+    refetchInterval: selectedId && !composeOpen ? 2000 : false,
   });
 
   const typingStatusQuery = useQuery({
@@ -401,6 +405,44 @@ export default function MessageCenter() {
       if (!response.ok) throw new Error(result.error ?? "message_send_failed");
       return result.message as ConversationMessage;
     },
+    onMutate: ({ conversationId, content, replyToMessage, attachments, temporaryId }) => {
+      const currentUserId = session?.user?.id;
+      if (!currentUserId) return;
+      queryClient.setQueryData<ConversationThread>(["conversation", conversationId], (current) => {
+        const source = current ?? conversationsQuery.data?.find((conversation) => conversation.id === conversationId);
+        if (!source) return current;
+        return {
+          ...source,
+          readBy: current?.readBy ?? [],
+          messages: [...(current?.messages ?? []), {
+            id: temporaryId,
+            content,
+            encryptionVersion: 2,
+            deliveryStatus: "sending",
+            senderId: currentUserId,
+            createdAt: new Date().toISOString(),
+            sender: {
+              id: currentUserId,
+              name: session.user?.name ?? null,
+              image: session.user?.image ?? null,
+            },
+            replyTo: replyToMessage ? {
+              id: replyToMessage.id,
+              content: replyToMessage.content,
+              encryptionVersion: replyToMessage.encryptionVersion,
+              sender: replyToMessage.sender,
+            } : null,
+            attachments: attachments.map((file, position) => ({
+              id: `${temporaryId}-${position}`,
+              name: file.name,
+              mimeType: file.type || "application/octet-stream",
+              size: file.size,
+              position,
+            })),
+          }],
+        };
+      });
+    },
     onError: (_error, variables) => {
       queryClient.setQueryData<ConversationThread>(["conversation", variables.conversationId], (current) => current && ({
         ...current,
@@ -413,7 +455,10 @@ export default function MessageCenter() {
     onSuccess: (message, variables) => {
       queryClient.setQueryData<ConversationThread>(["conversation", variables.conversationId], (current) => current && ({
         ...current,
-        messages: [...current.messages.filter((item) => item.id !== variables.temporaryId && item.id !== message.id), message],
+        messages: [...current.messages.filter((item) => item.id !== variables.temporaryId && item.id !== message.id), {
+          ...message,
+          deliveryStatus: "sent",
+        }],
       }));
       void queryClient.invalidateQueries({ queryKey: ["conversations"] });
       void queryClient.invalidateQueries({ queryKey: ["conversation", variables.conversationId] });
@@ -785,7 +830,34 @@ export default function MessageCenter() {
                                       </div>
                                     );
                                   })}
-                                  <p className={`mt-1 text-right text-[10px] ${mine ? "text-gold-soft/80" : "text-ink-muted"}`}>{messageTime(message.createdAt, locale)}</p>
+                                  <p className={`mt-1 flex items-center justify-end gap-1 text-right text-[10px] ${mine ? "text-gold-soft/80" : "text-ink-muted"}`}>
+                                    {messageTime(message.createdAt, locale)}
+                                    {mine && (() => {
+                                      const isRead = message.deliveryStatus !== "sending"
+                                        && thread.readBy.length > 0
+                                        && thread.readBy.every((reader) => reader.lastReadAt
+                                          && new Date(reader.lastReadAt).getTime() >= new Date(message.createdAt).getTime());
+                                      const statusLabel = message.deliveryStatus === "sending"
+                                        ? (isFrench ? "Envoi en cours" : "Sending")
+                                        : isRead
+                                          ? (isFrench ? "Lu" : "Read")
+                                          : (isFrench ? "Envoyé" : "Sent");
+                                      return (
+                                        <span
+                                          role="img"
+                                          aria-label={statusLabel}
+                                          title={statusLabel}
+                                          className={isRead ? "text-sky-300" : ""}
+                                        >
+                                          {message.deliveryStatus === "sending"
+                                            ? <LoaderCircle size={11} className="animate-spin" aria-hidden="true" />
+                                            : isRead
+                                              ? <span className="relative inline-flex w-4 items-center" aria-hidden="true"><Check size={11} /><Check size={11} className="-ml-1.5" /></span>
+                                              : <Check size={11} aria-hidden="true" />}
+                                        </span>
+                                      );
+                                    })()}
+                                  </p>
                                 </div>
                                 {POST_REACTIONS.some((reaction) => (message.reactionCounts?.[reaction] ?? 0) > 0) && (
                                   <div role="group" aria-label={isFrench ? "Réactions au message" : "Message reactions"} className="flex flex-wrap gap-1">
