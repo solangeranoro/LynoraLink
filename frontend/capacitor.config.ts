@@ -10,10 +10,10 @@ const config: CapacitorConfig = {
   appId: "app.lynoralink.mobile",
   appName: "LynoraLink",
   webDir: "out",
-  backgroundColor: "#0B132B",
+  backgroundColor: "#FFFFFF",
   android: {
     allowMixedContent: false,
-    backgroundColor: "#0B132B",
+    backgroundColor: "#FFFFFF",
   },
   // Définir l'URL du frontend de production pour utiliser l'API via son proxy :
   // server: {

@@ -7,6 +7,7 @@ import { signIn } from "next-auth/react";
 import { ArrowLeft, Eye, EyeOff, Loader2, Mail, Lock, ShieldCheck } from "@/components/FontAwesomeIcons";
 import { OAuthButtons } from "@/components/auth/OAuthButtons";
 import { useTranslation } from "@/lib/i18n";
+import { getNetworkErrorMessage } from "@/lib/error-messages";
 
 function getSafeCallbackUrl(value: string | null): string | null {
   if (!value?.startsWith("/") || value.startsWith("//") || value.includes("\\")) return null;
@@ -84,7 +85,7 @@ export function LoginForm() {
           return;
         }
       } catch (error) {
-        setError(error instanceof TypeError ? t("auth.errors.networkUnavailable") : t("auth.errors.serviceUnavailable"));
+        setError(getNetworkErrorMessage(error) ?? t("auth.errors.serviceUnavailable"));
         setLoading(false);
         return;
       }
@@ -97,7 +98,7 @@ export function LoginForm() {
         : await signIn("credentials", { email, password, code: requiresCode ? code : undefined, redirect: false });
     } catch (error) {
       setLoading(false);
-      setError(error instanceof TypeError ? t("auth.errors.networkUnavailable") : t("auth.errors.serviceUnavailable"));
+      setError(getNetworkErrorMessage(error) ?? t("auth.errors.serviceUnavailable"));
       return;
     }
     setLoading(false);
@@ -140,7 +141,7 @@ export function LoginForm() {
         setError(t("auth.twoFactorCodeSent"));
       }
     } catch (error) {
-      setError(error instanceof TypeError ? t("auth.errors.networkUnavailable") : t("auth.errors.serviceUnavailable"));
+      setError(getNetworkErrorMessage(error) ?? t("auth.errors.serviceUnavailable"));
     } finally {
       setLoading(false);
     }

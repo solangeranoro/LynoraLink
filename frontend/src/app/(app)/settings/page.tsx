@@ -37,6 +37,7 @@ import {
   saveAppearancePreferences,
 } from "@/lib/appearance";
 import { useTranslation } from "@/lib/i18n";
+import { getNetworkErrorMessage } from "@/lib/error-messages";
 import { FirebasePushSettings } from "@/components/FirebasePushSettings";
 
 type SettingsSection = "account" | "preferences" | "notifications";
@@ -207,6 +208,10 @@ export default function SettingsPage() {
         setProfileMessage(t("settings.avatarUpdatedRefresh"));
       }
     } catch (error) {
+      if (getNetworkErrorMessage(error)) {
+        setAvatarError(t("auth.errors.networkUnavailable"));
+        return;
+      }
       const message = error instanceof Error ? error.message : "";
       const separator = message.indexOf(":");
       const code = separator >= 0 ? message.slice(0, separator) : message;
@@ -271,9 +276,9 @@ export default function SettingsPage() {
       await updateSession();
       setProfileMessage(isFrench ? "Profil enregistré." : "Profile saved.");
     } catch (error) {
-      setProfileMessage(error instanceof TypeError
-        ? t("auth.errors.networkUnavailable")
-        : t("auth.errors.serviceUnavailable"));
+      setProfileMessage(getNetworkErrorMessage(error)
+        ?? (error instanceof TypeError ? t("auth.errors.networkUnavailable")
+          : t("auth.errors.serviceUnavailable")));
     } finally {
       setSavingProfile(false);
     }
@@ -299,9 +304,8 @@ export default function SettingsPage() {
       setDeletionCodeSent(true);
       setDeletionFeedback(isFrench ? "Code envoyé à l’adresse email de votre compte." : "A code was sent to your account email.");
     } catch (error) {
-      setDeletionFeedback(error instanceof TypeError
-        ? t("auth.errors.networkUnavailable")
-        : error instanceof Error ? error.message : t("auth.errors.serviceUnavailable"));
+      setDeletionFeedback(getNetworkErrorMessage(error)
+        ?? (error instanceof Error ? error.message : t("auth.errors.serviceUnavailable")));
       setDeletionFeedbackError(true);
     } finally {
       setDeletionBusy(false);
@@ -330,9 +334,8 @@ export default function SettingsPage() {
       }
       await signOut({ callbackUrl: "/login?accountDeleted=1" });
     } catch (error) {
-      setDeletionFeedback(error instanceof TypeError
-        ? t("auth.errors.networkUnavailable")
-        : error instanceof Error ? error.message : t("auth.errors.serviceUnavailable"));
+      setDeletionFeedback(getNetworkErrorMessage(error)
+        ?? (error instanceof Error ? error.message : t("auth.errors.serviceUnavailable")));
       setDeletionFeedbackError(true);
     } finally {
       setDeletionBusy(false);

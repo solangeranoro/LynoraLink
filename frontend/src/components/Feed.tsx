@@ -140,7 +140,7 @@ export function Feed({ projectId, teamId, projectLabel, teamLogoUrl, canCompose 
   const { data, isLoading, isError } = useQuery({
     queryKey: ["feed", projectId ?? teamId ?? "all", projectId ? feedPage : null],
     queryFn: () => fetchFeed(projectId, teamId, projectId ? feedPage : undefined),
-    refetchInterval: projectId ? false : 3_000,
+    refetchInterval: 3_000,
   });
   const approvedApplicationsQuery = useQuery({
     queryKey: ["tester-applications", "feed"],

@@ -32,6 +32,7 @@ import { Avatar } from "@/components/Avatar";
 import { AdminManagement } from "@/components/admin/AdminManagement";
 import { AdminModerationSection } from "@/components/admin/AdminModerationSection";
 import { AdminTesterApplicationsSection } from "@/components/admin/AdminTesterApplicationsSection";
+import { getNetworkErrorMessage } from "@/lib/error-messages";
 type Section = "overview" | "users" | "projects" | "teams" | "posts" | "feedback" | "marketplace" | "communications" | "revenue" | "analytics" | "moderation" | "tester-applications";
 type AdminNavCount = Exclude<Section, "tester-applications"> | "testerApplications";
 const adminNavSeenKey = (adminId: string) => `lynora-admin-nav-seen:${adminId}`;
@@ -472,7 +473,8 @@ function AdminEmailSection({ notify }: { notify: (message: string) => void }) {
       setMessage("");
     } catch (caught) {
       const code = caught instanceof Error ? caught.message : "EMAIL_SEND_FAILED";
-      setError(code === "EMAIL_DAILY_LIMIT" ? "Limite quotidienne de 20 e-mails atteinte." : "L’e-mail n’a pas pu être envoyé.");
+      setError(getNetworkErrorMessage(caught, "fr")
+        ?? (code === "EMAIL_DAILY_LIMIT" ? "Limite quotidienne de 20 e-mails atteinte." : "L’e-mail n’a pas pu être envoyé."));
     } finally {
       setSending(false);
     }

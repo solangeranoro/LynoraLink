@@ -52,6 +52,7 @@ export function ReactionArtwork({ reaction, size = 30 }: { reaction: ReactionTyp
 
 export function ReactionPicker({
   selected,
+  displayReaction,
   count,
   reactionCounts,
   labels,
@@ -63,6 +64,7 @@ export function ReactionPicker({
   showBreakdown = true,
 }: {
   selected: ReactionType | null;
+  displayReaction?: ReactionType | null;
   count: number;
   reactionCounts?: Partial<Record<ReactionType, number>>;
   labels: Record<ReactionType, string>;
@@ -78,6 +80,7 @@ export function ReactionPicker({
   const triggerRef = useRef<HTMLButtonElement>(null);
   const closeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const primaryReaction = selected ?? "like";
+  const triggerReaction = selected ?? displayReaction ?? null;
   const displayedCount = showBreakdown
     ? reactionCounts?.[primaryReaction] ?? (reactionCounts ? 0 : count)
     : count;
@@ -183,10 +186,10 @@ export function ReactionPicker({
           onSelect("like");
         }}
         className={cn("btn-ghost !transition-none !px-2 !py-2 sm:!px-3", selected && "!border-gold/60 !bg-gold/20 !text-gold-soft")}
-        aria-label={`${selected ? labels[selected] : buttonLabel}${displayedCount > 0 ? ` ${displayedCount}` : ""}`}
+        aria-label={`${triggerReaction ? labels[triggerReaction] : buttonLabel}${displayedCount > 0 ? ` ${displayedCount}` : ""}`}
         aria-pressed={selected !== null}
       >
-        {selected ? <ReactionArtwork reaction={selected} size={20} /> : <ThumbsUp className="h-4 w-4 text-ink-muted" aria-hidden="true" />}
+        {triggerReaction ? <ReactionArtwork reaction={triggerReaction} size={20} /> : <ThumbsUp className="h-4 w-4 text-ink-muted" aria-hidden="true" />}
         {displayedCount > 0 ? displayedCount : <span className="hidden sm:inline">{buttonLabel}</span>}
       </button>
       {showBreakdown && POST_REACTIONS.filter((reaction) => reaction !== primaryReaction && (reactionCounts?.[reaction] ?? 0) > 0).map((reaction) => {

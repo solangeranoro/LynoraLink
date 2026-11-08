@@ -8,6 +8,7 @@ import { ArrowLeft, ArrowUpRight, Check, ExternalLink, LoaderCircle, Pencil, Sav
 import { useTranslation } from "@/lib/i18n";
 import { MarketplaceContactSeller } from "@/components/MarketplaceContactSeller";
 import { formatUsd } from "@/lib/utils";
+import { getNetworkErrorMessage } from "@/lib/error-messages";
 
 type ListingType = "TEMPLATE" | "MICRO_SAAS" | "SERVICE";
 type ListingDetail = {
@@ -156,7 +157,8 @@ export default function MarketplaceListingPage() {
       const message = error instanceof Error ? error.message : "";
       setEditMessage(message === "FORBIDDEN"
         ? (isFrench ? "Vous ne pouvez pas modifier cette annonce." : "You cannot edit this listing.")
-        : (isFrench ? "La modification a échoué. Vérifiez les champs et réessayez." : "The update failed. Check the fields and try again."));
+        : getNetworkErrorMessage(error)
+          ?? (isFrench ? "La modification a échoué. Vérifiez les champs et réessayez." : "The update failed. Check the fields and try again."));
     } finally {
       setSavingEdit(false);
     }

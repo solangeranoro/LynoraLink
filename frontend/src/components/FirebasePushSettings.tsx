@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { BellRing, LoaderCircle } from "lucide-react";
 import { useTranslation } from "@/lib/i18n";
+import { getNetworkErrorMessage } from "@/lib/error-messages";
 
 type FirebaseBrowserConfig = {
   apiKey: string;
@@ -62,7 +63,7 @@ export function FirebasePushSettings() {
         if (!active) return;
         const code = error instanceof Error ? error.message : "PUSH_UNKNOWN_ERROR";
         setIsError(true);
-        setMessage(pushErrorMessage(code, isFrench));
+        setMessage(getNetworkErrorMessage(error, isFrench ? "fr" : "en") ?? pushErrorMessage(code, isFrench));
       }
     })();
     return () => { active = false; };
@@ -123,7 +124,7 @@ export function FirebasePushSettings() {
     } catch (error) {
       const code = error instanceof Error ? error.message : "PUSH_UNKNOWN_ERROR";
       setIsError(true);
-      setMessage(pushErrorMessage(code, isFrench));
+      setMessage(getNetworkErrorMessage(error, isFrench ? "fr" : "en") ?? pushErrorMessage(code, isFrench));
     } finally {
       setBusy(false);
     }

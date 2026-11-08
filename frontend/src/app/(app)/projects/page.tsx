@@ -7,6 +7,7 @@ import { useEffect, useState } from "react";
 import { Plus, Github, ExternalLink, UsersRound, Megaphone, LoaderCircle, ChevronLeft, ChevronRight } from "@/components/FontAwesomeIcons";
 import { Avatar } from "@/components/Avatar";
 import { useTranslation } from "@/lib/i18n";
+import { getNetworkErrorMessage } from "@/lib/error-messages";
 import { ProjectsListSkeleton } from "@/components/skeletons";
 import { openPaddleCheckout } from "@/lib/paddle-checkout";
 
@@ -82,9 +83,10 @@ export default function ProjectsPage() {
       await openPaddleCheckout(result.transactionId, result.customerEmail, result.successUrl);
     } catch (error) {
       const code = error instanceof Error ? error.message : "";
-      setBoostError(code === "BILLING_NOT_CONFIGURED"
-        ? (locale === "fr" ? "Paddle n’est pas configuré pour les paiements." : "Paddle payments are not configured.")
-        : (locale === "fr" ? "Impossible de lancer le paiement du boost." : "Couldn't start boost checkout."));
+      setBoostError(getNetworkErrorMessage(error, locale)
+        ?? (code === "BILLING_NOT_CONFIGURED"
+          ? (locale === "fr" ? "Paddle n’est pas configuré pour les paiements." : "Paddle payments are not configured.")
+          : (locale === "fr" ? "Impossible de lancer le paiement du boost." : "Couldn't start boost checkout.")));
       setBoostingId("");
     }
   }

@@ -44,6 +44,7 @@ import { createProjectArchive } from "@/co-building/archive";
 import { Avatar as ProfileAvatar } from "@/components/Avatar";
 import { FileIconBadge } from "@/components/ide/FileIcon";
 import { connectGit, getGitSessionToken, pushGitHubChanges, setGitSessionToken } from "@/lib/ide/git-client";
+import { getNetworkErrorMessage } from "@/lib/error-messages";
 import type { ProjectFile } from "@/types/ide";
 
 /* ═══════════════════════════════ Types ═══════════════════════════════════ */
@@ -1397,7 +1398,8 @@ function Editor({ replica, projectTitle, connectionState, isFrench, githubUrl }:
       setGithubBranch(result.defaultBranch);
       setGitSessionToken(githubToken.trim());
     } catch (error) {
-      setGithubError(error instanceof Error ? error.message : (isFrench ? "Impossible de charger les branches GitHub." : "Unable to load GitHub branches."));
+      setGithubError(getNetworkErrorMessage(error, isFrench ? "fr" : "en")
+        ?? (error instanceof Error ? error.message : (isFrench ? "Impossible de charger les branches GitHub." : "Unable to load GitHub branches.")));
       setGithubBranches([]);
       setGithubBranch("");
     } finally {
@@ -1430,7 +1432,8 @@ function Editor({ replica, projectTitle, connectionState, isFrench, githubUrl }:
         ? `Commit ${sha.slice(0, 12)} poussé sur ${githubBranch}.`
         : `Commit ${sha.slice(0, 12)} pushed to ${githubBranch}.`);
     } catch (error) {
-      setGithubError(error instanceof Error ? error.message : (isFrench ? "Échec du push GitHub." : "GitHub push failed."));
+      setGithubError(getNetworkErrorMessage(error, isFrench ? "fr" : "en")
+        ?? (error instanceof Error ? error.message : (isFrench ? "Échec du push GitHub." : "GitHub push failed.")));
     } finally {
       setGithubBusy(false);
     }

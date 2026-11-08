@@ -7,6 +7,7 @@ import { ArrowUpRight, Check, ChevronDown, PackagePlus, UsersRound } from "@/com
 import { PostCard, type FeedPost } from "@/components/PostCard";
 import { ProfileProjectCard, type ProfileProjectPreview } from "@/components/ProfileProjectCard";
 import { formatUsd } from "@/lib/utils";
+import { getUserFacingErrorMessage } from "@/lib/error-messages";
 
 type AdminSection = "marketplace" | "posts" | "projects" | "teams";
 type ReviewStatus = "PENDING" | "APPROVED" | "REJECTED";
@@ -197,6 +198,8 @@ function AdminFilterSelect({ value, onChange, options, label }: {
 
 function errorMessage(error: unknown) {
   const code = error instanceof Error ? error.message : "";
+  const networkMessage = getUserFacingErrorMessage(error, "");
+  if (networkMessage) return networkMessage;
   if (code === "LISTING_HAS_ORDERS") return "Cette annonce a des commandes ; archivez-la plutôt que de la supprimer.";
   if (code === "SELLER_VERIFICATION_REQUIRED") return "Le vendeur doit terminer la vérification gratuite de son compte avant l’approbation.";
   if (code === "P2025" || code.endsWith("NOT_FOUND")) return "Cet élément n’existe plus ou a déjà été supprimé.";

@@ -7,6 +7,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useRef, useState, type ChangeEvent, type FormEvent } from "react";
 import { ArrowLeft, BellRing, ImagePlus, Pencil, Plus, Save, Trash2, X } from "lucide-react";
 import { useTranslation } from "@/lib/i18n";
+import { getUserFacingErrorMessage } from "@/lib/error-messages";
 import { useActionToast } from "@/components/ActionToast";
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog";
 import { TesterPlatformSelect } from "@/components/TesterPlatformSelect";
@@ -448,7 +449,7 @@ export default function TesterApplicationManagementPage() {
     return (
       <main className="mx-auto max-w-3xl space-y-5 px-4 py-10">
         <Link href={`/tester-applications/${id}`} className="inline-flex items-center gap-2 text-sm text-ink-muted transition hover:text-ink"><ArrowLeft size={16} />{t("testerApplications.detail.backToApplication")}</Link>
-        <div role="alert" className="card p-6 text-sm text-rose-200">{managementQuery.error instanceof Error ? managementQuery.error.message : t("testerApplications.detail.manageLoadError")}</div>
+        <div role="alert" className="card p-6 text-sm text-rose-200">{getUserFacingErrorMessage(managementQuery.error, t("testerApplications.detail.manageLoadError"))}</div>
       </main>
     );
   }
@@ -621,7 +622,7 @@ export default function TesterApplicationManagementPage() {
             <div className="skeleton h-24 w-full" /><div className="skeleton h-24 w-full" />
           </div>
         ) : pollsQuery.isError ? (
-          <p role="alert" className="text-sm text-rose-200">{pollsQuery.error instanceof Error ? pollsQuery.error.message : t("testerApplications.detail.pollLoadError")}</p>
+          <p role="alert" className="text-sm text-rose-200">{getUserFacingErrorMessage(pollsQuery.error, t("testerApplications.detail.pollLoadError"))}</p>
         ) : pollsQuery.data?.length ? (
           <div className="space-y-3">
             {pollsQuery.data.map((poll) => (

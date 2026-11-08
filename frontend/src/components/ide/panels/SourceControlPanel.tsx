@@ -22,6 +22,7 @@ import {
 } from '@/lib/ide/git-client'
 import { ideEventBus } from '@/lib/ide/event-bus'
 import { flattenProjectFiles } from '@/lib/workspace-files'
+import { getUserFacingErrorMessage } from '@/lib/error-messages'
 import { loadWorkspaceFiles, replaceWorkspaceFiles } from '@/lib/workspace-api'
 import { useIdeStore } from '@/store/ide-store'
 
@@ -84,7 +85,7 @@ export function SourceControlPanel() {
       toast.success('Remote repository connected.')
     } catch (error) {
       setConnected(false)
-      toast.error(error instanceof Error ? error.message : 'Unable to connect to the repository.')
+      toast.error(getUserFacingErrorMessage(error, 'Unable to connect to the repository.'))
       setStatusMessage('Connection failed.')
     } finally {
       setBusy(false)
@@ -97,7 +98,7 @@ export function SourceControlPanel() {
       await refresh()
       toast.success('Repository status refreshed.')
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'Unable to refresh repository status.')
+      toast.error(getUserFacingErrorMessage(error, 'Unable to refresh repository status.'))
     } finally {
       setBusy(false)
     }
@@ -112,7 +113,7 @@ export function SourceControlPanel() {
       await refresh(newBranch.trim())
       toast.success('Branch created.')
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'Unable to create branch.')
+      toast.error(getUserFacingErrorMessage(error, 'Unable to create branch.'))
     } finally {
       setBusy(false)
     }
@@ -142,7 +143,7 @@ export function SourceControlPanel() {
       setStatusMessage(`Pushed commit ${sha.slice(0, 12)} to ${branch}.`)
       toast.success('Workspace pushed.')
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'Unable to push workspace.')
+      toast.error(getUserFacingErrorMessage(error, 'Unable to push workspace.'))
     } finally {
       setBusy(false)
     }
@@ -180,7 +181,7 @@ export function SourceControlPanel() {
       setStatusMessage(`Pulled ${remoteFiles.length} text files from ${branch}.`)
       toast.success(`Pulled ${remoteFiles.length} files.`)
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'Unable to pull remote workspace.')
+      toast.error(getUserFacingErrorMessage(error, 'Unable to pull remote workspace.'))
     } finally {
       setBusy(false)
     }
@@ -196,7 +197,7 @@ export function SourceControlPanel() {
       setStatusMessage(`Merged ${mergeSource} into ${branch} · ${sha.slice(0, 12)}`)
       toast.success('Remote branches merged.')
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'Merge failed. Resolve any conflicts on the remote provider.')
+      toast.error(getUserFacingErrorMessage(error, 'Merge failed. Resolve any conflicts on the remote provider.'))
       setStatusMessage('Merge failed; inspect the provider response and resolve conflicts remotely.')
     } finally {
       setBusy(false)
@@ -210,7 +211,7 @@ export function SourceControlPanel() {
     try {
       await refresh(nextBranch)
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'Unable to load branch.')
+      toast.error(getUserFacingErrorMessage(error, 'Unable to load branch.'))
     } finally {
       setBusy(false)
     }

@@ -16,6 +16,7 @@ import {
 } from '@/components/ui/dialog'
 import { ApiResponse } from '@/types/ide'
 import { toast } from 'sonner'
+import { getUserFacingErrorMessage } from '@/lib/error-messages'
 import { useIdeStore } from '@/store/ide-store'
 
 interface Header { id: string; key: string; value: string }
@@ -214,7 +215,7 @@ export function ApiTesterPanel() {
       setResp(responseData)
       requestHistory(req, responseData)
     } catch (err) {
-      const message = err instanceof Error ? err.message : String(err)
+      const message = getUserFacingErrorMessage(err, 'The request could not be completed.')
       const responseData: ApiResponse = {
         status: 0,
         statusText: message,
@@ -307,7 +308,7 @@ export function ApiTesterPanel() {
       persistCollection([...imported, ...savedRequests].slice(0, 100))
       toast.success(`${imported.length} request${imported.length === 1 ? '' : 's'} imported.`)
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'Unable to import this collection.')
+      toast.error(getUserFacingErrorMessage(error, 'Unable to import this collection.'))
     } finally {
       if (importRef.current) importRef.current.value = ''
     }

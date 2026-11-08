@@ -64,6 +64,7 @@ export default function MakerProfilePage() {
   const postsQuery = useQuery({
     queryKey: ["posts", "author", profileQuery.data?.id],
     enabled: Boolean(profileQuery.data?.id),
+    refetchInterval: 3_000,
     queryFn: async () => {
       const response = await fetch(`/api/posts?authorId=${encodeURIComponent(profileQuery.data?.id ?? "")}&take=5`);
       if (!response.ok) throw new Error("posts_load_failed");

@@ -9,6 +9,7 @@ import {
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { useIdeStore } from '@/store/ide-store'
+import { getUserFacingErrorMessage } from '@/lib/error-messages'
 import type { PanelKey } from '@/types/ide'
 import { ideEventBus, type EditorMenuAction } from '@/lib/ide/event-bus'
 import { WorkspaceItemDialog, type WorkspaceItemType } from '@/components/ide/WorkspaceItemDialog'
@@ -164,7 +165,7 @@ export function MenuBar() {
       }
       await importFiles(importEntries, isFolderImport, projectName, skippedFiles)
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'Could not read the selected files.')
+      toast.error(getUserFacingErrorMessage(error, 'Could not read the selected files.'))
     }
   }
   const moveTab = (direction: -1 | 1) => {

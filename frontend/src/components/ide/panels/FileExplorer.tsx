@@ -19,6 +19,7 @@ import { WorkspaceItemDialog, type WorkspaceItemType } from '@/components/ide/Wo
 import { BadgeNotification } from '../BadgeNotification'
 import { getWorkspaceGitStatuses, type WorkspaceGitStatus } from '@/lib/ide/workspace-git-status'
 import { useMemo } from 'react'
+import { getUserFacingErrorMessage } from '@/lib/error-messages'
 
 interface NodeProps {
   file: ProjectFile
@@ -56,9 +57,7 @@ function TreeNode({ file, depth, onCreateItem, dirtyPaths, gitStatuses }: NodePr
       await navigator.clipboard.writeText(value)
       toast.success(`${description} copied.`)
     } catch (error) {
-      toast.error(error instanceof Error
-        ? error.message
-        : `Unable to copy ${description.toLowerCase()}.`)
+      toast.error(getUserFacingErrorMessage(error, `Unable to copy ${description.toLowerCase()}.`))
     }
   }
 

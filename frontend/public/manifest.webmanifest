@@ -4,8 +4,8 @@
   "description": "Team up with indie makers worldwide and ship micro-projects.",
   "start_url": "/dashboard",
   "display": "standalone",
-  "background_color": "#0B132B",
-  "theme_color": "#0B132B",
+  "background_color": "#FFFFFF",
+  "theme_color": "#FFFFFF",
   "orientation": "portrait",
   "icons": [
     {

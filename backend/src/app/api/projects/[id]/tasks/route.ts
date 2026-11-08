@@ -9,7 +9,14 @@ export async function GET(_request: Request, props: { params: Promise<{ id: stri
   const params = await props.params;
   const session = await auth();
   const userId = session?.user?.id;
-  if (!userId) return NextResponse.json({ error: "UNAUTHORIZED" }, { status: 401 });
+  if (!userId) {
+    const team = await prisma.project.findUnique({
+      where: { id: params.id },
+      select: { teamName: true, isPrivate: true },
+    });
+    if (!team?.teamName?.trim()) return NextResponse.json({ error: "UNAUTHORIZED" }, { status: 401 });
+    if (team.isPrivate) return NextResponse.json({ error: "NOT_FOUND" }, { status: 404 });
+  }
   if (!(await canViewProject(params.id, userId))) return NextResponse.json({ error: "NOT_FOUND" }, { status: 404 });
   const tasks = await prisma.projectTask.findMany({
     where: { projectId: params.id },

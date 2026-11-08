@@ -25,7 +25,9 @@ const { auth } = NextAuth({
       if (isBlocked) {
         return NextResponse.redirect(new URL("/account-status", request.url));
       }
-      return Boolean(session?.user?.id);
+      const teamPageMatch = request.nextUrl.pathname.match(/^\/teams\/([^/]+)\/?$/);
+      const isPublicTeamPage = Boolean(teamPageMatch && teamPageMatch[1] !== "new");
+      return isPublicTeamPage || Boolean(session?.user?.id);
     },
   },
 });

@@ -18,6 +18,7 @@ import {
 } from '@/lib/workspace-api'
 import { useIdeStore } from '@/store/ide-store'
 import { loadLynoaAIExtensionInstalled, saveLynoaAIExtensionInstalled } from '@/lib/ide/lynoai-settings'
+import { getUserFacingErrorMessage } from '@/lib/error-messages'
 
 const permissionChoices = [
   ['files.read', 'Read the active editor file'],
@@ -153,7 +154,7 @@ export function ExtensionsPanel() {
     try {
       setExtensions(await loadExtensions())
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'Unable to load extensions.')
+      toast.error(getUserFacingErrorMessage(error, 'Unable to load extensions.'))
     } finally {
       setLoading(false)
     }
@@ -174,7 +175,7 @@ export function ExtensionsPanel() {
       }
       toast.success(installed ? 'LynoAI installed.' : 'LynoAI uninstalled.')
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'Unable to update LynoAI installation.')
+      toast.error(getUserFacingErrorMessage(error, 'Unable to update LynoAI installation.'))
     }
   }
 
@@ -305,7 +306,7 @@ export function ExtensionsPanel() {
       setShowCreate(false)
       toast.success('Extension added.')
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'Unable to add extension.')
+      toast.error(getUserFacingErrorMessage(error, 'Unable to add extension.'))
     }
   }
 
@@ -316,7 +317,7 @@ export function ExtensionsPanel() {
         item.id === extension.id ? { ...item, enabled: !item.enabled } : item))
       if (extension.enabled && activeExtension?.id === extension.id) stopExtension()
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'Unable to update extension.')
+      toast.error(getUserFacingErrorMessage(error, 'Unable to update extension.'))
     }
   }
 
@@ -327,7 +328,7 @@ export function ExtensionsPanel() {
         item.id === extension.id ? { ...item, published: !item.published } : item))
       toast.success(extension.published ? 'Extension removed from marketplace.' : 'Extension published.')
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'Unable to update publication.')
+      toast.error(getUserFacingErrorMessage(error, 'Unable to update publication.'))
     }
   }
 
@@ -340,7 +341,7 @@ export function ExtensionsPanel() {
       ])
       toast.success(`${extension.name} installed. Review its permissions before enabling it.`)
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'Unable to install extension.')
+      toast.error(getUserFacingErrorMessage(error, 'Unable to install extension.'))
     }
   }
 
@@ -352,7 +353,7 @@ export function ExtensionsPanel() {
       if (activeExtension?.id === extension.id) stopExtension()
       toast.success('Extension removed.')
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'Unable to remove extension.')
+      toast.error(getUserFacingErrorMessage(error, 'Unable to remove extension.'))
     }
   }
 

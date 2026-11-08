@@ -10,6 +10,7 @@ import { MarketplaceSellWizard } from "@/components/MarketplaceSellWizard";
 import { MarketplaceVerificationWizard } from "@/components/MarketplaceVerificationWizard";
 import { useTranslation } from "@/lib/i18n";
 import { formatUsd } from "@/lib/utils";
+import { getNetworkErrorMessage } from "@/lib/error-messages";
 
 type MarketItem = {
   id: string;
@@ -103,9 +104,10 @@ export default function MarketplacePage() {
     } catch (error) {
       const code = error instanceof Error ? error.message : "";
       setResendFeedback({
-        message: code === "VERIFICATION_RESEND_RATE_LIMITED"
-          ? (isFrench ? "Attendez une minute avant de demander un autre e-mail." : "Wait one minute before requesting another email.")
-          : (isFrench ? "L’e-mail n’a pas pu être envoyé. Réessayez." : "The email could not be sent. Try again."),
+        message: getNetworkErrorMessage(error)
+          ?? (code === "VERIFICATION_RESEND_RATE_LIMITED"
+            ? (isFrench ? "Attendez une minute avant de demander un autre e-mail." : "Wait one minute before requesting another email.")
+            : (isFrench ? "L’e-mail n’a pas pu être envoyé. Réessayez." : "The email could not be sent. Try again.")),
         isError: true,
       });
     } finally {

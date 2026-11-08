@@ -10,6 +10,7 @@ import { HeroImageSlider } from "@/components/HeroImageSlider";
 import { useLogoutTransition } from "@/components/auth/LogoutTransition";
 import { uploadAvatarImage } from "@/lib/cloudinary";
 import { useTranslation } from "@/lib/i18n";
+import { getNetworkErrorMessage } from "@/lib/error-messages";
 
 type WelcomeProfile = {
   name: string | null;
@@ -121,6 +122,10 @@ export function WelcomePage() {
       setProfileDraft((current) => current ? { ...current, image } : current);
       setAvatarError("");
     } catch (error) {
+      if (getNetworkErrorMessage(error)) {
+        setAvatarError(t("auth.errors.networkUnavailable"));
+        return;
+      }
       const failure = error instanceof Error ? error.message : "";
       const uploadDetail = failure.match(/^cloudinary_upload_failed:\s*(.+)$/)?.[1];
       setAvatarError(failure === "cloudinary_not_configured"

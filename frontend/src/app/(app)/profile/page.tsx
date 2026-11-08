@@ -90,6 +90,7 @@ export default function ProfilePage() {
   const postsQuery = useQuery({
     queryKey: ["posts", "author", userId],
     enabled: Boolean(userId),
+    refetchInterval: 3_000,
     queryFn: async () => {
       const response = await fetch(`/api/posts?authorId=${encodeURIComponent(userId ?? "")}&take=5`);
       if (!response.ok) throw new Error("posts_load_failed");

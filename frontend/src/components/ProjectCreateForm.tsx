@@ -6,6 +6,7 @@ import { Avatar } from "@/components/Avatar";
 import { useSession } from "next-auth/react";
 import { getUploadErrorCode, getUploadErrorDetails, uploadProjectImage } from "@/lib/cloudinary";
 import { useTranslation } from "@/lib/i18n";
+import { getNetworkErrorMessage } from "@/lib/error-messages";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -194,7 +195,7 @@ export function ProjectCreateForm({ onCreated, onCancel, parentTeamId, parentTea
       }
       onCreated(result.project, result.accountSuspended, result.teamApprovalRequired);
     } catch (error) {
-      setError(error instanceof TypeError ? "NETWORK_UNAVAILABLE" : "SERVICE_UNAVAILABLE");
+      setError(getNetworkErrorMessage(error) ? "NETWORK_UNAVAILABLE" : "SERVICE_UNAVAILABLE");
     } finally {
       setLoading(false);
     }

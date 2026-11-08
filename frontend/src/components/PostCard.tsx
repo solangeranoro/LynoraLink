@@ -14,7 +14,7 @@ import { PaginatedCodeBlock } from "@/components/PaginatedCodeBlock";
 import { PollCard, type PostPoll } from "@/components/PollCard";
 import { PostComments } from "@/components/PostComments";
 import { ProjectReviews } from "@/components/ProjectReviews";
-import { ReactionPicker, type ReactionType } from "@/components/ReactionPicker";
+import { POST_REACTIONS, ReactionPicker, type ReactionType } from "@/components/ReactionPicker";
 import { useTranslation } from "@/lib/i18n";
 import { cn, timeAgo } from "@/lib/utils";
 import { useSession } from "next-auth/react";
@@ -183,6 +183,9 @@ export function PostCard({
   const authorNameHref = postType === "PERSONAL" ? profileHref : contextHref ?? profileHref;
   const postTypeLabel = t(postType === "PERSONAL" ? "feed.postTypePersonal" : postType === "TEAM" ? "feed.postTypeTeam" : "feed.postTypeProject");
   const intentPresentation = postIntent ? postIntentPresentation[postIntent] : null;
+  const mostPopularReaction = POST_REACTIONS.reduce<ReactionType | null>((popular, candidate) => (
+    (reactionCounts[candidate] ?? 0) > (popular ? reactionCounts[popular] ?? 0 : 0) ? candidate : popular
+  ), null);
   useEffect(() => {
     setReaction(post.reactionByMe ?? (post.likedByMe ? "like" : null));
     setLikeCount(post._count.likes);
@@ -864,6 +867,7 @@ export function PostCard({
           <div className="-mx-3 flex flex-wrap items-center gap-1 overflow-visible px-3 pb-1 sm:mx-0 sm:gap-2 sm:px-0 sm:pb-0">
           <ReactionPicker
             selected={reaction}
+            displayReaction={mostPopularReaction}
             count={likeCount}
             reactionCounts={reactionCounts}
             showBreakdown={false}

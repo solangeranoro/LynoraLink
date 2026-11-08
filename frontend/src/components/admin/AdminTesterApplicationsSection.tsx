@@ -5,6 +5,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useRef, useState } from "react";
 import { Check, Clock3, ExternalLink, RefreshCw, X } from "lucide-react";
 import { useTranslation } from "@/lib/i18n";
+import { getUserFacingErrorMessage } from "@/lib/error-messages";
 import { AdminTesterApplicationsSkeleton } from "@/components/skeletons";
 
 type AdminApplication = {
@@ -76,7 +77,7 @@ export function AdminTesterApplicationsSection() {
       void queryClient.invalidateQueries({ queryKey: ["admin-dashboard"] });
     } catch (error) {
       queryClient.setQueryData(queryKey, previousApplications);
-      setActionError(error instanceof Error ? error.message : t("testerApplications.admin.genericError"));
+      setActionError(getUserFacingErrorMessage(error, t("testerApplications.admin.genericError")));
     } finally {
       setBusyId("");
       reviewInFlight.current = false;
@@ -108,7 +109,7 @@ export function AdminTesterApplicationsSection() {
 
       {actionError && <p role="alert" className="rounded-xl border border-rose-400/25 bg-rose-400/10 px-4 py-3 text-sm text-rose-200">{actionError}</p>}
       {applicationsQuery.isLoading ? <AdminTesterApplicationsSkeleton /> : applicationsQuery.isError ? (
-        <div role="alert" className="card p-6 text-sm text-rose-200">{applicationsQuery.error instanceof Error ? applicationsQuery.error.message : t("testerApplications.admin.errorFallback")}</div>
+        <div role="alert" className="card p-6 text-sm text-rose-200">{getUserFacingErrorMessage(applicationsQuery.error, t("testerApplications.admin.errorFallback"))}</div>
       ) : applicationsQuery.data?.length ? (
         <div className="space-y-4">
           {applicationsQuery.data.map((application) => (

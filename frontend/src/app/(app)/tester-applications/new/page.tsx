@@ -9,6 +9,7 @@ import { useTranslation } from "@/lib/i18n";
 import { TesterPlatformSelect } from "@/components/TesterPlatformSelect";
 import { ApplicationOwnerContactFields } from "@/components/ApplicationOwnerContactFields";
 import { ApplicationRoleSelect } from "@/components/ApplicationRoleSelect";
+import { getNetworkErrorMessage } from "@/lib/error-messages";
 import {
   ArrowLeft,
   Check,
@@ -40,11 +41,25 @@ const labelClass = "mb-1.5 block text-sm font-medium text-ink";
 const fileInputClass = "mt-3 block w-full text-xs text-ink-muted file:mr-3 file:rounded-lg file:border-0 file:bg-emerald-800 file:px-3 file:py-2 file:text-xs file:font-semibold file:text-white hover:file:bg-emerald-700";
 const maxImageBytes = 20 * 1024 * 1024;
 
-async function uploadImage(file: File, purpose: "logo" | "screenshot", errorMessage: string) {
+async function fetchApplicationApi(input: RequestInfo | URL, init: RequestInit, connectionError: string) {
+  try {
+    return await fetch(input, init);
+  } catch (error) {
+    if (getNetworkErrorMessage(error)) throw new Error(connectionError);
+    throw error;
+  }
+}
+
+async function uploadImage(
+  file: File,
+  purpose: "logo" | "screenshot",
+  errorMessage: string,
+  connectionError: string,
+) {
   const body = new FormData();
   body.set("file", file);
   body.set("purpose", purpose);
-  const response = await fetch("/api/tester-applications/media", { method: "POST", body });
+  const response = await fetchApplicationApi("/api/tester-applications/media", { method: "POST", body }, connectionError);
   if (!response.ok) throw new Error(errorMessage);
   return (await response.json() as UploadedImage).image;
 }
@@ -145,9 +160,17 @@ export default function NewTesterApplicationPage() {
     setError("");
     const values = new FormData(form);
     try {
-      const logoUrl = logo ? await uploadImage(logo, "logo", t("testerApplications.form.uploadError")) : null;
-      const screenshotUrls = await Promise.all(screenshotFiles.map((file) => uploadImage(file, "screenshot", t("testerApplications.form.uploadError"))));
-      const response = await fetch("/api/tester-applications", {
+      const connectionError = t("testerApplications.form.connectionError");
+      const logoUrl = logo
+        ? await uploadImage(logo, "logo", t("testerApplications.form.uploadError"), connectionError)
+        : null;
+      const screenshotUrls = await Promise.all(screenshotFiles.map((file) => uploadImage(
+        file,
+        "screenshot",
+        t("testerApplications.form.uploadError"),
+        connectionError,
+      )));
+      const response = await fetchApplicationApi("/api/tester-applications", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -170,16 +193,24 @@ export default function NewTesterApplicationPage() {
           ownerPhone: values.get("ownerPhone"),
           ownerAddress: values.get("ownerAddress"),
         }),
-      });
+      }, connectionError);
       if (!response.ok) {
         const result = await response.json().catch(() => null) as { error?: string } | null;
-        throw new Error(result?.error === "ADMIN_NOTIFICATION_UNAVAILABLE"
+        const message = result?.error === "ADMIN_NOTIFICATION_UNAVAILABLE"
           ? t("testerApplications.form.notificationError")
-          : t("testerApplications.form.submitError"));
+          : result?.error === "UNAUTHORIZED"
+            ? t("testerApplications.form.sessionExpired")
+            : result?.error === "INVALID_APPLICATION" || result?.error === "INVALID_MEDIA_URL"
+              ? t("testerApplications.form.validationError")
+              : response.status >= 500
+                ? t("testerApplications.form.serverError")
+                : t("testerApplications.form.submitError");
+        throw new Error(message);
       }
       router.push("/tester-applications?submitted=1");
     } catch (submitError) {
-      setError(submitError instanceof Error ? submitError.message : t("testerApplications.form.genericError"));
+      setError(getNetworkErrorMessage(submitError)
+        ?? (submitError instanceof Error ? submitError.message : t("testerApplications.form.genericError")));
     } finally {
       setSubmitting(false);
     }
@@ -264,21 +295,20 @@ export default function NewTesterApplicationPage() {
             <div className="rounded-2xl border border-dashed border-midnight-border bg-midnight-card/80 p-4">
               <label htmlFor="application-screenshots" className="flex items-center gap-2 text-sm font-medium text-ink"><UploadCloud size={17} className="text-emerald-200" /> {t("testerApplications.form.screenshots")}</label>
               <input id="application-screenshots" type="file" accept="image/avif,image/gif,image/jpeg,image/png,image/webp" multiple className={fileInputClass} onChange={(event) => {
-                const files = Array.from(event.target.files ?? []);
-                if (files.length > 6) {
+                const input = event.currentTarget;
+                const files = Array.from(input.files ?? []);
+                input.value = "";
+                if (!files.length) return;
+                if (screenshotFiles.length + files.length > 6) {
                   setError(t("testerApplications.form.screenshotsCountError"));
-                  event.target.value = "";
-                  setScreenshotFiles([]);
                   return;
                 }
                 if (files.some((file) => file.size > maxImageBytes)) {
                   setError(t("testerApplications.form.screenshotSizeError"));
-                  event.target.value = "";
-                  setScreenshotFiles([]);
                   return;
                 }
                 setError("");
-                setScreenshotFiles(files);
+                setScreenshotFiles((current) => [...current, ...files]);
               }} />
               <p className="mt-2 text-xs text-ink-muted">{t("testerApplications.form.screenshotsHint")}</p>
             </div>

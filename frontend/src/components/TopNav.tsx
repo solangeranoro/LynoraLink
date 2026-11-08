@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState, type FormEvent } from "react";
+import { useCallback, useEffect, useRef, useState, type FormEvent } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
@@ -71,9 +71,51 @@ type UserNotification = {
   readAt: string | null;
   createdAt: string;
   actorIsPlatformAdmin: boolean;
-  actor: { name: string | null; handle: string | null; image: string | null } | null;
+  actor: { id: string; name: string | null; handle: string | null; image: string | null } | null;
 };
 type NotificationResponse = { notifications: UserNotification[]; unreadCount: number };
+
+function FloatingNotificationToast({
+  notification,
+  message,
+  href,
+  closeLabel,
+  onDismiss,
+  onOpen,
+}: {
+  notification: UserNotification;
+  message: string;
+  href: string;
+  closeLabel: string;
+  onDismiss: (id: string) => void;
+  onOpen: () => void;
+}) {
+  useEffect(() => {
+    const timer = window.setTimeout(() => onDismiss(notification.id), 8_000);
+    return () => window.clearTimeout(timer);
+  }, [notification.id, onDismiss]);
+
+  return (
+    <div role="status" aria-live="polite" className="pointer-events-auto flex w-full items-start gap-3 rounded-2xl border border-gold/25 bg-midnight-card/95 p-3.5 text-ink shadow-[0_18px_50px_rgba(0,0,0,0.35)] backdrop-blur-xl animate-slide-left">
+      {notification.actorIsPlatformAdmin
+        ? <Logo size={38} />
+        : <Avatar src={notification.actor?.image ?? null} name={notification.actor?.name ?? notification.actor?.handle ?? "Maker"} size={38} />}
+      <Link href={href} onClick={onOpen} className="min-w-0 flex-1 rounded-md outline-none focus-visible:ring-2 focus-visible:ring-gold/60">
+        <span className="block text-[10px] font-semibold uppercase tracking-[0.14em] text-gold-soft">LynoraLink</span>
+        <span className="mt-1 block text-sm leading-relaxed">{message}</span>
+      </Link>
+      <button
+        type="button"
+        onClick={() => onDismiss(notification.id)}
+        aria-label={closeLabel}
+        title={closeLabel}
+        className="grid h-8 w-8 shrink-0 place-items-center rounded-lg text-ink-muted transition hover:bg-midnight-deep hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold/60"
+      >
+        <FontAwesomeIcon icon={faXmark} className="h-4 w-4" aria-hidden="true" />
+      </button>
+    </div>
+  );
+}
 
 declare global {
   interface Navigator {
@@ -107,6 +149,38 @@ export function TopNav() {
     },
     refetchInterval: 3_000,
   });
+  const [floatingNotifications, setFloatingNotifications] = useState<UserNotification[]>([]);
+  const seenNotificationsRef = useRef<{ userId: string | null; ids: Set<string> }>({ userId: null, ids: new Set() });
+  const dismissFloatingNotification = useCallback((id: string) => {
+    setFloatingNotifications((current) => current.filter((notification) => notification.id !== id));
+  }, []);
+  useEffect(() => {
+    const userId = session?.user?.id;
+    const response = notificationQuery.data;
+    if (!userId) {
+      seenNotificationsRef.current = { userId: null, ids: new Set() };
+      setFloatingNotifications([]);
+      return;
+    }
+    if (!response) return;
+
+    const tracker = seenNotificationsRef.current;
+    if (tracker.userId !== userId) {
+      seenNotificationsRef.current = {
+        userId,
+        ids: new Set(response.notifications.map(({ id }) => id)),
+      };
+      setFloatingNotifications([]);
+      return;
+    }
+
+    const freshNotifications = response.notifications.filter(({ id }) => !tracker.ids.has(id));
+    response.notifications.forEach(({ id }) => tracker.ids.add(id));
+    const unreadFreshNotifications = freshNotifications.filter(({ readAt }) => !readAt);
+    if (unreadFreshNotifications.length) {
+      setFloatingNotifications((current) => [...current, ...unreadFreshNotifications].slice(-3));
+    }
+  }, [notificationQuery.data, session?.user?.id]);
   const markNotificationRead = useMutation({
     mutationFn: async (payload: { id?: string; all?: boolean }) => {
       const response = await fetch("/api/notifications", {
@@ -248,8 +322,10 @@ export function TopNav() {
   function notificationHref(notification: UserNotification) {
     if (notification.type === "WELCOME") return "/dashboard";
     if (notification.type === "POST_REACTION" || notification.type === "POST_COMMENT") return `/dashboard#post-${notification.targetId}`;
-    if (notification.type === "ASSOCIATION_REQUEST") return "/profile#association-requests";
-    if (notification.type === "ASSOCIATION_ACCEPTED") return "/messages";
+    if (notification.type === "ASSOCIATION_REQUEST" || notification.type === "ASSOCIATION_ACCEPTED") {
+      const makerId = notification.actor?.handle ?? notification.actor?.id;
+      return makerId ? `/makers/${encodeURIComponent(makerId)}` : "/makers";
+    }
     if (notification.type === "PROJECT_REQUEST") return `/teams/${notification.targetId}/manage`;
     if (notification.type === "TEAM_MODERATION_ALERT") return `/teams/${notification.targetId}/manage`;
     if (notification.type === "TESTER_APPLICATION_SUBMITTED") return "/admin/tester-applications";
@@ -692,6 +768,24 @@ export function TopNav() {
               </div>
             </div>
           </aside>
+        </div>
+      )}
+      {floatingNotifications.length > 0 && (
+        <div className="pointer-events-none fixed right-4 top-20 z-[80] flex w-[min(24rem,calc(100vw-2rem))] flex-col gap-3 sm:right-6" aria-label={t("notifications.title")}>
+          {floatingNotifications.map((notification) => (
+            <FloatingNotificationToast
+              key={notification.id}
+              notification={notification}
+              message={notificationText(notification)}
+              href={notificationHref(notification)}
+              closeLabel={t("common.close")}
+              onDismiss={dismissFloatingNotification}
+              onOpen={() => {
+                if (!notification.readAt) markNotificationRead.mutate({ id: notification.id });
+                dismissFloatingNotification(notification.id);
+              }}
+            />
+          ))}
         </div>
       )}
       {logoutOverlay}

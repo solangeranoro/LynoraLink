@@ -6,7 +6,6 @@ import { canViewProject } from "@/lib/project-access";
 export async function GET(_request: Request, props: { params: Promise<{ id: string }> }) {
   const params = await props.params;
   const session = await auth();
-  if (!session?.user?.id) return NextResponse.json({ error: "UNAUTHORIZED" }, { status: 401 });
 
   const team = await prisma.project.findUnique({
     where: { id: params.id },
@@ -49,12 +48,14 @@ export async function GET(_request: Request, props: { params: Promise<{ id: stri
   });
   if (!team?.teamName?.trim()) return NextResponse.json({ error: "NOT_FOUND" }, { status: 404 });
 
-  const membership = await prisma.projectCollaborator.findUnique({
-    where: { projectId_userId: { projectId: params.id, userId: session.user.id } },
-    select: { id: true, status: true, role: true, invitedById: true },
-  });
-  const isOwner = team.creatorId === session.user.id;
-  if (!(await canViewProject(params.id, session.user.id))) {
+  const membership = session?.user?.id
+    ? await prisma.projectCollaborator.findUnique({
+      where: { projectId_userId: { projectId: params.id, userId: session.user.id } },
+      select: { id: true, status: true, role: true, invitedById: true },
+    })
+    : null;
+  const isOwner = Boolean(session?.user?.id && team.creatorId === session.user.id);
+  if (!(await canViewProject(params.id, session?.user?.id))) {
     return NextResponse.json({ error: "NOT_FOUND" }, { status: 404 });
   }
 

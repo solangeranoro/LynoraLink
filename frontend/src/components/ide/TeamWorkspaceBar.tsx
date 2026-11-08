@@ -3,6 +3,7 @@
 import { FormEvent, useEffect, useState } from 'react'
 import { MessageCircle, Send } from 'lucide-react'
 import { getCodingTeamId } from '@/lib/workspace-api'
+import { getUserFacingErrorMessage } from '@/lib/error-messages'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 
 type TeamMessage = {
@@ -44,7 +45,7 @@ export function TeamWorkspaceBar() {
         if (!response.ok) throw new Error(result.error ?? 'Could not load team workspaces.')
         setTeams(result.teams ?? [])
       } catch (cause) {
-        setError(cause instanceof Error ? cause.message : 'Could not load team workspaces.')
+        setError(getUserFacingErrorMessage(cause, 'Could not load team workspaces.'))
       }
     }
     void loadTeams()
@@ -72,7 +73,7 @@ export function TeamWorkspaceBar() {
           setMembers(memberResult.members ?? [])
         }
       } catch (cause) {
-        if (active) setError(cause instanceof Error ? cause.message : 'Could not load team discussion.')
+        if (active) setError(getUserFacingErrorMessage(cause, 'Could not load team discussion.'))
       }
     }
     void loadMessages()
@@ -96,7 +97,7 @@ export function TeamWorkspaceBar() {
       setMembers((current) => current.map((item) => item.id === member.id ? { ...item, role } : item))
       setError(null)
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : 'Could not update member role.')
+      setError(getUserFacingErrorMessage(cause, 'Could not update member role.'))
     }
   }
 
@@ -116,7 +117,7 @@ export function TeamWorkspaceBar() {
       setDraft('')
       setError(null)
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : 'Could not send discussion message.')
+      setError(getUserFacingErrorMessage(cause, 'Could not send discussion message.'))
     } finally {
       setSending(false)
     }

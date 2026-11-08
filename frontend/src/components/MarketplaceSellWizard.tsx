@@ -4,6 +4,7 @@ import { useEffect, useState, type FormEvent } from "react";
 import { ArrowLeft, ArrowRight, Check, Languages, LoaderCircle, PackagePlus } from "@/components/FontAwesomeIcons";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { formatUsd } from "@/lib/utils";
+import { getNetworkErrorMessage } from "@/lib/error-messages";
 
 type ListingType = "TEMPLATE" | "MICRO_SAAS" | "SERVICE";
 type SocialNetwork = "facebook" | "instagram" | "tiktok" | "youtube" | "x" | "linkedin" | "discord" | "telegram" | "subreddit";
@@ -190,11 +191,12 @@ export function MarketplaceSellWizard({ onPublished, initialLanguage = "fr" }: {
       setForm(createEmptyForm(initialLanguage)); setStep(0); onPublished();
     } catch (error) {
       const code = error instanceof Error ? error.message : "";
-      setStatus(code === "UNAUTHORIZED"
+      setStatus(getNetworkErrorMessage(error, isFrench ? "fr" : "en")
+        ?? (code === "UNAUTHORIZED"
         ? text("Connectez-vous pour publier une annonce.", "Sign in to publish a listing.")
         : code === "VERIFICATION_REQUIRED"
           ? text("Confirmez votre profil vendeur avant de publier.", "Verify your seller profile before publishing.")
-          : text("Envoi impossible. Vérifiez les champs et réessayez.", "Submission failed. Check the fields and try again."));
+          : text("Envoi impossible. Vérifiez les champs et réessayez.", "Submission failed. Check the fields and try again.")));
     } finally { setSaving(false); }
   }
 

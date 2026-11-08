@@ -20,17 +20,18 @@ export async function createNotification(recipientId: string, actorId: string, t
   if (recipientId === actorId) return;
   await prisma.notification.create({ data: { recipientId, actorId, type, targetId } });
   const { sendFirebasePushNotification } = await import("@/lib/firebase-push");
-  await sendFirebasePushNotification(recipientId, type, actorId, notificationLink(type, targetId)).catch((error: unknown) => {
+  await sendFirebasePushNotification(recipientId, type, actorId, notificationLink(type, targetId, actorId)).catch((error: unknown) => {
     console.error("Firebase push notifications are unavailable:", error);
   });
 }
 
-function notificationLink(type: NotificationKind, targetId: string) {
+function notificationLink(type: NotificationKind, targetId: string, actorId: string) {
   const encodedTargetId = encodeURIComponent(targetId);
   if (type === "WELCOME") return "/dashboard";
   if (type === "POST_REACTION" || type === "POST_COMMENT") return `/dashboard#post-${encodedTargetId}`;
-  if (type === "ASSOCIATION_REQUEST") return "/profile#association-requests";
-  if (type === "ASSOCIATION_ACCEPTED") return "/messages";
+  if (type === "ASSOCIATION_REQUEST" || type === "ASSOCIATION_ACCEPTED") {
+    return `/makers/${encodeURIComponent(actorId)}`;
+  }
   if (type === "PROJECT_REQUEST" || type === "TEAM_MODERATION_ALERT") return `/teams/${encodedTargetId}/manage`;
   if (type === "TESTER_APPLICATION_SUBMITTED") return "/admin/tester-applications";
   if (type === "TESTER_APPLICATION_BUG_REPORTED") return `/tester-applications/${encodedTargetId}#tester-bugs`;

@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState, type ChangeEvent, type FormEvent, type KeyboardEvent, type ReactNode } from "react";
+import { flushSync } from "react-dom";
 import Link from "next/link";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { ArrowLeft, CalendarDays, Check, ChevronDown, Code2, CornerDownRight, FileText, LoaderCircle, MessageCircle, MessagesSquare, MoreHorizontal, Paperclip, Plus, Search, Send, Trash2, X } from "@/components/FontAwesomeIcons";
@@ -604,10 +605,12 @@ export default function MessageCenter() {
     lastTypingPingRef.current = 0;
     publishTypingStatus(selectedId, false);
     const replyToMessage = replyingTo;
-    setDraft("");
-    setSelectedFiles([]);
-    setAttachmentError(null);
-    setReplyingTo(null);
+    flushSync(() => {
+      setDraft("");
+      setSelectedFiles([]);
+      setAttachmentError(null);
+      setReplyingTo(null);
+    });
     sendMessageMutation.mutate({
       conversationId: selectedId,
       content,

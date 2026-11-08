@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   ArrowUpRight,
@@ -18,6 +19,7 @@ import { Avatar } from "@/components/Avatar";
 import { useActionToast } from "@/components/ActionToast";
 import { useSession } from "next-auth/react";
 import { useTranslation } from "@/lib/i18n";
+import { getNetworkErrorMessage } from "@/lib/error-messages";
 
 interface TeamProject {
   id: string;
@@ -164,7 +166,7 @@ export default function TeamsPage() {
   });
 
   function loadErrorMessage(error: unknown) {
-    if (error instanceof TypeError) return t("auth.errors.networkUnavailable");
+    if (getNetworkErrorMessage(error)) return t("auth.errors.networkUnavailable");
     if (error instanceof Error && error.message === "UNAUTHORIZED") return t("auth.errors.sessionExpired");
     if (error instanceof Error && error.message === "FORBIDDEN") return t("auth.errors.accessDenied");
     return t("auth.errors.serviceUnavailable");
@@ -295,7 +297,7 @@ export default function TeamsPage() {
               const membership = team.collaborators.find((item) => item.userId === session?.user?.id);
               const isOwner = team.creatorId === session?.user?.id;
               return (
-                <article key={team.id} className="card space-y-4 p-4 transition hover:border-gold/30">
+                <article key={team.id} className="card space-y-4 overflow-hidden p-4 transition hover:border-gold/30">
                   <div className="flex items-start justify-between gap-3">
                     <div className="flex min-w-0 items-center gap-3">
                       <TeamMark team={team} />
@@ -441,7 +443,7 @@ export default function TeamsPage() {
               const membership = team.collaborators.find((item) => item.userId === session?.user?.id);
               const isJoining = joinMutation.isPending && joinMutation.variables === team.id;
               return (
-                <article key={team.id} className="card space-y-4 p-4 transition hover:border-gold/30">
+                <article key={team.id} className="card space-y-4 overflow-hidden p-4 transition hover:border-gold/30">
                   <div className="flex items-start justify-between gap-3">
                     <div className="flex min-w-0 items-center gap-3">
                       <TeamMark team={team} />

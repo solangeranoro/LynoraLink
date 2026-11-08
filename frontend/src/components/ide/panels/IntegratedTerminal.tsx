@@ -14,6 +14,7 @@ import { OutputPanel } from './OutputPanel'
 import { DebugPanel } from './DebugPanel'
 import { BadgeNotification } from '../BadgeNotification'
 import { loadWorkspaceTerminalPorts } from '@/lib/workspace-api'
+import { getUserFacingErrorMessage } from '@/lib/error-messages'
 import type { CodingTerminalPort, TerminalSession } from '@/types/ide'
 import {
   pollWorkspaceTerminalSession,
@@ -139,7 +140,7 @@ function TerminalSurface({
       inputQueue = inputQueue
         .then(() => writeWorkspaceTerminalInput(inputSessionId, data))
         .catch((error: unknown) => reportError(
-          error instanceof Error ? error.message : 'Could not send input to the terminal.',
+          getUserFacingErrorMessage(error, 'Could not send input to the terminal.'),
         ))
     }
 
@@ -159,7 +160,7 @@ function TerminalSurface({
       if (!sessionId || !sessionRunning || size === lastSize) return
       lastSize = size
       void resizeWorkspaceTerminal(sessionId, terminal.cols, terminal.rows).catch((error: unknown) => {
-        reportError(error instanceof Error ? error.message : 'Could not resize the terminal.')
+        reportError(getUserFacingErrorMessage(error, 'Could not resize the terminal.'))
       })
     }
 
@@ -236,7 +237,7 @@ function TerminalSurface({
       } catch (error) {
         if (!mounted || (error instanceof DOMException && error.name === 'AbortError')) return
         setCommandRunning(false)
-        const message = error instanceof Error ? error.message : 'Unable to start the interactive terminal.'
+        const message = getUserFacingErrorMessage(error, 'Unable to start the interactive terminal.')
         reportError(message)
         useIdeStore.getState().setTerminalStatus(terminalId, false, false)
       }
@@ -326,7 +327,7 @@ export function IntegratedTerminal() {
         }
       } catch (error) {
         if (!mounted || (error instanceof DOMException && error.name === 'AbortError')) return
-        setPortsError(error instanceof Error ? error.message : 'Could not load forwarded ports.')
+        setPortsError(getUserFacingErrorMessage(error, 'Could not load forwarded ports.'))
       }
     }
     void refresh()

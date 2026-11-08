@@ -1,4 +1,9 @@
 /** @type {import('next').NextConfig} */
+const apiBackendUrl = (
+  process.env.API_BACKEND_URL
+  ?? (process.env.NODE_ENV === "production" ? "https://api.lynoralink.com" : "http://localhost:4000")
+).replace(/\/+$/, "");
+
 const nextConfig = {
   reactStrictMode: true,
   distDir: process.env.NEXT_DIST_DIR ?? ".next",
@@ -11,7 +16,7 @@ const nextConfig = {
     return [
       {
         source: "/api/:path*",
-        destination: `${process.env.API_BACKEND_URL ?? "http://localhost:4000"}/api/:path*`,
+        destination: `${apiBackendUrl}/api/:path*`,
       },
     ];
   },

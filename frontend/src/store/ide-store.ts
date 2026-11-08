@@ -27,6 +27,7 @@ import {
 import { flattenProjectFiles } from '@/lib/workspace-files'
 import { DEFAULT_EDITOR_SETTINGS, ideEventBus, type EditorSettings } from '@/lib/ide/event-bus'
 import { saveEditorSettings } from '@/lib/workspace-api'
+import { getUserFacingErrorMessage } from '@/lib/error-messages'
 import {
   DEFAULT_LYNOAI_SETTINGS,
   saveLynoaAISettings,
@@ -216,7 +217,7 @@ export const useIdeStore = create<IdeState>((set, get) => ({
       ideEventBus.emit('workspace:loaded', { fileCount: currentFiles.filter((file) => !file.isDirectory).length })
     } catch (error) {
       set({ workspaceLoading: false })
-      toast.error(error instanceof Error ? error.message : 'Could not load workspace.')
+      toast.error(getUserFacingErrorMessage(error, 'Could not load workspace.'))
     }
   },
 
@@ -336,7 +337,7 @@ export const useIdeStore = create<IdeState>((set, get) => ({
       ideEventBus.emit('file:saved', { path: tab.path })
     } catch (error) {
       set({ saving: false })
-      toast.error(error instanceof Error ? error.message : `Could not save ${tab.path}.`)
+      toast.error(getUserFacingErrorMessage(error, `Could not save ${tab.path}.`))
     }
   },
 
@@ -404,7 +405,7 @@ export const useIdeStore = create<IdeState>((set, get) => ({
     if (settingsSaveTimer) clearTimeout(settingsSaveTimer)
     settingsSaveTimer = setTimeout(() => {
       void saveEditorSettings(get().settings).catch((error: unknown) => {
-        toast.error(error instanceof Error ? error.message : 'Could not save editor settings.')
+        toast.error(getUserFacingErrorMessage(error, 'Could not save editor settings.'))
       })
     }, 300)
   },
@@ -575,7 +576,7 @@ export const useIdeStore = create<IdeState>((set, get) => ({
       ideEventBus.emit('file:created', { path })
       if (created && !created.isDirectory) get().openFile(created)
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'Could not create the file.')
+      toast.error(getUserFacingErrorMessage(error, 'Could not create the file.'))
     }
   },
 
@@ -622,7 +623,7 @@ export const useIdeStore = create<IdeState>((set, get) => ({
         `${replaceWorkspace ? 'Loaded' : 'Imported'} ${importedCount} item${importedCount === 1 ? '' : 's'}${replaceWorkspace && importedProjectName ? ` from ${importedProjectName}` : ''}.${skippedFiles ? ` ${skippedFiles} unsupported, binary, large or excluded file(s) were skipped.` : ''}`,
       )
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'Could not import the selected files.')
+      toast.error(getUserFacingErrorMessage(error, 'Could not import the selected files.'))
     }
   },
 
@@ -652,7 +653,7 @@ export const useIdeStore = create<IdeState>((set, get) => ({
       if (firstChangedFile) get().openFile(firstChangedFile)
       return true
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'Could not apply LynoAI changes.')
+      toast.error(getUserFacingErrorMessage(error, 'Could not apply LynoAI changes.'))
       return false
     }
   },
@@ -677,7 +678,7 @@ export const useIdeStore = create<IdeState>((set, get) => ({
         })
       }
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : `Could not delete ${path}.`)
+      toast.error(getUserFacingErrorMessage(error, `Could not delete ${path}.`))
     }
   },
 }))

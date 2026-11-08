@@ -12,6 +12,7 @@ import { Textarea } from '@/components/ui/textarea'
 import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { CodeRenderer } from '@/components/CodeRenderer'
+import { getNetworkErrorMessage } from '@/lib/error-messages'
 import {
   loadLynoAICodingProgress,
   loadWorkspaceTerminalPorts,
@@ -735,9 +736,10 @@ export function CodingAssistantPanel() {
       setWorkflowStep('analyze', 'failed', code || (isFrench ? 'La demande a échoué' : 'Request failed'))
       const fallback = isFrench ? 'LynoAI est temporairement indisponible. Réessayez.' : 'LynoAI is temporarily unavailable. Please try again.'
       const translated = errorText(code, isFrench)
-      setError(cause instanceof TypeError
-        ? (isFrench ? 'Impossible de joindre LynoAI. Vérifiez votre connexion.' : 'Could not reach LynoAI. Check your connection.')
-        : translated === fallback ? (code || fallback) : translated)
+      setError(getNetworkErrorMessage(cause, isFrench ? 'fr' : 'en')
+        ?? (cause instanceof TypeError
+          ? (isFrench ? 'Impossible de joindre LynoAI. Vérifiez votre connexion.' : 'Could not reach LynoAI. Check your connection.')
+          : translated === fallback ? (code || fallback) : translated))
       setInput(text)
     } finally {
       requestAbortController.current?.abort()

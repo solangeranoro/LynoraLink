@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { Eye, EyeOff, Loader2, Mail, Lock, User, AtSign, Github, Twitter, X, MapPin, Phone, CalendarRange, ShieldCheck } from "@/components/FontAwesomeIcons";
 import { OAuthButtons } from "@/components/auth/OAuthButtons";
 import { useTranslation } from "@/lib/i18n";
+import { getNetworkErrorMessage } from "@/lib/error-messages";
 
 const TOTAL_STEPS = 3;
 
@@ -154,7 +155,7 @@ export function RegisterForm() {
         return;
       } catch (error) {
         setLoading(false);
-        setError(error instanceof TypeError ? t("auth.errors.networkUnavailable") : t("auth.errors.serviceUnavailable"));
+        setError(getNetworkErrorMessage(error) ?? t("auth.errors.serviceUnavailable"));
         return;
       }
     }
@@ -182,7 +183,7 @@ export function RegisterForm() {
       }
     } catch (error) {
       setLoading(false);
-      setError(error instanceof TypeError ? t("auth.errors.networkUnavailable") : t("auth.errors.serviceUnavailable"));
+      setError(getNetworkErrorMessage(error) ?? t("auth.errors.serviceUnavailable"));
       return;
     }
     try {
@@ -215,7 +216,7 @@ export function RegisterForm() {
       }
       setNotice(t("auth.registrationCodeSent", { email: form.email }));
     } catch (error) {
-      setError(error instanceof TypeError ? t("auth.errors.networkUnavailable") : t("auth.errors.serviceUnavailable"));
+      setError(getNetworkErrorMessage(error) ?? t("auth.errors.serviceUnavailable"));
     } finally {
       setResendingCode(false);
     }

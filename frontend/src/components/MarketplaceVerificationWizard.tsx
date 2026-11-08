@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { getCountries, getCountryCallingCode, parsePhoneNumberFromString } from "libphonenumber-js";
 import * as CountryFlags from "country-flag-icons/react/3x2";
 import { ArrowLeft, ArrowRight, BadgeCheck, Check, ChevronDown, Globe2, LockKeyhole, Mail, Search, ShieldCheck, UserRound, X } from "@/components/FontAwesomeIcons";
+import { getNetworkErrorMessage } from "@/lib/error-messages";
 
 function CountryFlag({ code }: { code: string }) {
   const Flag = CountryFlags[code as keyof typeof CountryFlags];
@@ -112,7 +113,8 @@ export function MarketplaceVerificationWizard({ isFrench, email, onSubmitted, on
       onSubmitted();
     } catch (submitError) {
       const code = submitError instanceof Error ? submitError.message : "";
-      setError(code === "VERIFICATION_EMAIL_SEND_FAILED"
+      setError(getNetworkErrorMessage(submitError, isFrench ? "fr" : "en")
+        ?? (code === "VERIFICATION_EMAIL_SEND_FAILED"
         ? (isFrench ? "L’e-mail n’a pas pu être envoyé. Vérifiez la configuration e-mail puis réessayez." : "The email could not be sent. Check the email configuration and try again.")
         : code === "EMAIL_DELIVERY_NOT_CONFIGURED"
           ? (isFrench ? "L’envoi réel des e-mails n’est pas configuré sur le serveur. Contactez l’assistance." : "Email delivery is not configured on the server. Contact support.")
@@ -126,7 +128,7 @@ export function MarketplaceVerificationWizard({ isFrench, email, onSubmitted, on
               ? (isFrench
                 ? "Un profil vendeur déjà vérifié est associé à votre compte. Actualisez la page pour ouvrir votre espace vendeur."
                 : "A seller profile is already verified for your account. Refresh the page to open your seller workspace.")
-          : (isFrench ? "La demande n’a pas pu être envoyée. Vérifiez les informations puis réessayez." : "The request could not be sent. Check the details and try again."));
+          : (isFrench ? "La demande n’a pas pu être envoyée. Vérifiez les informations puis réessayez." : "The request could not be sent. Check the details and try again.")));
     } finally {
       setIsSubmitting(false);
     }

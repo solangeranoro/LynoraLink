@@ -236,8 +236,8 @@ export default function TeamDetailPage() {
   if (isError || !team) {
     return (
       <div className="mx-auto max-w-3xl space-y-5">
-        <Link href="/teams" className="inline-flex min-h-9 items-center gap-2 text-sm font-medium text-ink-muted hover:text-ink">
-          <ArrowLeft size={16} aria-hidden="true" />{t("teams.title")}
+        <Link href={session?.user?.id ? "/teams" : "/"} className="inline-flex min-h-9 items-center gap-2 text-sm font-medium text-ink-muted hover:text-ink">
+          <ArrowLeft size={16} aria-hidden="true" />{session?.user?.id ? t("teams.title") : locale === "fr" ? "Accueil" : "Home"}
         </Link>
         <p role="alert" className="card p-5 text-sm text-rose-300">{t("teams.detailLoadError")}</p>
       </div>
@@ -275,8 +275,8 @@ export default function TeamDetailPage() {
 
   return (
     <div className="mx-auto max-w-6xl space-y-5 pb-10">
-      <Link href="/teams" className="inline-flex min-h-8 items-center gap-2 text-xs font-medium text-ink-muted transition hover:text-ink">
-        <ArrowLeft size={16} aria-hidden="true" />{t("teams.title")}
+      <Link href={session?.user?.id ? "/teams" : "/"} className="inline-flex min-h-8 items-center gap-2 text-xs font-medium text-ink-muted transition hover:text-ink">
+        <ArrowLeft size={16} aria-hidden="true" />{session?.user?.id ? t("teams.title") : locale === "fr" ? "Accueil" : "Home"}
       </Link>
 
       <header className="mobile-edge-card rounded-xl border border-midnight-border bg-midnight-card/55 p-4 shadow-card sm:p-5">
@@ -307,7 +307,14 @@ export default function TeamDetailPage() {
                 <Settings2 size={14} aria-hidden="true" />{t("teams.settingsAction")}
               </Link>
             ) : !membership && (
-              <Link href="#recruitment" className="btn-gold !min-h-9 !rounded-lg !px-3 !py-2 text-xs">{t("teams.buildWithUs")}</Link>
+              <Link
+                href={session?.user?.id ? "#recruitment" : `/login?callbackUrl=${encodeURIComponent(`/teams/${team.id}`)}`}
+                className="btn-gold !min-h-9 !rounded-lg !px-3 !py-2 text-xs"
+              >
+                {session?.user?.id
+                  ? t("teams.buildWithUs")
+                  : locale === "fr" ? "Se connecter pour rejoindre" : "Sign in to join"}
+              </Link>
             )}
             <button type="button" onClick={shareHub} className="btn-ghost !min-h-9 !rounded-lg !px-3 !py-2 text-xs" aria-label={t("teams.shareHub")} title={t("teams.shareHub")}>
               <Share2 size={14} aria-hidden="true" /><span>{t("teams.shareHub")}</span>
@@ -449,21 +456,26 @@ export default function TeamDetailPage() {
             ) : null}
             {canApply && (
               <div className="border-t border-midnight-border pt-3">
-                <button
-                  type="button"
-                  disabled={!session?.user?.id}
-                  onClick={() => {
-                    setApplicationAnswers(applicationQuestions.map(() => ""));
-                    setApplicationMessage("");
-                    setJoinStep(0);
-                    setAcceptedTeamRules(false);
-                    setJoinError("");
-                    setJoinFormOpen(true);
-                  }}
-                  className="btn-gold w-full !rounded-lg"
-                >
-                  {t(membership?.status === "REJECTED" ? "teams.resubmitRequest" : "teams.joinAction")}
-                </button>
+                {session?.user?.id ? (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setApplicationAnswers(applicationQuestions.map(() => ""));
+                      setApplicationMessage("");
+                      setJoinStep(0);
+                      setAcceptedTeamRules(false);
+                      setJoinError("");
+                      setJoinFormOpen(true);
+                    }}
+                    className="btn-gold w-full !rounded-lg"
+                  >
+                    {t(membership?.status === "REJECTED" ? "teams.resubmitRequest" : "teams.joinAction")}
+                  </button>
+                ) : (
+                  <Link href={`/login?callbackUrl=${encodeURIComponent(`/teams/${team.id}`)}`} className="btn-gold w-full !rounded-lg">
+                    {locale === "fr" ? "Se connecter pour rejoindre" : "Sign in to join"}
+                  </Link>
+                )}
               </div>
             )}
             {!team.isOwner && membership?.status === "PENDING" && membership.invitedById && (

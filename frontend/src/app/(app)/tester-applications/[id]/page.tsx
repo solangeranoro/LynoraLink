@@ -7,6 +7,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useRef, useState, type FormEvent, type MouseEvent } from "react";
 import { ArrowLeft, Bug, Check, Clock3, ExternalLink, MessageCircle, Share2, Star, UsersRound, X } from "lucide-react";
 import { useTranslation } from "@/lib/i18n";
+import { getUserFacingErrorMessage } from "@/lib/error-messages";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog";
 import { Avatar } from "@/components/Avatar";
@@ -242,7 +243,7 @@ export default function TesterApplicationDetailPage() {
       await queryClient.invalidateQueries({ queryKey });
       return true;
     } catch (submitError) {
-      setError(submitError instanceof Error ? submitError.message : t("testerApplications.detail.submitError"));
+      setError(getUserFacingErrorMessage(submitError, t("testerApplications.detail.submitError")));
       return false;
     }
   }
@@ -260,7 +261,7 @@ export default function TesterApplicationDetailPage() {
       if (!response.ok) throw new Error(t("testerApplications.detail.voteError"));
       await queryClient.invalidateQueries({ queryKey: ["tester-application-interactions", id] });
     } catch (voteError) {
-      setError(voteError instanceof Error ? voteError.message : t("testerApplications.detail.voteError"));
+      setError(getUserFacingErrorMessage(voteError, t("testerApplications.detail.voteError")));
     } finally {
       setVotingPollId(null);
     }
@@ -297,7 +298,7 @@ export default function TesterApplicationDetailPage() {
   }
 
   if (applicationQuery.isLoading) return <ApplicationDetailLoadingSkeleton label={t("testerApplications.detail.loading")} />;
-  if (applicationQuery.isError || !applicationQuery.data) return <main className="mx-auto max-w-3xl px-4 py-12"><div role="alert" className="card p-6 text-center"><h1 className="text-xl font-semibold text-ink">{t("testerApplications.detail.notFound")}</h1><p className="mt-2 text-sm text-ink-muted">{applicationQuery.error instanceof Error ? applicationQuery.error.message : t("testerApplications.detail.inaccessible")}</p><Link href="/tester-applications" className="btn-ghost mt-5"><ArrowLeft size={16} /> {t("testerApplications.detail.backToList")}</Link></div></main>;
+  if (applicationQuery.isError || !applicationQuery.data) return <main className="mx-auto max-w-3xl px-4 py-12"><div role="alert" className="card p-6 text-center"><h1 className="text-xl font-semibold text-ink">{t("testerApplications.detail.notFound")}</h1><p className="mt-2 text-sm text-ink-muted">{getUserFacingErrorMessage(applicationQuery.error, t("testerApplications.detail.inaccessible"))}</p><Link href="/tester-applications" className="btn-ghost mt-5"><ArrowLeft size={16} /> {t("testerApplications.detail.backToList")}</Link></div></main>;
   const application = applicationQuery.data;
 
   return (

@@ -9,6 +9,7 @@ import { LynoaAIExtension } from '@/lib/ide/lynoai-extension'
 import { toast } from 'sonner'
 import { pythonLanguage } from '@codemirror/lang-python'
 import { createCodingCollaborationSession } from '@/lib/workspace-api'
+import { getUserFacingErrorMessage } from '@/lib/error-messages'
 
 interface CodeEditorProps {
   tabId: string
@@ -94,7 +95,7 @@ export function CodeEditor({ tabId, value, language, teamId, onChange }: CodeEdi
       } catch (error) {
         if (!cancelled) {
           editorInstance.updateOptions({ readOnly: true })
-          toast.error(error instanceof Error ? error.message : 'Could not connect to the team workspace.')
+          toast.error(getUserFacingErrorMessage(error, 'Could not connect to the team workspace.'))
         }
       }
     }

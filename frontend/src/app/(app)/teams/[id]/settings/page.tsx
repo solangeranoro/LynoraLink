@@ -178,6 +178,11 @@ export default function TeamSettingsPage() {
       });
       if (!response.ok) throw new Error("team_save_failed");
       setNotice(t("teams.settingsSaved"));
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ["team", params.id] }),
+        queryClient.invalidateQueries({ queryKey: ["teams"] }),
+        queryClient.invalidateQueries({ queryKey: ["projects"] }),
+      ]);
       router.refresh();
     } catch {
       setError(t("teams.settingsSaveError"));

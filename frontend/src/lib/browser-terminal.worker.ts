@@ -1,5 +1,6 @@
 import { loadPyodide, type PyodideInterface } from 'pyodide'
 import { newQuickJSWASMModule, type QuickJSContext, type QuickJSRuntime } from 'quickjs-emscripten'
+import { getUserFacingErrorMessage } from './error-messages'
 
 type WorkspaceEntry = {
   path: string
@@ -403,7 +404,7 @@ self.addEventListener('message', (event: MessageEvent<WorkerRequest>) => {
       .then(() => post({ type: 'ready' }))
       .catch((error: unknown) => post({
         type: 'error',
-        message: error instanceof Error ? error.message : 'Could not load the browser JavaScript runtime.',
+        message: getUserFacingErrorMessage(error, 'Could not load the browser JavaScript runtime.'),
       }))
     return
   }

@@ -805,6 +805,11 @@ body {
   background-attachment: fixed;
 }
 
+:root:not([data-theme]) body {
+  background: #fff;
+  color: #10263e;
+}
+
 .application-theme {
   --midnight: 6 25 75;
   --midnight-deep: 4 18 56;

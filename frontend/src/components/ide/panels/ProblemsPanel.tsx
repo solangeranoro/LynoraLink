@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from 'react'
 import { toast } from 'sonner'
+import { getUserFacingErrorMessage } from '@/lib/error-messages'
 import {
   AlertCircle, AlertTriangle, ArrowUpRight, Check, Clipboard, Info,
   Lightbulb, Search, Sparkles,
@@ -106,7 +107,7 @@ export function ProblemsPanel() {
       await navigator.clipboard.writeText(problemText(problem))
       toast.success('Problem details copied.')
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'Could not copy problem details.')
+      toast.error(getUserFacingErrorMessage(error, 'Could not copy problem details.'))
     }
   }
 
