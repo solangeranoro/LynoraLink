@@ -42,6 +42,12 @@ function notificationLink(type: NotificationKind, targetId: string, actorId: str
 }
 
 export async function createWelcomeNotification(userId: string) {
+  const existing = await prisma.notification.findFirst({
+    where: { recipientId: userId, type: "WELCOME", targetId: userId },
+    select: { id: true },
+  });
+  if (existing) return;
+
   await prisma.notification.create({
     data: {
       recipientId: userId,

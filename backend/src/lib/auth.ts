@@ -9,6 +9,8 @@ import bcrypt from "bcryptjs";
 import { prisma } from "@/lib/prisma";
 import { isAccountBlocked } from "@/lib/account-status";
 import { isPlatformAdmin } from "@/lib/premium";
+import { createWelcomeNotification } from "@/lib/notifications";
+import { createWelcomeMessage } from "@/lib/welcome-message";
 import { sendTwoFactorCodeEmail } from "@/lib/email";
 import { issueTwoFactorCode } from "@/lib/two-factor";
 import { createOAuthTwoFactorToken, hashTwoFactorCode, normalizeTwoFactorCode, verifyOAuthTwoFactorToken } from "@/lib/two-factor-crypto";
@@ -337,12 +339,24 @@ export const authOptions: NextAuthConfig = {
     },
   },
   events: {
-    async signIn({ user }) {
+    async signIn({ user, account }) {
       if (user?.id) {
         await prisma.user
           .update({ where: { id: user.id }, data: { isOnline: true, lastSeenAt: new Date() } })
           .catch(() => undefined);
         await enrichUserCountryOnSignIn(user.id);
+        if (account?.type === "oauth" || account?.type === "oidc") {
+          try {
+            await createWelcomeNotification(user.id);
+          } catch (error) {
+            console.error("OAuth welcome notification failed:", error);
+          }
+          try {
+            await createWelcomeMessage(user.id);
+          } catch (error) {
+            console.error("OAuth welcome message failed:", error);
+          }
+        }
       }
     },
   },

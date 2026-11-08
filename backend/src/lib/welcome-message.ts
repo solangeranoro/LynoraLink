@@ -69,7 +69,14 @@ export async function createWelcomeMessage(userId: string) {
     });
 
     const alreadySent = await transaction.message.findFirst({
-      where: { conversationId: conversation.id, senderId: admin.id, content },
+      where: {
+        conversationId: conversation.id,
+        senderId: admin.id,
+        OR: [
+          { content: { startsWith: "Bienvenue sur LynoraLink," } },
+          { content: { startsWith: "Welcome to LynoraLink," } },
+        ],
+      },
       select: { id: true },
     });
     if (alreadySent) return;
