@@ -40,6 +40,7 @@ type VerificationData = {
 };
 
 type MarketTab = "browse" | "sell";
+const VERIFICATION_CONFIRMED_STORAGE_KEY = "lynora:marketplace-verification-confirmed";
 
 export default function MarketplacePage() {
   const { locale } = useTranslation();
@@ -54,6 +55,7 @@ export default function MarketplacePage() {
   const verification = useQuery({
     queryKey: ["marketplace-verification"],
     enabled: sessionStatus === "authenticated",
+    refetchInterval: (query) => query.state.data?.verification?.status === "pending_email" ? 3_000 : false,
     queryFn: async () => {
       const response = await fetch("/api/marketplace/verification");
       const result = await response.json();
@@ -84,6 +86,16 @@ export default function MarketplacePage() {
   useEffect(() => {
     if (new URLSearchParams(window.location.search).get("tab") === "sell") setTab("sell");
   }, []);
+
+  useEffect(() => {
+    function handleVerificationConfirmed(event: StorageEvent) {
+      if (event.key === VERIFICATION_CONFIRMED_STORAGE_KEY) {
+        void queryClient.invalidateQueries({ queryKey: ["marketplace-verification"] });
+      }
+    }
+    window.addEventListener("storage", handleVerificationConfirmed);
+    return () => window.removeEventListener("storage", handleVerificationConfirmed);
+  }, [queryClient]);
 
   const canSell = verification.data?.isVerified ?? false;
   const soldLabel = isFrench ? "Vendu" : "Sold";
