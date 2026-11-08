@@ -39,8 +39,13 @@ export async function DELETE(_request: Request, props: { params: Promise<{ id: s
   const result = await prisma.association.deleteMany({
     where: {
       id: params.id,
-      status: "ACCEPTED",
-      OR: [{ requesterId: userId }, { addresseeId: userId }],
+      OR: [
+        {
+          status: "ACCEPTED",
+          OR: [{ requesterId: userId }, { addresseeId: userId }],
+        },
+        { status: "PENDING", requesterId: userId },
+      ],
     },
   });
   if (!result.count) return NextResponse.json({ error: "NOT_FOUND" }, { status: 404 });

@@ -1014,6 +1014,8 @@
     "associate": "Connect",
     "associated": "Connected",
     "associationSent": "Request sent",
+    "cancelAssociation": "Cancel request",
+    "associationCancelled": "Connection request cancelled",
     "associationDeclined": "Request declined",
     "acceptAssociation": "Accept connection",
     "startConversation": "Send a message",

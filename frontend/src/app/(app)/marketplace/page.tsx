@@ -288,7 +288,7 @@ export default function MarketplacePage() {
                       {isFrench ? "Confirmez d’abord l’adresse e-mail de votre compte LynoraLink." : "First confirm your LynoraLink account email."}
                     </p>
                   )}
-                  <button type="button" onClick={() => setShowVerificationForm(true)} disabled={!verification.data?.accountEmailVerified} className="btn-gold mt-5 !rounded-xl disabled:cursor-not-allowed disabled:opacity-50">
+                  <button type="button" onClick={() => setShowVerificationForm(true)} className="btn-gold mt-5 !rounded-xl">
                     {isFrench ? "Vérifier mon compte vendeur" : "Verify my seller account"}
                   </button>
                 </div>

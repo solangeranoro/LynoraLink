@@ -5,7 +5,7 @@ import { useEffect, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
-import { Handshake, MessageCircle } from "@/components/FontAwesomeIcons";
+import { Handshake, MessageCircle, X } from "@/components/FontAwesomeIcons";
 import { useTranslation } from "@/lib/i18n";
 import { Avatar } from "@/components/Avatar";
 import { useActionToast } from "@/components/ActionToast";
@@ -72,18 +72,23 @@ export function ActiveMakers() {
     },
   });
   const associationMutation = useMutation({
-    mutationFn: async ({ makerId, association }: { makerId: string; association?: Association }) => {
-      const response = association?.status === "PENDING" && association.addresseeId === userId
-        ? await fetch(`/api/associations/${association.id}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ status: "ACCEPTED" }) })
-        : await fetch("/api/associations", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ addresseeId: makerId }) });
+    mutationFn: async ({ makerId, association, cancel }: { makerId: string; association?: Association; cancel?: boolean }) => {
+      const incoming = association?.status === "PENDING" && association.addresseeId === userId;
+      const response = cancel && association
+        ? await fetch(`/api/associations/${association.id}`, { method: "DELETE" })
+        : incoming
+          ? await fetch(`/api/associations/${association.id}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ status: "ACCEPTED" }) })
+          : await fetch("/api/associations", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ addresseeId: makerId }) });
       if (!response.ok) throw new Error("association_failed");
-      return response.json();
+      return { result: await response.json(), incoming, cancelled: Boolean(cancel) };
     },
-    onSuccess: (_result, { association }) => {
-      if (!(association?.status === "PENDING" && association.addresseeId === userId)) {
-        showToast(t("makers.associationSent"));
-      }
-      return queryClient.invalidateQueries({ queryKey: ["associations", userId] });
+    onSuccess: ({ incoming, cancelled }) => {
+      if (cancelled) showToast(t("makers.associationCancelled"));
+      else if (!incoming) showToast(t("makers.associationSent"));
+      return Promise.all([
+        queryClient.invalidateQueries({ queryKey: ["associations", userId] }),
+        queryClient.invalidateQueries({ queryKey: ["navigation-counts", userId] }),
+      ]);
     },
   });
   const messageMutation = useMutation({
@@ -149,12 +154,13 @@ export function ActiveMakers() {
               (item.requesterId === maker.id && item.addresseeId === userId)
             ));
             const isIncoming = association?.status === "PENDING" && association.addresseeId === userId;
+            const isOutgoing = association?.status === "PENDING" && association.requesterId === userId;
             const associationLabel = association?.status === "ACCEPTED"
               ? t("makers.associated")
               : isIncoming
                 ? t("makers.acceptAssociation")
-                : association?.status === "PENDING"
-                  ? t("makers.associationSent")
+                : isOutgoing
+                  ? t("makers.cancelAssociation")
                   : t("makers.associate");
             return (
               <li key={maker.id} className="rounded-xl border border-midnight-border/70 bg-midnight-deep/45 p-2.5">
@@ -195,11 +201,11 @@ export function ActiveMakers() {
                           type="button"
                           title={associationLabel}
                           aria-label={`${associationLabel}: ${maker.name ?? maker.handle ?? "Maker"}`}
-                          onClick={() => associationMutation.mutate({ makerId: maker.id, association })}
-                          disabled={associationMutation.isPending || (association?.status === "PENDING" && !isIncoming)}
+                          onClick={() => associationMutation.mutate({ makerId: maker.id, association, cancel: isOutgoing })}
+                          disabled={associationMutation.isPending}
                           className="grid h-8 w-8 place-items-center rounded-lg border border-midnight-border/70 bg-midnight-card/50 text-ink-muted transition hover:border-gold/40 hover:text-gold-soft disabled:cursor-default disabled:opacity-60"
                         >
-                          <Handshake size={15} aria-hidden="true" />
+                          {isOutgoing ? <X size={15} aria-hidden="true" /> : <Handshake size={15} aria-hidden="true" />}
                         </button>
                       )}
                       <button

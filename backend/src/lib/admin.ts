@@ -1,8 +1,9 @@
 import { auth } from "@/lib/auth";
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { ADMIN_EMAIL } from "@/lib/admin-config";
 
-export const ADMIN_EMAIL = "chrysologuenambinintsoa@gmail.com";
+export { ADMIN_EMAIL } from "@/lib/admin-config";
 
 export function isPlatformAdmin(email: string | null | undefined) {
   return email?.trim().toLowerCase() === ADMIN_EMAIL;

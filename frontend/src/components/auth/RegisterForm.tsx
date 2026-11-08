@@ -114,6 +114,11 @@ export function RegisterForm() {
     setError(null);
     setNotice(null);
 
+    if (verificationPending && !/^\d{6}$/.test(verificationCode)) {
+      setError(t("auth.errors.invalidRegistrationCode"));
+      return;
+    }
+
     setLoading(true);
     if (!accountCreated) {
       if (!validateStep(1) || !validateStep(2)) {
@@ -260,7 +265,7 @@ export function RegisterForm() {
             <p className="text-sm text-ink-muted">{t("auth.registrationCodeSent", { email: form.email })}</p>
             <div className="space-y-1.5">
               <label htmlFor="registration-code" className="label !normal-case !tracking-normal !text-ink">{t("auth.registrationCodeLabel")}</label>
-              <input id="registration-code" name="one-time-code" type="text" inputMode="numeric" autoComplete="one-time-code" pattern="[0-9]{6}" maxLength={6} required value={verificationCode} onChange={(event) => setVerificationCode(event.target.value.replace(/\D/g, "").slice(0, 6))} className="input text-center font-mono text-2xl tracking-[0.4em]" placeholder="000000" aria-describedby="registration-code-help" />
+              <input id="registration-code" name="one-time-code" type="text" inputMode="numeric" autoComplete="one-time-code" autoFocus maxLength={6} value={verificationCode} onChange={(event) => setVerificationCode(event.target.value.replace(/\D/g, "").slice(0, 6))} className="input text-center font-mono text-2xl tracking-[0.4em]" placeholder="000000" aria-describedby="registration-code-help" aria-invalid={Boolean(error)} />
               <p id="registration-code-help" className="text-xs text-ink-muted">{t("auth.registrationCodeHint")}</p>
             </div>
             <button type="button" onClick={() => void resendVerificationCode()} disabled={resendingCode || loading} className="inline-flex min-h-10 items-center gap-2 text-sm font-medium text-gold-soft hover:text-gold-bright disabled:opacity-50">
@@ -457,7 +462,7 @@ export function RegisterForm() {
           )}
         </div>}
 
-        {verificationPending && <button type="submit" disabled={loading || verificationCode.length !== 6} className="btn-gold w-full sm:min-w-36">
+        {verificationPending && <button type="submit" disabled={loading} className="btn-gold w-full sm:min-w-36">
           {loading && <Loader2 className="h-4 w-4 animate-spin" />}
           {loading ? t("auth.registrationVerifying") : t("auth.registrationVerifyAction")}
         </button>}

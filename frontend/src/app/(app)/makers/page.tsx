@@ -63,24 +63,27 @@ export default function MakersDirectoryPage() {
     },
   });
   const associationMutation = useMutation({
-    mutationFn: async ({ maker, association, status }: { maker: Maker | AssociationPerson; association?: Association; status?: "ACCEPTED" | "REJECTED" }) => {
+    mutationFn: async ({ maker, association, status, cancel }: { maker: Maker | AssociationPerson; association?: Association; status?: "ACCEPTED" | "REJECTED"; cancel?: boolean }) => {
       const incoming = association?.status === "PENDING" && association.addresseeId === userId;
-      const response = incoming
-        ? await fetch(`/api/associations/${association.id}`, {
+      const response = cancel && association
+        ? await fetch(`/api/associations/${association.id}`, { method: "DELETE" })
+        : incoming
+          ? await fetch(`/api/associations/${association.id}`, {
             method: "PATCH",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ status: status ?? "ACCEPTED" }),
           })
-        : await fetch("/api/associations", {
+          : await fetch("/api/associations", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ addresseeId: maker.id }),
           });
       if (!response.ok) throw new Error("association_failed");
-      return { incoming, status: status ?? "PENDING" };
+      return { incoming, status: status ?? "PENDING", cancelled: Boolean(cancel) };
     },
-    onSuccess: async ({ incoming, status }) => {
-      if (!incoming && status === "PENDING") showToast(t("makers.associationSent"));
+    onSuccess: async ({ incoming, status, cancelled }) => {
+      if (cancelled) showToast(t("makers.associationCancelled"));
+      else if (!incoming && status === "PENDING") showToast(t("makers.associationSent"));
       await queryClient.invalidateQueries({ queryKey: ["associations", userId] });
       await queryClient.invalidateQueries({ queryKey: ["navigation-counts", userId] });
     },
@@ -221,11 +224,15 @@ export default function MakersDirectoryPage() {
             ) : (
               <button
                 type="button"
-                onClick={() => associationMutation.mutate({ maker, association })}
-                disabled={associationMutation.isPending || association?.status === "PENDING"}
+                disabled={associationMutation.isPending}
                 className="maker-action-button maker-action-positive"
+                onClick={() => association?.status === "PENDING"
+                  ? associationMutation.mutate({ maker, association, cancel: true })
+                  : associationMutation.mutate({ maker, association })}
               >
-                <Handshake size={14} aria-hidden="true" /><span>{label}</span>
+                {association?.status === "PENDING"
+                  ? <><X size={14} aria-hidden="true" /><span>{t("makers.cancelAssociation")}</span></>
+                  : <><Handshake size={14} aria-hidden="true" /><span>{label}</span></>}
               </button>
             )
           )}

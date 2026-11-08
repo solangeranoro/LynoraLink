@@ -82,20 +82,23 @@ export default function MakerProfilePage() {
     },
   });
   const associationMutation = useMutation({
-    mutationFn: async ({ maker, status }: { maker: MakerProfile; status?: "ACCEPTED" | "REJECTED" }) => {
+    mutationFn: async ({ maker, status, cancel }: { maker: MakerProfile; status?: "ACCEPTED" | "REJECTED"; cancel?: boolean }) => {
       const incoming = maker.association?.status === "PENDING" && maker.association.addresseeId === session?.user?.id;
-      const response = incoming
-        ? await fetch(`/api/associations/${maker.association?.id}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ status: status ?? "ACCEPTED" }) })
-        : await fetch("/api/associations", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ addresseeId: maker.id }) });
+      const response = cancel && maker.association
+        ? await fetch(`/api/associations/${maker.association.id}`, { method: "DELETE" })
+        : incoming
+          ? await fetch(`/api/associations/${maker.association?.id}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ status: status ?? "ACCEPTED" }) })
+          : await fetch("/api/associations", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ addresseeId: maker.id }) });
       if (!response.ok) throw new Error("association_failed");
-      return response.json();
+      return { result: await response.json(), cancelled: Boolean(cancel), incoming };
     },
-    onSuccess: async (_result, variables) => {
-      const acceptingIncoming = variables.maker.association?.status === "PENDING" && variables.maker.association.addresseeId === session?.user?.id;
-      const messageKey = variables.status === "REJECTED" ? "makers.associationDeclined" : acceptingIncoming ? "makers.associated" : "makers.associationSent";
-      if (!acceptingIncoming && variables.status !== "REJECTED") showToast(t(messageKey));
+    onSuccess: async ({ cancelled, incoming }, variables) => {
+      const messageKey = cancelled ? "makers.associationCancelled" : variables.status === "REJECTED" ? "makers.associationDeclined" : incoming ? "makers.associated" : "makers.associationSent";
+      if ((!incoming && variables.status !== "REJECTED") || cancelled) showToast(t(messageKey));
       else setNotice(t(messageKey));
       await queryClient.invalidateQueries({ queryKey: ["maker-profile", params.handle] });
+      await queryClient.invalidateQueries({ queryKey: ["associations", session?.user?.id] });
+      await queryClient.invalidateQueries({ queryKey: ["navigation-counts", session?.user?.id] });
     },
   });
   const messageMutation = useMutation({
@@ -130,6 +133,7 @@ export default function MakerProfilePage() {
   const isSelf = maker.id === session?.user?.id;
   const association = maker.association;
   const incoming = association?.status === "PENDING" && association.addresseeId === session?.user?.id;
+  const outgoing = association?.status === "PENDING" && association.requesterId === session?.user?.id;
   const associationLabel = association?.status === "ACCEPTED" ? t("makers.associated") : incoming ? t("makers.acceptAssociation") : association?.status === "PENDING" ? t("makers.associationSent") : t("makers.associate");
   return (
     <div className="space-y-6 pb-8">
@@ -158,8 +162,10 @@ export default function MakerProfilePage() {
           </div>
           {!isSelf && session?.user && (
             <div className="flex max-w-full flex-wrap gap-2 sm:justify-end">
-            {association?.status === "ACCEPTED" ? null : association?.status === "PENDING" && !incoming ? (
-              <span className="badge self-center">{associationLabel}</span>
+            {association?.status === "ACCEPTED" ? null : outgoing ? (
+              <button type="button" disabled={associationMutation.isPending} onClick={() => associationMutation.mutate({ maker, cancel: true })} className="btn-ghost !rounded-xl">
+                <X size={15} aria-hidden="true" />{t("makers.cancelAssociation")}
+              </button>
             ) : (
               <button type="button" disabled={associationMutation.isPending} onClick={() => associationMutation.mutate({ maker, status: "ACCEPTED" })} className="btn-gold !rounded-xl">
                 {incoming ? <Check size={15} aria-hidden="true" /> : <Handshake size={15} aria-hidden="true" />}{associationLabel}

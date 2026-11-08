@@ -1014,6 +1014,8 @@
     "associate": "S’associer",
     "associated": "Associé·e",
     "associationSent": "Demande envoyée",
+    "cancelAssociation": "Annuler la demande",
+    "associationCancelled": "Demande d’association annulée",
     "associationDeclined": "Demande refusée",
     "acceptAssociation": "Accepter l’association",
     "startConversation": "Envoyer un message",

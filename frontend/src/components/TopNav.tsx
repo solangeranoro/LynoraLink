@@ -97,7 +97,7 @@ function FloatingNotificationToast({
 
   return (
     <div role="status" aria-live="polite" className="pointer-events-auto flex w-full items-start gap-3 rounded-2xl border border-gold/25 bg-midnight-card/95 p-3.5 text-ink shadow-[0_18px_50px_rgba(0,0,0,0.35)] backdrop-blur-xl animate-slide-left">
-      {notification.actorIsPlatformAdmin
+      {notification.type === "WELCOME" || notification.actorIsPlatformAdmin
         ? <Logo size={38} />
         : <Avatar src={notification.actor?.image ?? null} name={notification.actor?.name ?? notification.actor?.handle ?? "Maker"} size={38} />}
       <Link href={href} onClick={onOpen} className="min-w-0 flex-1 rounded-md outline-none focus-visible:ring-2 focus-visible:ring-gold/60">
@@ -644,7 +644,7 @@ export function TopNav() {
                             <li key={notification.id}>
                               <Link href={notificationHref(notification)} onClick={() => { setNotificationsOpen(false); if (!notification.readAt) markNotificationRead.mutate({ id: notification.id }); }} className={`block rounded-lg px-3 py-2.5 transition hover:bg-midnight-deep ${notification.readAt ? "" : "bg-gold/5"}`}>
                                 <span className="flex items-start gap-2.5">
-                                  {notification.actorIsPlatformAdmin
+                                  {notification.type === "WELCOME" || notification.actorIsPlatformAdmin
                                     ? <Logo size={30} />
                                     : <Avatar src={notification.actor?.image ?? null} name={notification.actor?.name ?? notification.actor?.handle ?? "Maker"} size={30} />}
                                   <span className="min-w-0 flex-1">

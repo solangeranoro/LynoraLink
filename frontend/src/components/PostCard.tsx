@@ -31,7 +31,7 @@ type ReviewPreview = {
   reviews: { id: string; rating: number; comment: string | null; createdAt: string; user: { id: string; name: string | null; handle: string | null; image: string | null } }[];
   summary: { total: number; average: number };
 };
-type UserAssociation = { requesterId: string; addresseeId: string; status: "PENDING" | "ACCEPTED" | "REJECTED" };
+type UserAssociation = { id: string; requesterId: string; addresseeId: string; status: "PENDING" | "ACCEPTED" | "REJECTED" };
 
 export interface FeedPost {
   id: string;
@@ -153,6 +153,11 @@ export function PostCard({
     association.status === "ACCEPTED"
     && ((association.requesterId === session?.user?.id && association.addresseeId === post.author.id)
       || (association.requesterId === post.author.id && association.addresseeId === session?.user?.id))
+  ));
+  const outgoingAssociation = associationsQuery.data?.associations.find((association) => (
+    association.status === "PENDING"
+    && association.requesterId === session?.user?.id
+    && association.addresseeId === post.author.id
   ));
   const postIntent = post.tags.find(isPostIntent);
   const visibleTags = post.tags.filter((tag) => !isPostIntent(tag));
@@ -284,19 +289,21 @@ export function PostCard({
   });
 
   const associationMutation = useMutation({
-    mutationFn: async () => {
-      const response = await fetch("/api/associations", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ addresseeId: post.author.id }),
-      });
+    mutationFn: async (cancel: boolean) => {
+      const response = cancel && outgoingAssociation
+        ? await fetch(`/api/associations/${outgoingAssociation.id}`, { method: "DELETE" })
+        : await fetch("/api/associations", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ addresseeId: post.author.id }),
+        });
       if (!response.ok) throw new Error("association_failed");
-      return response.json() as Promise<{ association?: { status?: string } }>;
+      return { result: await response.json() as { association?: { status?: string } }, cancelled: Boolean(cancel) };
     },
-    onSuccess: async (result) => {
+    onSuccess: async ({ result, cancelled }) => {
       const status = result.association?.status ?? "PENDING";
-      setAssociationStatus(status);
-      if (status === "PENDING") showToast(t("feed.associationSent"));
+      setAssociationStatus(cancelled ? null : status);
+      showToast(t(cancelled ? "makers.associationCancelled" : "feed.associationSent"));
       await queryClient.invalidateQueries({ queryKey: ["associations", session?.user?.id] });
     },
     onError: () => setAssociationStatus(null),
@@ -962,9 +969,9 @@ export function PostCard({
             <div className="ml-auto flex flex-col items-end gap-1">
               {associationMutation.isError && <p role="alert" className="text-xs text-rose-300">{t("feed.associationError")}</p>}
               {!associationsQuery.isLoading && !isAuthorAssociated && (
-                <button type="button" disabled={Boolean(associationStatus) || associationMutation.isPending} onClick={() => { setAssociationStatus("PENDING"); associationMutation.mutate(); }} className="btn-gold !rounded-xl !px-3 !py-2">
+                <button type="button" disabled={associationMutation.isPending} onClick={() => associationMutation.mutate(Boolean(outgoingAssociation))} className="btn-gold !rounded-xl !px-3 !py-2">
                   <FontAwesomeIcon icon={faHandshake} className="h-4 w-4" aria-hidden="true" />
-                  {associationStatus ? t("feed.associationSent") : t("feed.associate")}
+                  {outgoingAssociation ? t("makers.cancelAssociation") : associationStatus ? t("feed.associationSent") : t("feed.associate")}
                 </button>
               )}
               {post.project && collaborationStatus !== "APPROVED" && (

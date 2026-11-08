@@ -6,6 +6,7 @@ import { registerSchema } from "@/lib/validators";
 import { sendTwoFactorCodeEmail } from "@/lib/email";
 import { issueTwoFactorCode } from "@/lib/two-factor";
 import { createWelcomeNotification } from "@/lib/notifications";
+import { createWelcomeMessage } from "@/lib/welcome-message";
 
 export async function POST(req: Request) {
   try {
@@ -69,6 +70,11 @@ export async function POST(req: Request) {
       await createWelcomeNotification(user.id);
     } catch (error) {
       console.error("Welcome notification failed:", error);
+    }
+    try {
+      await createWelcomeMessage(user.id);
+    } catch (error) {
+      console.error("Welcome message failed:", error);
     }
 
     let challenge: Awaited<ReturnType<typeof issueTwoFactorCode>> | undefined;
