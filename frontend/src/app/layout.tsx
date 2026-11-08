@@ -49,7 +49,7 @@ export const viewport: Viewport = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" className={`${inter.variable} ${jetBrainsMono.variable} ${sora.variable} dark`}>
+    <html lang="en" className={`${inter.variable} ${jetBrainsMono.variable} ${sora.variable} dark`} suppressHydrationWarning>
       <body className="min-h-screen font-sans">
         <Providers>{children}</Providers>
       </body>

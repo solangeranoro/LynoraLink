@@ -7,6 +7,7 @@ declare module "next-auth" {
       handle?: string | null;
       preferredLang?: "EN" | "FR";
       isVerified?: boolean;
+      isPlatformAdmin?: boolean;
       accountStatus?: "ACTIVE" | "SUSPENDED" | "BANNED";
       suspendedUntil?: string | null;
       accountStatusReason?: string | null;
@@ -20,6 +21,7 @@ declare module "next-auth/jwt" {
     handle?: string | null;
     preferredLang?: "EN" | "FR";
     isVerified?: boolean;
+    isPlatformAdmin?: boolean;
     accountStatus?: "ACTIVE" | "SUSPENDED" | "BANNED";
     suspendedUntil?: string | null;
     accountStatusReason?: string | null;

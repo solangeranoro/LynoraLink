@@ -1,0 +1,2 @@
+ALTER TABLE "User"
+ADD COLUMN "country" VARCHAR(16) NOT NULL DEFAULT 'Inconnu';

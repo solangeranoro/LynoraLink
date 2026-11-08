@@ -101,7 +101,9 @@ function FloatingNotificationToast({
         ? <Logo size={38} />
         : <Avatar src={notification.actor?.image ?? null} name={notification.actor?.name ?? notification.actor?.handle ?? "Maker"} size={38} />}
       <Link href={href} onClick={onOpen} className="min-w-0 flex-1 rounded-md outline-none focus-visible:ring-2 focus-visible:ring-gold/60">
-        <span className="block text-[10px] font-semibold uppercase tracking-[0.14em] text-gold-soft">LynoraLink</span>
+        <span className="block text-[10px] font-semibold uppercase tracking-[0.14em] text-ink">
+          Lynora<span className="text-gold">Link</span>
+        </span>
         <span className="mt-1 block text-sm leading-relaxed">{message}</span>
       </Link>
       <button
@@ -137,7 +139,7 @@ export function TopNav() {
       ? `@${session.user.handle}`
       : t("common.maker");
   const { logout, overlay: logoutOverlay } = useLogoutTransition();
-  const isAdmin = session?.user?.email?.toLowerCase() === "nambinintsoachrysologue0@gmail.com";
+  const isAdmin = session?.user?.isPlatformAdmin === true;
   const queryClient = useQueryClient();
   const notificationQuery = useQuery({
     queryKey: ["notifications", session?.user?.id],

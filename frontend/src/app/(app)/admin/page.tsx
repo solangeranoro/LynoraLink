@@ -109,6 +109,7 @@ type AdminData = {
   navCounts: Record<AdminNavCount, number>;
   recentUsers: { id: string; name: string | null; email: string; handle: string | null; image: string | null; city: string | null; location: string | null; createdAt: string; isOnline: boolean }[];
   geoDistribution: { location: string; users: number }[];
+  countryDistribution: { country: string; users: number }[];
   projectStatusCounts: Record<string, number>;
   postTypeCounts: Record<string, number>;
   recentProjects: { id: string; title: string; tagline: string; teamName: string | null; status: string; updatedAt: string; creator: { name: string | null; handle: string | null }; _count: { collaborators: number; posts: number; tasks: number } }[];
@@ -871,7 +872,7 @@ function AdminOverview({ data, query, setQuery, openUsers }: { data: AdminData; 
     data.stats.posts.toLocaleString("fr-FR"),
     data.stats.pendingMarketplaceItems.toLocaleString("fr-FR"),
   ];
-  const maxLocationCount = Math.max(1, ...data.geoDistribution.map((item) => item.users));
+  const maxCountryCount = Math.max(1, ...data.countryDistribution.map((item) => item.users));
   const projectTotal = Object.values(data.projectStatusCounts).reduce((total, count) => total + count, 0);
   const launchRate = projectTotal ? Math.round(((data.projectStatusCounts.LAUNCHED ?? 0) / projectTotal) * 100) : 0;
   const growthData = growthPeriod === "6m"
@@ -904,7 +905,7 @@ function AdminOverview({ data, query, setQuery, openUsers }: { data: AdminData; 
     </section>
 
     <section className="mt-6 grid gap-6 lg:grid-cols-2">
-      <div className="card p-5"><div className="flex items-center gap-2"><Globe2 size={17} className="text-gold" aria-hidden="true" /><h2 className="text-sm font-semibold text-ink">Activité géographique</h2></div><div className="mt-5 space-y-4">{data.geoDistribution.length ? data.geoDistribution.slice(0, 5).map((region) => <div key={region.location}><div className="flex justify-between text-xs"><span className="text-ink-muted">{region.location}</span><strong className="text-ink">{region.users.toLocaleString("fr-FR")}</strong></div><div className="mt-2 h-2 rounded-full bg-midnight-border"><div className="h-full rounded-full bg-gold" style={{ width: `${Math.max(4, (region.users / maxLocationCount) * 100)}%` }} /></div></div>) : <p className="text-sm text-ink-muted">Aucune localisation renseignée.</p>}</div></div>
+      <div className="card p-5"><div className="flex items-center gap-2"><Globe2 size={17} className="text-gold" aria-hidden="true" /><h2 className="text-sm font-semibold text-ink">Pays des utilisateurs</h2></div><p className="mt-1 text-xs text-ink-muted">Pays estimés à la connexion, sans conservation de l’adresse IP</p><div className="mt-5 space-y-4">{data.countryDistribution.length ? data.countryDistribution.slice(0, 5).map((region) => <div key={region.country}><div className="flex justify-between text-xs"><span className="text-ink-muted">{countryDisplayName(region.country)}</span><strong className="text-ink">{region.users.toLocaleString("fr-FR")}</strong></div><div className="mt-2 h-2 rounded-full bg-midnight-border"><div className="h-full rounded-full bg-gold" style={{ width: `${Math.max(4, (region.users / maxCountryCount) * 100)}%` }} /></div></div>) : <p className="text-sm text-ink-muted">Aucune donnée de pays disponible.</p>}</div></div>
       <div className="card p-5"><h2 className="text-sm font-semibold text-ink">Activité de la plateforme</h2><p className="mt-1 text-xs text-ink-muted">Données enregistrées en base</p><dl className="mt-5 divide-y divide-midnight-border">{[["Offres marketplace à examiner", data.stats.pendingMarketplaceItems], ["Boosts actifs", data.stats.activeBoosts], ["Publications signalées", data.stats.reportedPosts]].map(([label, value]) => <div key={label} className="flex items-center justify-between gap-3 py-3"><dt className="text-xs text-ink-muted">{label}</dt><dd className="text-sm font-semibold tabular-nums text-ink">{Number(value).toLocaleString("fr-FR")}</dd></div>)}</dl></div>
     </section>
   </>;
@@ -947,36 +948,9 @@ const geoCountryCatalog: { code: string; name: string; aliases: string[]; contin
   { code: "MX", name: "Mexique", aliases: ["mexique", "mexico"], continent: "Amériques", lat: 23, lon: -102 },
 ];
 
-const geoCityCountryAliases: Record<string, string> = {
-  antananarivo: "MG",
-  tana: "MG",
-  toamasina: "MG",
-  tamatave: "MG",
-  mahajanga: "MG",
-  antsirabe: "MG",
-  fianarantsoa: "MG",
-  paris: "FR",
-  lyon: "FR",
-  marseille: "FR",
-  londres: "GB",
-  london: "GB",
-  berlin: "DE",
-  madrid: "ES",
-  rome: "IT",
-  "new york": "US",
-  "los angeles": "US",
-  toronto: "CA",
-  montreal: "CA",
-  nairobi: "KE",
-  dakar: "SN",
-  casablanca: "MA",
-  tokyo: "JP",
-  mumbai: "IN",
-  sydney: "AU",
-};
-
-function normalizeGeoLabel(value: string) {
-  return value.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLocaleLowerCase().replace(/[’]/g, "'");
+function countryDisplayName(code: string) {
+  if (code === "Inconnu" || code === "UNKNOWN") return "Inconnu";
+  return new Intl.DisplayNames(["fr"], { type: "region" }).of(code) ?? code;
 }
 
 type GeoMapMarker = { key: string; name: string; users: number; lat: number; lon: number };
@@ -1174,24 +1148,19 @@ function GeoTileMap({ markers, selectedKey, onSelect }: { markers: GeoMapMarker[
   </div>;
 }
 
-function AdminGeoInsights({ distribution }: { distribution: AdminData["geoDistribution"] }) {
+function AdminGeoInsights({ distribution }: { distribution: AdminData["countryDistribution"] }) {
   const [selectedGeoKey, setSelectedGeoKey] = useState("");
   const locations = useMemo(() => {
     const countries = new Map<string, { key: string; name: string; continent: string; users: number; lat?: number; lon?: number; examples: string[] }>();
     for (const item of distribution) {
-      const parts = item.location.split(",").map((part) => part.trim()).filter(Boolean);
-      const countryLabel = parts.length > 1 ? parts[parts.length - 1] : item.location.trim();
-      const normalizedLabel = normalizeGeoLabel(countryLabel);
-      const country = geoCountryCatalog.find((entry) => entry.aliases.includes(normalizedLabel))
-        ?? geoCountryCatalog.find((entry) => entry.code === geoCityCountryAliases[normalizedLabel]);
-      const key = country?.code ?? (parts.length > 1 ? `other:${normalizeGeoLabel(countryLabel)}` : "other:unspecified");
-      const name = country?.name ?? (parts.length > 1 ? countryLabel : "Localisation à préciser");
+      const country = geoCountryCatalog.find((entry) => entry.code === item.country);
+      const key = item.country;
+      const name = country?.name ?? countryDisplayName(item.country);
       const existing = countries.get(key);
       if (existing) {
         existing.users += item.users;
-        if (existing.examples.length < 3) existing.examples.push(item.location);
       } else {
-        countries.set(key, { key, name, continent: country?.continent ?? "À préciser", users: item.users, lat: country?.lat, lon: country?.lon, examples: [item.location] });
+        countries.set(key, { key, name, continent: country?.continent ?? "À préciser", users: item.users, lat: country?.lat, lon: country?.lon, examples: [] });
       }
     }
     return [...countries.values()].sort((first, second) => second.users - first.users);
@@ -1209,8 +1178,8 @@ function AdminGeoInsights({ distribution }: { distribution: AdminData["geoDistri
   }, {});
   return <section className="card min-w-0 overflow-hidden" aria-labelledby="admin-analytics-geography">
     <header className="flex flex-wrap items-start justify-between gap-3 border-b border-midnight-border/70 p-4 sm:p-5">
-      <div><h2 id="admin-analytics-geography" className="text-sm font-semibold text-ink">Répartition géographique</h2><p className="mt-1 text-xs text-ink-muted">Localisations regroupées par pays à partir des profils</p></div>
-      <span className="rounded-full border border-midnight-border bg-midnight-deep/60 px-2.5 py-1 text-[10px] text-ink-muted">{total.toLocaleString("fr-FR")} profils agrégés</span>
+      <div><h2 id="admin-analytics-geography" className="text-sm font-semibold text-ink">Répartition par pays</h2><p className="mt-1 text-xs text-ink-muted">Pays estimés à partir de l’adresse IP au moment de la connexion</p></div>
+      <span className="rounded-full border border-midnight-border bg-midnight-deep/60 px-2.5 py-1 text-[10px] text-ink-muted">{total.toLocaleString("fr-FR")} utilisateurs agrégés</span>
     </header>
     <div className="grid lg:grid-cols-[minmax(0,1.35fr)_minmax(16rem,.65fr)]">
       <div className="p-4 sm:p-5">
@@ -1221,12 +1190,12 @@ function AdminGeoInsights({ distribution }: { distribution: AdminData["geoDistri
       </div>
       <div className="border-t border-midnight-border/70 p-4 sm:p-5 lg:border-l lg:border-t-0">
         {activeLocation && <div className="mb-4 rounded-xl border border-gold/20 bg-gradient-to-br from-gold/10 to-transparent p-4">
-          <p className="text-[10px] font-semibold uppercase tracking-[.14em] text-gold-soft">Localisation sélectionnée</p>
+          <p className="text-[10px] font-semibold uppercase tracking-[.14em] text-gold-soft">Pays sélectionné</p>
           <p className="mt-2 text-lg font-semibold text-ink">{activeLocation.name}</p>
           <p className="mt-1 text-xs text-ink-muted">{activeLocation.users.toLocaleString("fr-FR")} profils · {total ? Math.round((activeLocation.users / total) * 100) : 0}% des profils agrégés</p>
           {activeLocation.examples.length > 0 && activeLocation.examples[0] !== activeLocation.name && <p className="mt-2 truncate text-[10px] text-ink-muted">{activeLocation.examples.join(" · ")}</p>}
         </div>}
-        <div className="flex items-center justify-between gap-2"><h3 className="text-xs font-semibold text-ink">Principales localisations</h3><span className="text-[10px] text-ink-muted">{locations.length} groupes</span></div>
+        <div className="flex items-center justify-between gap-2"><h3 className="text-xs font-semibold text-ink">Principaux pays</h3><span className="text-[10px] text-ink-muted">{locations.length} pays</span></div>
         <ol className="mt-3 space-y-3">
           {locations.slice(0, 6).map((item, index) => <li key={item.key}>
             <button type="button" onClick={() => setSelectedGeoKey(item.key)} aria-pressed={activeLocation?.key === item.key} className="group w-full rounded-lg text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold/60">
@@ -1234,7 +1203,7 @@ function AdminGeoInsights({ distribution }: { distribution: AdminData["geoDistri
               <span className="ml-7 mt-2 block h-1 overflow-hidden rounded-full bg-midnight-border"><span className="block h-full rounded-full bg-gradient-to-r from-gold/70 to-gold transition-[width] duration-700" style={{ width: `${Math.max(3, (item.users / maxUsers) * 100)}%` }} /></span>
             </button>
           </li>)}
-          {!locations.length && <li className="py-4 text-xs text-ink-muted">Aucune localisation renseignée.</li>}
+          {!locations.length && <li className="py-4 text-xs text-ink-muted">Aucune donnée de pays disponible.</li>}
         </ol>
       </div>
     </div>
@@ -1347,7 +1316,7 @@ function AdminAnalyticsView({ data }: { data: AdminData }) {
       </section>
 
     </div>
-    <AdminGeoInsights distribution={data.geoDistribution} />
+    <AdminGeoInsights distribution={data.countryDistribution} />
   </section>;
 }
 

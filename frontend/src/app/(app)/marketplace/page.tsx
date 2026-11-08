@@ -19,6 +19,7 @@ type MarketItem = {
   type: "TEMPLATE" | "MICRO_SAAS" | "SERVICE";
   priceCents: number;
   currency: string;
+  isSold: boolean;
   moderationStatus?: "PENDING" | "APPROVED" | "REJECTED";
   imageUrl: string | null;
   sellerId: string;
@@ -85,6 +86,7 @@ export default function MarketplacePage() {
   }, []);
 
   const canSell = verification.data?.isVerified ?? false;
+  const soldLabel = isFrench ? "Vendu" : "Sold";
   const currentVerification = verification.data?.verification;
   const emailLinkExpired = currentVerification?.status === "pending_email"
     && new Date(currentVerification.emailTokenExpiresAt) <= new Date();
@@ -164,7 +166,7 @@ export default function MarketplacePage() {
                   <div className="space-y-3 p-4">
                     <div className="flex items-center justify-between gap-2 text-xs text-ink-muted">
                       <span className="badge-gold">{typeLabel(item.type)}</span>
-                      <span>{isFrench ? "Prix de l’offre" : "Listing price"}</span>
+                      {!item.isSold && <span>{isFrench ? "Prix de l’offre" : "Listing price"}</span>}
                     </div>
                     <Link href={`/marketplace/${encodeURIComponent(item.id)}`} className="block font-semibold text-ink hover:text-gold-soft">
                       {item.title}
@@ -173,7 +175,9 @@ export default function MarketplacePage() {
                     <div className="flex items-center gap-2 text-xs text-ink-muted">
                       {item.seller.image && <img src={item.seller.image} alt="" className="h-6 w-6 rounded-full object-cover" />}
                       <span className="truncate">{item.seller.handle ? `@${item.seller.handle}` : item.seller.name ?? (isFrench ? "Vendeur" : "Seller")}</span>
-                      <span className="ml-auto shrink-0 font-semibold text-gold-soft">{formatUsd(item.priceCents / 100, isFrench ? "fr-FR" : "en-US")}</span>
+                      <span className={`ml-auto shrink-0 font-semibold ${item.isSold ? "text-ink-muted" : "text-gold-soft"}`}>
+                        {item.isSold ? soldLabel : formatUsd(item.priceCents / 100, isFrench ? "fr-FR" : "en-US")}
+                      </span>
                     </div>
                     <MarketplaceContactSeller
                       listingId={item.id}
@@ -240,14 +244,18 @@ export default function MarketplacePage() {
                         <span className="min-w-0">
                           <span className="block truncate font-medium text-ink">{item.title}</span>
                           <span className="mt-1 block text-xs text-ink-muted">
-                            {item.moderationStatus === "APPROVED"
+                            {item.isSold
+                              ? soldLabel
+                              : item.moderationStatus === "APPROVED"
                               ? (isFrench ? "Publiée" : "Published")
                               : item.moderationStatus === "REJECTED"
                                 ? (isFrench ? "Refusée" : "Rejected")
                                 : (isFrench ? "En attente de validation" : "Awaiting review")}
                           </span>
                         </span>
-                        <span className="font-semibold text-gold-soft">{formatUsd(item.priceCents / 100, isFrench ? "fr-FR" : "en-US")}</span>
+                        <span className={`font-semibold ${item.isSold ? "text-ink-muted" : "text-gold-soft"}`}>
+                          {item.isSold ? soldLabel : formatUsd(item.priceCents / 100, isFrench ? "fr-FR" : "en-US")}
+                        </span>
                       </Link>
                     ))}
                   </div>

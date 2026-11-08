@@ -2,22 +2,22 @@ import { auth } from "@/lib/auth";
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 
-export const ADMIN_EMAIL = "nambinintsoachrysologue0@gmail.com";
+export const ADMIN_EMAIL = "chrysologuenambinintsoa@gmail.com";
 
 export function isPlatformAdmin(email: string | null | undefined) {
-  return email?.toLowerCase() === ADMIN_EMAIL;
+  return email?.trim().toLowerCase() === ADMIN_EMAIL;
 }
 
 export async function requireAdmin() {
   const session = await auth();
   const userId = session?.user?.id;
-  const email = session?.user?.email?.toLowerCase();
+  const email = session?.user?.email;
 
   if (!userId || !email) {
     return { response: NextResponse.json({ error: "UNAUTHORIZED" }, { status: 401 }) } as const;
   }
 
-  if (email !== ADMIN_EMAIL) {
+  if (!isPlatformAdmin(email)) {
     return { response: NextResponse.json({ error: "FORBIDDEN" }, { status: 403 }) } as const;
   }
 

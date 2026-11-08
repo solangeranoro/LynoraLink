@@ -135,54 +135,46 @@
 
 .landing-scroll-ready [data-landing-reveal] {
   opacity: 0;
-  filter: blur(3px);
-  translate: 0 30px;
-  scale: 0.985;
+  translate: 0 18px;
   transition:
-    opacity 560ms cubic-bezier(0.16, 1, 0.3, 1),
-    filter 560ms cubic-bezier(0.16, 1, 0.3, 1),
-    translate 560ms cubic-bezier(0.16, 1, 0.3, 1),
-    scale 560ms cubic-bezier(0.16, 1, 0.3, 1);
-  will-change: opacity, translate, scale, filter;
+    opacity 320ms ease-out,
+    translate 320ms ease-out;
 }
 
 .landing-scroll-ready [data-landing-reveal="left"] {
-  translate: -44px 12px;
+  translate: -20px 8px;
 }
 
 .landing-scroll-ready [data-landing-reveal="right"] {
-  translate: 44px 12px;
+  translate: 20px 8px;
 }
 
 .landing-scroll-ready [data-landing-reveal="zoom"] {
-  translate: 0 18px;
-  scale: 0.96;
+  translate: 0 12px;
 }
 
 .landing-scroll-ready [data-landing-reveal][data-reveal-visible="true"] {
   opacity: 1;
-  filter: blur(0);
   translate: 0 0;
-  scale: 1;
 }
 
 .landing-scroll-ready .landing-step-card:nth-child(2),
 .landing-scroll-ready .landing-feature-card:nth-child(2),
 .landing-scroll-ready .landing-community-card:nth-child(2),
 .landing-scroll-ready .landing-demo-feature:nth-child(2) {
-  transition-delay: 80ms;
+  transition-delay: 40ms;
 }
 
 .landing-scroll-ready .landing-step-card:nth-child(3),
 .landing-scroll-ready .landing-feature-card:nth-child(3),
 .landing-scroll-ready .landing-community-card:nth-child(3),
 .landing-scroll-ready .landing-demo-feature:nth-child(3) {
-  transition-delay: 160ms;
+  transition-delay: 80ms;
 }
 
 .landing-scroll-ready .landing-step-card:nth-child(4),
 .landing-scroll-ready .landing-feature-card:nth-child(4) {
-  transition-delay: 240ms;
+  transition-delay: 120ms;
 }
 
 .landing-header-inner {
@@ -239,17 +231,6 @@
 
 .landing-header-inner .landing-brand-wordmark {
   font-size: 1.45rem;
-}
-
-.landing-header-inner .landing-brand-logo img {
-  filter: brightness(1.35) saturate(1.2) drop-shadow(0 0 10px rgb(110 245 207 / 0.42));
-}
-
-.landing-header-inner .landing-brand-logo > span:first-child {
-  border: 1px solid rgb(130 232 212 / 0.2);
-  border-radius: 0.85rem;
-  background: radial-gradient(circle at 35% 25%, rgb(91 222 193 / 0.18), rgb(6 43 37 / 0.2) 72%);
-  box-shadow: 0 0 20px rgb(35 190 151 / 0.12), inset 0 1px 0 rgb(255 255 255 / 0.08);
 }
 
 .landing-header-inner .landing-brand-wordmark {
@@ -530,12 +511,22 @@
 }
 
 @keyframes logout-screen-enter {
-  from { opacity: 0; backdrop-filter: blur(0); }
-  to { opacity: 1; backdrop-filter: blur(16px); }
+  from { opacity: 0; }
+  to { opacity: 1; }
 }
 
-@keyframes logout-ring-spin {
+@keyframes logout-orb-drift {
+  0%, 100% { transform: translate3d(0, 0, 0) scale(1); }
+  50% { transform: translate3d(0, -14px, 0) scale(1.04); }
+}
+
+@keyframes logout-orbit {
   to { transform: rotate(360deg); }
+}
+
+@keyframes logout-status-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.4; }
 }
 
 @keyframes logout-progress-fill {
@@ -544,11 +535,151 @@
 }
 
 .logout-screen {
+  isolation: isolate;
+  overflow: hidden;
+  background:
+    radial-gradient(ellipse at 73% 48%, rgb(13 43 112 / 0.48), transparent 48%),
+    linear-gradient(145deg, #041238, #06194b 56%, #041238);
   animation: logout-screen-enter 260ms ease-out both;
 }
 
-.logout-ring {
-  animation: logout-ring-spin 900ms linear infinite;
+.logout-ambient {
+  position: absolute;
+  z-index: -1;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.logout-orb {
+  position: absolute;
+  display: block;
+  border-radius: 9999px;
+  filter: blur(1px);
+  animation: logout-orb-drift 5s ease-in-out infinite;
+}
+
+.logout-orb-primary {
+  top: 14%;
+  left: calc(50% - min(30vw, 17rem));
+  width: min(60vw, 34rem);
+  aspect-ratio: 1;
+  background: radial-gradient(circle, rgb(0 120 255 / 0.17), transparent 68%);
+}
+
+.logout-orb-secondary {
+  right: -12rem;
+  bottom: -16rem;
+  width: 36rem;
+  aspect-ratio: 1;
+  background: radial-gradient(circle, rgb(140 255 0 / 0.08), transparent 68%);
+  animation-delay: -2.5s;
+}
+
+.logout-grid {
+  position: absolute;
+  inset: 0;
+  opacity: 0.12;
+  background-image: linear-gradient(rgb(255 255 255 / 0.08) 1px, transparent 1px), linear-gradient(90deg, rgb(255 255 255 / 0.08) 1px, transparent 1px);
+  background-size: 56px 56px;
+  mask-image: radial-gradient(ellipse at center, #000, transparent 76%);
+}
+
+.logout-emblem {
+  isolation: isolate;
+}
+
+.logout-orbit {
+  position: absolute;
+  display: block;
+  border: 1px solid rgb(139 175 232 / 0.15);
+  border-radius: 9999px;
+}
+
+.logout-orbit-outer {
+  inset: 3%;
+  border-right-color: rgb(140 255 0 / 0.48);
+  animation: logout-orbit 24s linear infinite;
+}
+
+.logout-orbit-inner {
+  inset: 16%;
+  border-color: rgb(0 167 255 / 0.22);
+  border-bottom-color: rgb(0 167 255 / 0.68);
+  animation: logout-orbit 18s linear infinite reverse;
+}
+
+.logout-emblem-glow {
+  position: absolute;
+  inset: 23%;
+  z-index: -1;
+  border-radius: 9999px;
+  background: radial-gradient(circle, rgb(0 120 255 / 0.3), rgb(0 120 255 / 0.08) 48%, transparent 72%);
+  filter: blur(14px);
+}
+
+.logout-emblem-core {
+  display: grid;
+  width: 9.5rem;
+  height: 9.5rem;
+  place-items: center;
+  border: 1px solid rgb(139 175 232 / 0.2);
+  border-radius: 9999px;
+  background: linear-gradient(145deg, rgb(13 43 112 / 0.85), rgb(5 19 59 / 0.94));
+  box-shadow: 0 20px 70px rgb(0 0 0 / 0.32), inset 0 1px rgb(255 255 255 / 0.1);
+}
+
+.logout-emblem-core > div > span:first-child {
+  border-radius: 1.5rem;
+  background: transparent;
+}
+
+.logout-node {
+  position: absolute;
+  z-index: 1;
+  width: 0.5rem;
+  height: 0.5rem;
+  border: 1px solid rgb(140 255 0 / 0.65);
+  border-radius: 9999px;
+  background: #071b56;
+  box-shadow: 0 0 14px rgb(140 255 0 / 0.35);
+}
+
+.logout-node-top { top: 5%; left: 50%; }
+.logout-node-right { top: 50%; right: 5%; }
+.logout-node-bottom { bottom: 5%; left: 50%; }
+.logout-node-left { top: 50%; left: 5%; }
+
+.logout-connection {
+  position: absolute;
+  z-index: -1;
+  width: 28%;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgb(0 167 255 / 0.42), transparent);
+  transform: rotate(-35deg);
+}
+
+.logout-connection-one { top: 31%; left: 8%; }
+.logout-connection-two { right: 3%; bottom: 30%; transform: rotate(-35deg); }
+
+@media (max-width: 767px) {
+  .logout-emblem {
+    width: min(52vw, 14rem);
+  }
+
+  .logout-emblem-core {
+    width: 6rem;
+    height: 6rem;
+  }
+
+  .logout-emblem-core img {
+    width: 4.5rem;
+    height: 4.5rem;
+  }
+}
+
+.logout-status-dot {
+  animation: logout-status-pulse 1.4s ease-in-out infinite;
 }
 
 .logout-progress {
@@ -558,7 +689,7 @@
 @media (prefers-reduced-motion: reduce) {
   .animate-slide-left, .animate-dashboard-slide, .animate-badge-pulse, .animate-analytics-enter,
   .analytics-chart-line, .analytics-chart-area, .analytics-chart-bar, .analytics-reaction-bar { animation: none; }
-  .logout-screen, .logout-ring, .logout-progress { animation: none; }
+  .logout-screen, .logout-orb, .logout-orbit, .logout-status-dot, .logout-progress { animation: none; }
   .landing-hero-shell::after, .landing-hero-kicker, .landing-hero-title,
   .landing-hero-description, .landing-hero-actions, .landing-hero-copy + div {
     animation: none;
@@ -571,12 +702,9 @@
   .landing-visual-card { transform: none; animation: none; }
   .landing-scroll-ready [data-landing-reveal] {
     opacity: 1;
-    filter: none;
     transform: none;
     translate: none;
-    scale: 1;
     transition: none;
-    will-change: auto;
   }
   .landing-demo-window, .landing-demo-content, .landing-demo-progress {
     animation: none;

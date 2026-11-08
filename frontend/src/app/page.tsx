@@ -61,6 +61,7 @@ const copy = {
     footerCreateAccount: "Create an account",
     footerInformation: "Information",
     footerTerms: "Terms of service",
+    footerPrivacy: "Privacy",
     footerContact: "Contact",
     footerCookies: "Cookies",
     footerFaq: "FAQ",
@@ -116,6 +117,7 @@ const copy = {
     footerCreateAccount: "Créer un compte",
     footerInformation: "Informations",
     footerTerms: "Conditions d’utilisation",
+    footerPrivacy: "Confidentialité",
     footerContact: "Contact",
     footerCookies: "Cookies",
     footerFaq: "FAQ",
@@ -323,6 +325,7 @@ export default function Home() {
               <nav aria-label={text.footerInformation} className="col-span-2 flex flex-col items-start gap-3 sm:col-span-1">
                 <h2 className="mb-1 text-xs font-semibold uppercase tracking-[0.14em] text-white/85">{text.footerInformation}</h2>
                 <Link href="/terms" className="text-sm text-white/55 transition hover:text-[#8cff00]">{text.footerTerms}</Link>
+                <Link href="/privacy" className="text-sm text-white/55 transition hover:text-[#8cff00]">{text.footerPrivacy}</Link>
                 <Link href="/contact" className="text-sm text-white/55 transition hover:text-[#8cff00]">{text.footerContact}</Link>
                 <Link href="/cookies" className="text-sm text-white/55 transition hover:text-[#8cff00]">{text.footerCookies}</Link>
               </nav>

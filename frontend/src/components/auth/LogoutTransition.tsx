@@ -4,7 +4,6 @@ import { useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
 import { signOut } from "next-auth/react";
-import { LogOut } from "@/components/FontAwesomeIcons";
 import { Logo } from "@/components/Logo";
 import { useTranslation } from "@/lib/i18n";
 
@@ -35,21 +34,62 @@ export function useLogoutTransition() {
 
   const overlay = active
     ? createPortal(
-      <div className="logout-screen fixed inset-0 z-[200] flex items-center justify-center bg-midnight-deep/95 px-6 text-center backdrop-blur-xl" role="status" aria-live="polite" aria-busy="true">
-        <div className="w-full max-w-xs">
-          <div className="relative mx-auto mb-7 grid h-20 w-20 place-items-center rounded-full border border-gold/20 bg-gold/5">
-            <span className="logout-ring absolute inset-0 rounded-full border border-gold/20 border-t-gold-soft" aria-hidden="true" />
-            <span className="grid h-12 w-12 place-items-center rounded-full bg-gold/10 text-gold-soft">
-              <LogOut size={22} aria-hidden="true" />
+      <div className="logout-screen application-theme fixed inset-0 z-[200] flex flex-col px-6 sm:px-10 lg:px-16" role="status" aria-live="polite" aria-busy="true">
+        <div className="logout-ambient" aria-hidden="true">
+          <span className="logout-orb logout-orb-primary" />
+          <span className="logout-orb logout-orb-secondary" />
+          <span className="logout-grid" />
+        </div>
+        <header className="relative z-10 flex items-center justify-between border-b border-white/10 py-5 sm:py-6">
+          <Logo size={38} withWordmark />
+          <span className="hidden text-[10px] font-semibold uppercase tracking-[0.22em] text-[#b8c9e6]/65 sm:block">
+            {t("auth.logoutTransitionEyebrow")}
+          </span>
+        </header>
+        <main className="relative z-10 mx-auto grid w-full max-w-6xl flex-1 items-center gap-8 py-12 md:grid-cols-[1fr_0.85fr] md:gap-16">
+          <section className="max-w-xl">
+            <p className="mb-5 text-xs font-semibold uppercase tracking-[0.2em] text-[#a2f34b]">
+              <span className="mr-3 inline-block h-px w-8 align-middle bg-[#8cff00]/70" />
+              {t("auth.logoutTransitionKicker")}
+            </p>
+            <h1 className="font-display text-4xl font-semibold leading-[1.08] tracking-[-0.045em] text-white sm:text-5xl lg:text-6xl">
+              {t("auth.logoutTransitionTitle")}
+            </h1>
+            <p className="mt-6 max-w-md text-base leading-7 text-[#b8c9e6] sm:text-lg sm:leading-8">
+              {t("auth.logoutTransitionDescription")}
+            </p>
+          </section>
+          <div className="logout-emblem relative mx-auto grid aspect-square w-full max-w-[19rem] place-items-center sm:max-w-[23rem]" aria-hidden="true">
+            <span className="logout-orbit logout-orbit-outer" />
+            <span className="logout-orbit logout-orbit-inner" />
+            <span className="logout-emblem-glow" />
+            <span className="logout-emblem-core">
+              <Logo size={88} />
+            </span>
+            <span className="logout-node logout-node-top" />
+            <span className="logout-node logout-node-right" />
+            <span className="logout-node logout-node-bottom" />
+            <span className="logout-node logout-node-left" />
+            <span className="logout-connection logout-connection-one" />
+            <span className="logout-connection logout-connection-two" />
+          </div>
+        </main>
+        <footer className="relative z-10 mx-auto w-full max-w-6xl pb-7 sm:pb-9">
+          <div className="mb-3 flex items-center justify-between gap-4 text-xs">
+            <span className="text-[#b8c9e6]/80">{t("auth.logoutTransitionStatus")}</span>
+            <span className="inline-flex items-center gap-2 font-medium text-[#a2f34b]">
+              <span className="logout-status-dot h-1.5 w-1.5 rounded-full bg-current" aria-hidden="true" />
+              {t("auth.logoutTransitionInProgress")}
             </span>
           </div>
-          <Logo size={30} withWordmark className="justify-center" />
-          <h1 className="mt-7 font-display text-xl font-semibold text-ink">{t("auth.logoutTransitionTitle")}</h1>
-          <p className="mt-2 text-sm text-ink-muted">{t("auth.logoutTransitionDescription")}</p>
-          <div className="mt-7 h-1 overflow-hidden rounded-full bg-midnight-border" aria-hidden="true">
-            <span className="logout-progress block h-full w-full origin-left rounded-full bg-gradient-to-r from-emerald-400 to-gold-bright" />
+          <div className="h-px overflow-hidden bg-white/10" aria-hidden="true">
+            <span className="logout-progress block h-full w-full origin-left bg-gradient-to-r from-[#0878ff] via-[#00a7ff] to-[#8cff00]" />
           </div>
-        </div>
+          <div className="mt-4 flex items-center justify-between text-[10px] font-medium uppercase tracking-[0.16em] text-[#b8c9e6]/45">
+            <span>Lynora<span className="text-[#8cff00]/70">Link</span></span>
+            <span>{t("auth.logoutTransitionFooter")}</span>
+          </div>
+        </footer>
       </div>,
       document.body,
     )

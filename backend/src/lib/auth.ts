@@ -1,5 +1,6 @@
 import NextAuth, { type NextAuthConfig } from "next-auth";
 import { createHmac, timingSafeEqual } from "crypto";
+import { enrichUserCountryOnSignIn } from "@/lib/user-country";
 import CredentialsProvider from "next-auth/providers/credentials";
 import GoogleProvider from "next-auth/providers/google";
 import FacebookProvider from "next-auth/providers/facebook";
@@ -297,6 +298,8 @@ export const authOptions: NextAuthConfig = {
           }
         }
         if (dbUser) {
+          token.email = dbUser.email;
+          token.isPlatformAdmin = isPlatformAdmin(dbUser.email);
           token.name = dbUser.name && dbUser.name.toLowerCase() !== dbUser.email.toLowerCase()
             ? dbUser.name
             : dbUser.handle
@@ -317,6 +320,7 @@ export const authOptions: NextAuthConfig = {
     },
     async session({ session, token }) {
       if (session.user) {
+        if (typeof token.email === "string") session.user.email = token.email;
         const blocked = token.accountStatus === "BANNED" ||
           (token.accountStatus === "SUSPENDED" &&
             (typeof token.suspendedUntil !== "string" || Date.parse(token.suspendedUntil) > Date.now()));
@@ -327,6 +331,7 @@ export const authOptions: NextAuthConfig = {
         session.user.handle = (token.handle as string) ?? null;
         session.user.preferredLang = (token.preferredLang as "EN" | "FR") ?? "EN";
         session.user.isVerified = Boolean(token.isVerified);
+        session.user.isPlatformAdmin = Boolean(token.isPlatformAdmin);
       }
       return session;
     },
@@ -337,6 +342,7 @@ export const authOptions: NextAuthConfig = {
         await prisma.user
           .update({ where: { id: user.id }, data: { isOnline: true, lastSeenAt: new Date() } })
           .catch(() => undefined);
+        await enrichUserCountryOnSignIn(user.id);
       }
     },
   },

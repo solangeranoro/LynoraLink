@@ -41,6 +41,7 @@ export function InfoPageShell({
           <nav className="flex flex-wrap gap-x-5 gap-y-2" aria-label={isFrench ? "Liens légaux" : "Legal links"}>
             <Link href="/faq" className="transition hover:text-[#8cff00]">FAQ</Link>
             <Link href="/terms" className="transition hover:text-[#8cff00]">{isFrench ? "Conditions d’utilisation" : "Terms of service"}</Link>
+            <Link href="/privacy" className="transition hover:text-[#8cff00]">{isFrench ? "Confidentialité" : "Privacy"}</Link>
             <Link href="/contact" className="transition hover:text-[#8cff00]">{isFrench ? "Contact" : "Contact"}</Link>
             <Link href="/cookies" className="transition hover:text-[#8cff00]">{isFrench ? "Cookies" : "Cookies"}</Link>
           </nav>

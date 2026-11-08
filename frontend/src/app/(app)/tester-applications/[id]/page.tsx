@@ -318,32 +318,13 @@ export default function TesterApplicationDetailPage() {
           <nav aria-label={t("testerApplications.detail.pageSections")} className="flex flex-wrap gap-2">
             <a href="#app-overview" onClick={(event) => scrollToSection(event, "app-overview")} className="rounded-full border border-midnight-border bg-midnight-card/60 px-3 py-2 text-xs font-medium text-ink-muted transition hover:border-emerald-300/30 hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-300/60">{t("testerApplications.detail.overview")}</a>
             <a href="#test-guide" onClick={(event) => scrollToSection(event, "test-guide")} className="rounded-full border border-midnight-border bg-midnight-card/60 px-3 py-2 text-xs font-medium text-ink-muted transition hover:border-emerald-300/30 hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-300/60">{t("testerApplications.detail.testPath")}</a>
-            {application.screenshotUrls.length > 0 && <a href="#app-screenshots" onClick={(event) => scrollToSection(event, "app-screenshots")} className="rounded-full border border-midnight-border bg-midnight-card/60 px-3 py-2 text-xs font-medium text-ink-muted transition hover:border-emerald-300/30 hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-300/60">{t("testerApplications.detail.screenshots")}</a>}
+            {application.screenshotUrls.length > 0 && <a href="#app-screenshot-gallery" onClick={(event) => scrollToSection(event, "app-screenshot-gallery")} className="rounded-full border border-midnight-border bg-midnight-card/60 px-3 py-2 text-xs font-medium text-ink-muted transition hover:border-emerald-300/30 hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-300/60">{t("testerApplications.detail.screenshots")}</a>}
             <a href="#tester-workspace" onClick={(event) => scrollToSection(event, "tester-workspace")} className="rounded-full border border-midnight-border bg-midnight-card/60 px-3 py-2 text-xs font-medium text-ink-muted transition hover:border-emerald-300/30 hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-300/60">{t("testerApplications.detail.testerSpace")}</a>
             {canManage && <Link href={`/tester-applications/${id}/manage`} className="rounded-full border border-gold/25 bg-gold/10 px-3 py-2 text-xs font-semibold text-gold-soft transition hover:border-gold/40 hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold/60">{t("testerApplications.detail.manageSpace")}</Link>}
           </nav>
 
-          <section id="app-overview" className="card relative isolate scroll-mt-24 overflow-hidden rounded-3xl bg-gradient-to-br from-emerald-300/[0.08] via-midnight-card/80 to-gold/[0.05]">
-            <div aria-hidden="true" className="pointer-events-none absolute -right-12 -top-20 -z-10 h-64 w-64 rounded-full border border-emerald-300/10 bg-emerald-300/[0.04] blur-2xl" />
-            {application.screenshotUrls[0] && (
-              <button
-                id="app-screenshots"
-                type="button"
-                onClick={() => setSelectedScreenshot(0)}
-                aria-label={t("testerApplications.detail.openScreenshot", { number: 1 })}
-                className="group absolute inset-0 z-0 cursor-zoom-in text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-emerald-300/60"
-              >
-                <Image
-                  src={application.screenshotUrls[0]}
-                  alt={t("testerApplications.detail.screenshotAlt", { number: 1, name: application.name })}
-                  fill
-                  unoptimized
-                  sizes="(max-width: 1280px) 100vw, 1152px"
-                  className="object-cover opacity-50 transition duration-300 group-hover:opacity-60"
-                />
-                <span aria-hidden="true" className="absolute inset-0 bg-gradient-to-br from-midnight-deep/80 via-midnight-deep/65 to-midnight-card/60" />
-              </button>
-            )}
+          <section id="app-overview" className="card relative isolate scroll-mt-24 overflow-hidden rounded-3xl bg-gradient-to-br from-[#102b35] via-midnight-card to-[#202a35]">
+            <div aria-hidden="true" className="pointer-events-none absolute -right-16 -top-24 -z-10 h-80 w-80 rounded-full bg-emerald-300/[0.07] blur-3xl" />
             <div className="relative z-10 flex flex-col gap-6 p-5 sm:flex-row sm:items-start sm:p-8">
               {application.logoUrl ? <Image src={application.logoUrl} alt="" width={88} height={88} unoptimized className="h-20 w-20 shrink-0 rounded-3xl border border-midnight-border object-cover sm:h-[88px] sm:w-[88px]" /> : <div className="grid h-20 w-20 shrink-0 place-items-center rounded-3xl bg-emerald-300/10 font-display text-3xl font-bold text-emerald-100 sm:h-[88px] sm:w-[88px]">{application.name.slice(0, 1)}</div>}
               <div className="min-w-0 flex-1">
@@ -368,7 +349,7 @@ export default function TesterApplicationDetailPage() {
 
           {application.problem && <section className="scroll-mt-24 rounded-2xl border border-midnight-border bg-midnight-card/50 p-5 sm:p-6"><p className="text-xs font-semibold uppercase tracking-wide text-emerald-200">{t("testerApplications.detail.problem")}</p><p className="mt-2 text-sm leading-6 text-ink-muted">{application.problem}</p></section>}
           <section id="test-guide" className="scroll-mt-24 rounded-2xl border border-midnight-border bg-midnight-card/50 p-5 sm:p-6"><p className="text-xs font-semibold uppercase tracking-wide text-emerald-200">{t("testerApplications.detail.testPath")}</p><p className="mt-2 whitespace-pre-wrap text-sm leading-6 text-ink-muted">{application.testInstructions}</p></section>
-          {application.screenshotUrls.length > 1 && <section id="app-screenshot-gallery" aria-label={t("testerApplications.detail.screenshots")} className="scroll-mt-24 space-y-3"><h2 className="font-display text-xl font-semibold text-ink">{t("testerApplications.detail.screenshots")}</h2><div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">{application.screenshotUrls.slice(1).map((url, index) => <button key={`${url}-${index + 1}`} type="button" onClick={() => setSelectedScreenshot(index + 1)} aria-label={t("testerApplications.detail.openScreenshot", { number: index + 2 })} className="group relative overflow-hidden rounded-2xl border border-midnight-border bg-white text-left transition hover:border-emerald-300/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-300/60"><Image src={url} alt={t("testerApplications.detail.screenshotAlt", { number: index + 2, name: application.name })} width={800} height={600} unoptimized className="aspect-video w-full object-contain transition duration-300 group-hover:scale-[1.02]" /><span className="sr-only">{t("testerApplications.detail.openScreenshot", { number: index + 2 })}</span></button>)}</div></section>}
+          {application.screenshotUrls.length > 0 && <section id="app-screenshot-gallery" aria-label={t("testerApplications.detail.screenshots")} className="scroll-mt-24 space-y-3"><div className="flex items-end justify-between gap-3"><div><h2 className="font-display text-xl font-semibold text-ink">{t("testerApplications.detail.screenshots")}</h2><p className="mt-1 text-xs text-ink-muted">{application.screenshotUrls.length} {locale === "fr" ? "captures" : "screenshots"}</p></div></div><div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">{application.screenshotUrls.map((url, index) => <button key={`${url}-${index}`} type="button" onClick={() => setSelectedScreenshot(index)} aria-label={t("testerApplications.detail.openScreenshot", { number: index + 1 })} className="group relative overflow-hidden rounded-2xl border border-midnight-border bg-white p-2 text-left transition hover:border-emerald-300/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-300/60"><Image src={url} alt={t("testerApplications.detail.screenshotAlt", { number: index + 1, name: application.name })} width={800} height={600} unoptimized className="aspect-video w-full rounded-lg object-contain transition duration-300 group-hover:scale-[1.01]" /><span className="absolute bottom-4 left-4 rounded-md bg-midnight-deep/85 px-2 py-1 text-[10px] font-medium text-white">{index + 1} / {application.screenshotUrls.length}</span><span className="sr-only">{t("testerApplications.detail.openScreenshot", { number: index + 1 })}</span></button>)}</div></section>}
 
           <section id="tester-workspace" className="scroll-mt-24 space-y-5">
             <div className="flex flex-wrap items-end justify-between gap-4">

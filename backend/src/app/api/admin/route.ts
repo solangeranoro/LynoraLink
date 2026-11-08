@@ -65,6 +65,7 @@ export async function GET(request: Request) {
     activeBoosts,
     recentUsers,
     locationGroups,
+    countryGroups,
     recentProjects,
     recentTeams,
     reportedPostItems,
@@ -110,6 +111,17 @@ export async function GET(request: Request) {
         'Localisation non renseignée'
       ) AS location,
         COUNT(*)::int AS users
+      FROM "User"
+      GROUP BY 1
+      ORDER BY users DESC
+      LIMIT 100
+    `),
+    prisma.$queryRaw<Array<{ country: string; users: number }>>(Prisma.sql`
+      SELECT CASE
+        WHEN BTRIM("country") = '' OR UPPER(BTRIM("country")) IN ('INCONNU', 'UNKNOWN') THEN 'Inconnu'
+        ELSE UPPER(BTRIM("country"))
+      END AS country,
+      COUNT(*)::int AS users
       FROM "User"
       GROUP BY 1
       ORDER BY users DESC
@@ -304,6 +316,7 @@ export async function GET(request: Request) {
     postTypeCounts,
     recentUsers,
     geoDistribution: locationGroups.map((item) => ({ location: item.location, users: Number(item.users) })),
+    countryDistribution: countryGroups.map((item) => ({ country: item.country, users: Number(item.users) })),
     recentProjects,
     recentTeams,
     reportedPostItems,

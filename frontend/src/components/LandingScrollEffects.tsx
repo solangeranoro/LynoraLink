@@ -15,7 +15,9 @@ export function LandingScrollEffects() {
     const observer = new IntersectionObserver(
       (entries) => {
         for (const entry of entries) {
-          (entry.target as HTMLElement).dataset.revealVisible = String(entry.isIntersecting);
+          if (!entry.isIntersecting) continue;
+          (entry.target as HTMLElement).dataset.revealVisible = "true";
+          observer.unobserve(entry.target);
         }
       },
       { threshold: 0.12, rootMargin: "0px 0px -8% 0px" },

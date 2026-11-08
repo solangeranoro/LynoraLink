@@ -224,6 +224,7 @@ model User {
   headline                 String?
   age                      Int?
   city                     String?
+  country                  String                    @default("Inconnu") @db.VarChar(16)
   phoneNumber              String?
   skills                   String[]                  @default([])
   githubUrl                String?

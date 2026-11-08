@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState, type FormEvent } from "react";
-import { ArrowLeft, ArrowRight, Check, Languages, LoaderCircle, PackagePlus } from "@/components/FontAwesomeIcons";
+import { ArrowLeft, ArrowRight, Check, Languages, LoaderCircle, PackagePlus, Save } from "@/components/FontAwesomeIcons";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { formatUsd } from "@/lib/utils";
 import { getNetworkErrorMessage } from "@/lib/error-messages";
@@ -17,6 +17,21 @@ type SaleForm = {
   templateType: string; technologies: string; license: "PERSONAL" | "COMMERCIAL" | "BOTH"; includedCount: string; previews: string; templateDocsUrl: string;
   serviceType: string; experience: string; portfolioUrl: string; modalities: string; tools: string; caseStudies: string; supportTerms: string;
   complianceAccepted: boolean;
+};
+type ListingInitialData = {
+  id: string;
+  type: ListingType;
+  title: string;
+  description: string;
+  productUrl: string | null;
+  pitch: string | null;
+  language: string | null;
+  sellerCity: string | null;
+  priceCents: number;
+  includedItems: unknown;
+  audience: unknown;
+  financial: unknown;
+  details: unknown;
 };
 
 const socialNetworks: { id: SocialNetwork; label: string }[] = [
@@ -43,6 +58,74 @@ function createEmptyForm(language = "fr"): SaleForm {
   };
 }
 
+function recordValue(value: unknown): Record<string, unknown> {
+  return value && typeof value === "object" && !Array.isArray(value) ? value as Record<string, unknown> : {};
+}
+
+function stringValue(value: unknown, fallback = "") {
+  return typeof value === "string" || typeof value === "number" ? String(value) : fallback;
+}
+
+function listValue(value: unknown) {
+  return Array.isArray(value) ? value.map(String).join("\n") : stringValue(value);
+}
+
+function createFormFromListing(listing: ListingInitialData): SaleForm {
+  const form = createEmptyForm(listing.language ?? "fr");
+  const included = recordValue(listing.includedItems);
+  const audience = recordValue(listing.audience);
+  const financial = recordValue(listing.financial);
+  const details = recordValue(listing.details);
+  const accounts = recordValue(included.socialAccounts);
+  return {
+    ...form,
+    type: listing.type,
+    title: listing.title,
+    description: listing.description,
+    productUrl: listing.productUrl ?? "",
+    pitch: listing.pitch ?? "",
+    language: listing.language ?? "fr",
+    sellerCity: listing.sellerCity ?? "",
+    price: String(listing.priceCents / 100),
+    sourceCodeUrl: stringValue(included.sourceCodeUrl),
+    websiteIncludedUrl: stringValue(included.websiteUrl),
+    domain: stringValue(included.domain),
+    visualUrls: listValue(included.visualUrls),
+    socialAccounts: Object.fromEntries(
+      Object.keys(form.socialAccounts).map((network) => [network, stringValue(accounts[network])]),
+    ) as SaleForm["socialAccounts"],
+    followers: stringValue(audience.followers, "0"),
+    monthlyViews: stringValue(audience.monthlyViews, "0"),
+    trafficSource: stringValue(audience.trafficSource),
+    geographicDistribution: stringValue(audience.geographicDistribution),
+    gscProperty: stringValue(audience.gscProperty),
+    monthlyRevenueUsd: stringValue(financial.monthlyRevenueUsd, "0"),
+    annualCostsUsd: stringValue(financial.annualCostsUsd, "0"),
+    revenueSources: Array.isArray(financial.revenueSources) ? financial.revenueSources.map(String) : [],
+    businessModel: financial.businessModel === "MRR" ? "MRR" : "ONE_SHOT",
+    stack: listValue(details.stack),
+    integrations: listValue(details.integrations),
+    createdYear: stringValue(details.createdYear, String(new Date().getFullYear())),
+    category: stringValue(details.category),
+    screenshots: listValue(details.screenshots),
+    microDocsUrl: stringValue(details.documentationUrl),
+    templateType: stringValue(details.templateType),
+    technologies: listValue(details.technologies),
+    license: details.license === "COMMERCIAL" || details.license === "BOTH" ? details.license : "PERSONAL",
+    includedCount: stringValue(details.includedCount),
+    previews: listValue(details.previews),
+    templateDocsUrl: stringValue(details.documentationUrl),
+    serviceType: stringValue(details.serviceType),
+    experience: stringValue(details.experience),
+    portfolioUrl: stringValue(details.portfolioUrl),
+    modalities: stringValue(details.modalities),
+    tools: listValue(details.tools),
+    caseStudies: stringValue(details.caseStudies),
+    supportTerms: stringValue(details.supportTerms),
+    complianceAccepted: true,
+  };
+}
+
 function splitList(value: string) {
   return value.split(/[\n,]/).map((item) => item.trim()).filter(Boolean);
 }
@@ -57,8 +140,13 @@ function isValidUrl(value: string) {
   }
 }
 
-export function MarketplaceSellWizard({ onPublished, initialLanguage = "fr" }: { onPublished: () => void; initialLanguage?: string }) {
-  const [form, setForm] = useState<SaleForm>(() => createEmptyForm(initialLanguage));
+export function MarketplaceSellWizard({ onPublished, onCancel, initialLanguage = "fr", initialData }: {
+  onPublished: () => void;
+  onCancel?: () => void;
+  initialLanguage?: string;
+  initialData?: ListingInitialData;
+}) {
+  const [form, setForm] = useState<SaleForm>(() => initialData ? createFormFromListing(initialData) : createEmptyForm(initialLanguage));
   const [step, setStep] = useState(0);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [status, setStatus] = useState("");
@@ -173,8 +261,8 @@ export function MarketplaceSellWizard({ onPublished, initialLanguage = "fr" }: {
         : { serviceType: form.serviceType, experience: form.experience, portfolioUrl: form.portfolioUrl, modalities: form.modalities, tools: splitList(form.tools), caseStudies: form.caseStudies, supportTerms: form.supportTerms };
     const photos = [...splitList(form.visualUrls), ...(form.type === "MICRO_SAAS" ? splitList(form.screenshots) : form.type === "TEMPLATE" ? splitList(form.previews) : [])].slice(0, 20);
     try {
-      const response = await fetch("/api/marketplace/items", {
-        method: "POST", headers: { "Content-Type": "application/json" },
+      const response = await fetch(initialData ? `/api/marketplace/items/${encodeURIComponent(initialData.id)}` : "/api/marketplace/items", {
+        method: initialData ? "PATCH" : "POST", headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           title: form.title.trim(), description: form.description.trim(), type: form.type, productUrl: form.productUrl,
           pitch: form.pitch.trim(), language: form.language, sellerCity: form.sellerCity.trim(), priceCents: Math.round(Number(form.price) * 100),
@@ -186,9 +274,18 @@ export function MarketplaceSellWizard({ onPublished, initialLanguage = "fr" }: {
         }),
       });
       const result = await response.json();
-      if (!response.ok) throw new Error(result.error ?? "sale_failed");
-      setStatus(text("Votre annonce est soumise à validation par l’administration. Elle sera visible après approbation.", "Your listing is awaiting platform admin review and will be visible after approval."));
-      setForm(createEmptyForm(initialLanguage)); setStep(0); onPublished();
+      if (!response.ok) {
+        const issues = result.issues as Record<string, string[] | undefined> | undefined;
+        throw new Error((issues ? Object.values(issues).flat()[0] : null) ?? result.error ?? "sale_failed");
+      }
+      if (initialData) {
+        setStatus(text("Annonce modifiée et envoyée pour validation. Elle sera republiée après approbation.", "Listing updated and submitted for review. It will be republished after approval."));
+      } else {
+        setStatus(text("Votre annonce est soumise à validation par l’administration. Elle sera visible après approbation.", "Your listing is awaiting platform admin review and will be visible after approval."));
+        setForm(createEmptyForm(initialLanguage));
+        setStep(0);
+      }
+      onPublished();
     } catch (error) {
       const code = error instanceof Error ? error.message : "";
       setStatus(getNetworkErrorMessage(error, isFrench ? "fr" : "en")
@@ -196,6 +293,10 @@ export function MarketplaceSellWizard({ onPublished, initialLanguage = "fr" }: {
         ? text("Connectez-vous pour publier une annonce.", "Sign in to publish a listing.")
         : code === "VERIFICATION_REQUIRED"
           ? text("Confirmez votre profil vendeur avant de publier.", "Verify your seller profile before publishing.")
+          : code === "LISTING_SOLD"
+            ? text("Cette annonce a déjà été vendue et ne peut plus être modifiée.", "This listing has already been sold and can no longer be edited.")
+            : code === "FORBIDDEN"
+              ? text("Vous ne pouvez pas modifier cette annonce.", "You cannot edit this listing.")
           : text("Envoi impossible. Vérifiez les champs et réessayez.", "Submission failed. Check the fields and try again.")));
     } finally { setSaving(false); }
   }
@@ -207,7 +308,34 @@ export function MarketplaceSellWizard({ onPublished, initialLanguage = "fr" }: {
     <label className="block" key={key}><span className="label">{label}</span><textarea value={String(form[key])} onChange={(event) => update(key, event.target.value as SaleForm[typeof key])} placeholder={placeholder} rows={rows} className="input resize-y" />{errors[key] && <span className="mt-1 block text-xs text-rose-300">{errors[key]}</span>}</label>
   );
   const select = (key: keyof SaleForm, label: string, options: { value: string; label: string }[]) => (
-    <label className="block" key={key}><span className="label">{label}</span><select value={String(form[key])} onChange={(event) => update(key, event.target.value as SaleForm[typeof key])} className="input">{options.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}</select>{errors[key] && <span className="mt-1 block text-xs text-rose-300">{errors[key]}</span>}</label>
+    <div className="block" key={key}>
+      <span id={`sale-${key}-label`} className="label">{label}</span>
+      <Select value={String(form[key])} onValueChange={(value) => update(key, value as SaleForm[typeof key])}>
+        <SelectTrigger
+          id={`sale-${key}`}
+          aria-labelledby={`sale-${key}-label`}
+          aria-invalid={Boolean(errors[key])}
+          className="h-12 w-full rounded-xl border-midnight-border bg-midnight-deep/60 px-3 text-sm text-ink shadow-sm transition hover:border-gold/40 focus-visible:border-gold/60 focus-visible:ring-2 focus-visible:ring-gold/20"
+        >
+          <SelectValue placeholder={options[0]?.value === "" ? options[0].label : text("Sélectionner…", "Select…")} />
+        </SelectTrigger>
+        <SelectContent
+          align="start"
+          className="w-[var(--radix-select-trigger-width)] min-w-56 rounded-xl border-midnight-border bg-midnight-card p-1.5 shadow-2xl shadow-black/30"
+        >
+          {options.filter((option) => option.value !== "").map((option) => (
+            <SelectItem
+              key={option.value}
+              value={option.value}
+              className="min-h-11 rounded-lg px-3 py-2 text-sm text-ink focus:bg-midnight-deep focus:text-ink"
+            >
+              {option.label}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+      {errors[key] && <span role="alert" className="mt-1 block text-xs text-rose-300">{errors[key]}</span>}
+    </div>
   );
   const languageSelect = (
     <div className="block">
@@ -319,7 +447,7 @@ export function MarketplaceSellWizard({ onPublished, initialLanguage = "fr" }: {
   return (
     <section className="min-w-0 space-y-5" aria-labelledby="sale-wizard-title">
       <div>
-        <div className="mb-3 flex items-center justify-between gap-3"><p className="text-xs font-semibold uppercase tracking-[0.14em] text-gold-soft">{text("Nouvelle annonce", "New listing")}</p><span className="text-xs text-ink-muted">{text(`Étape ${step + 1} sur ${steps.length}`, `Step ${step + 1} of ${steps.length}`)}</span></div>
+        <div className="mb-3 flex items-center justify-between gap-3"><p className="text-xs font-semibold uppercase tracking-[0.14em] text-gold-soft">{initialData ? text("Modifier l’annonce complète", "Edit full listing") : text("Nouvelle annonce", "New listing")}</p><span className="text-xs text-ink-muted">{text(`Étape ${step + 1} sur ${steps.length}`, `Step ${step + 1} of ${steps.length}`)}</span></div>
         <ol className="grid grid-cols-3 gap-1.5 sm:grid-cols-6" aria-label={text("Progression du formulaire", "Form progress")}>
           {steps.map((label, index) => <li key={label} aria-current={step === index ? "step" : undefined} className="min-w-0"><div className={`mb-2 h-1 rounded-full ${index <= step ? "bg-gold" : "bg-midnight-border"}`} /><div className="flex items-center gap-1.5 text-[10px] leading-tight sm:text-xs"><span className={`grid h-5 w-5 shrink-0 place-items-center rounded-full border ${index < step ? "border-gold bg-gold text-midnight-deep" : index === step ? "border-gold text-gold-soft" : "border-midnight-border text-ink-muted"}`}>{index < step ? <Check size={12} aria-hidden="true" /> : index + 1}</span><span className={index === step ? "text-gold-soft" : "text-ink-muted"}>{index === 4 ? typeLabels[form.type] : text(label, ["General", "Included", "Audience", "Finances", "Details", "Review"][index])}</span></div></li>)}
         </ol>
@@ -366,7 +494,7 @@ export function MarketplaceSellWizard({ onPublished, initialLanguage = "fr" }: {
         </div>
         {step === 5 && <section className="mt-4 rounded-xl border border-midnight-border bg-midnight-deep/50 p-4" aria-label={text("Détails de l’offre", "Offer details")}><h3 className="text-sm font-semibold text-gold-soft">{text("Détails de l’offre", "Offer details")} · {typeLabels[form.type]}</h3><dl className="mt-3 grid gap-3 sm:grid-cols-2">{typeReview.map((item) => <div key={item.label}><dt className="text-xs text-ink-muted">{item.label}</dt><dd className="break-words text-sm text-ink">{item.value || "—"}</dd></div>)}</dl></section>}
         {status && <p role="status" className="mt-4 text-sm text-gold-soft">{status}</p>}
-        <div className="mt-6 flex flex-wrap items-center justify-between gap-3 border-t border-midnight-border pt-4"><button type="button" onClick={() => { setErrors({}); setStep((current) => Math.max(0, current - 1)); }} disabled={step === 0 || saving} className="btn-ghost !rounded-xl"><ArrowLeft size={15} aria-hidden="true" />{text("Précédent", "Back")}</button>{step < 5 ? <button type="button" onClick={nextStep} className="btn-gold !rounded-xl">{text("Continuer", "Continue")}<ArrowRight size={15} aria-hidden="true" /></button> : <button type="submit" disabled={saving || previewLoading} className="btn-gold !rounded-xl"><PackagePlus size={15} aria-hidden="true" />{saving ? <LoaderCircle size={15} className="animate-spin" aria-hidden="true" /> : null}{text("Soumettre la vente", "Submit listing")}</button>}</div>
+        <div className="mt-6 flex flex-wrap items-center justify-between gap-3 border-t border-midnight-border pt-4"><div className="flex flex-wrap gap-2"><button type="button" onClick={() => { setErrors({}); setStep((current) => Math.max(0, current - 1)); }} disabled={step === 0 || saving} className="btn-ghost !rounded-xl"><ArrowLeft size={15} aria-hidden="true" />{text("Précédent", "Back")}</button>{onCancel && <button type="button" onClick={onCancel} disabled={saving} className="btn-ghost !rounded-xl">{text("Annuler", "Cancel")}</button>}</div>{step < 5 ? <button type="button" onClick={nextStep} className="btn-gold !rounded-xl">{text("Continuer", "Continue")}<ArrowRight size={15} aria-hidden="true" /></button> : <button type="submit" disabled={saving || previewLoading} className="btn-gold !rounded-xl">{saving ? <LoaderCircle size={15} className="animate-spin" aria-hidden="true" /> : initialData ? <Save size={15} aria-hidden="true" /> : <PackagePlus size={15} aria-hidden="true" />}{text(initialData ? "Enregistrer les modifications" : "Soumettre la vente", initialData ? "Save changes" : "Submit listing")}</button>}</div>
       </form>
     </section>
   );

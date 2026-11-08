@@ -1,14 +1,15 @@
 "use client";
 
-import { useEffect, useState, type FormEvent } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { ArrowLeft, ArrowUpRight, Check, ExternalLink, LoaderCircle, Pencil, Save, ShoppingBag, X } from "@/components/FontAwesomeIcons";
+import { AlertTriangle, ArrowLeft, ArrowUpRight, Check, ExternalLink, LoaderCircle, Pencil, ShoppingBag, Trash2, X } from "@/components/FontAwesomeIcons";
 import { useTranslation } from "@/lib/i18n";
 import { MarketplaceContactSeller } from "@/components/MarketplaceContactSeller";
+import { MarketplaceSellWizard } from "@/components/MarketplaceSellWizard";
 import { formatUsd } from "@/lib/utils";
-import { getNetworkErrorMessage } from "@/lib/error-messages";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
 type ListingType = "TEMPLATE" | "MICRO_SAAS" | "SERVICE";
 type ListingDetail = {
@@ -18,6 +19,7 @@ type ListingDetail = {
   type: ListingType;
   priceCents: number;
   currency: string;
+  isSold: boolean;
   imageUrl: string | null;
   productUrl: string | null;
   pitch: string | null;
@@ -50,14 +52,16 @@ export default function MarketplaceListingPage() {
   const params = useParams<{ id: string }>();
   const { locale } = useTranslation();
   const isFrench = locale === "fr";
+  const soldLabel = isFrench ? "Vendu" : "Sold";
+  const router = useRouter();
   const queryClient = useQueryClient();
   const [adminPreview, setAdminPreview] = useState<boolean | null>(null);
   const [working, setWorking] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [feedbackMessage, setFeedbackMessage] = useState("");
+  const [deleteError, setDeleteError] = useState("");
   const [editing, setEditing] = useState(false);
-  const [savingEdit, setSavingEdit] = useState(false);
-  const [editMessage, setEditMessage] = useState("");
-  const [editForm, setEditForm] = useState({ title: "", description: "", pitch: "", productUrl: "", price: "" });
   const [reviewMessage, setReviewMessage] = useState("");
   const [reviewError, setReviewError] = useState("");
   useEffect(() => {
@@ -105,62 +109,34 @@ export default function MarketplaceListingPage() {
   }
 
   function startEditing() {
-    if (!listingQuery.data) return;
-    setEditForm({
-      title: listingQuery.data.title,
-      description: listingQuery.data.description,
-      pitch: listingQuery.data.pitch ?? "",
-      productUrl: listingQuery.data.productUrl ?? "",
-      price: String(listingQuery.data.priceCents / 100),
-    });
-    setEditMessage("");
+    if (!listingQuery.data || listingQuery.data.isSold) return;
     setEditing(true);
   }
 
-  async function saveListing(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    if (!listingQuery.data) return;
-    const priceCents = Math.round(Number(editForm.price) * 100);
-    if (!Number.isSafeInteger(priceCents) || priceCents < 50 || priceCents > 99999999) {
-      setEditMessage(isFrench ? "Le prix doit être compris entre 0,50 $ et 999 999,99 $." : "Price must be between $0.50 and $999,999.99.");
-      return;
-    }
-
-    setSavingEdit(true);
-    setEditMessage("");
+  async function deleteListing() {
+    if (!listingQuery.data || deleting) return;
+    setDeleting(true);
+    setDeleteError("");
     try {
-      const response = await fetch(`/api/marketplace/items/${encodeURIComponent(listingQuery.data.id)}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          title: editForm.title,
-          description: editForm.description,
-          pitch: editForm.pitch,
-          productUrl: editForm.productUrl,
-          priceCents,
-        }),
-      });
+      const response = await fetch(`/api/marketplace/items/${encodeURIComponent(listingQuery.data.id)}`, { method: "DELETE" });
       const result = await response.json();
-      if (!response.ok) {
-        const issues = result.issues as Record<string, string[] | undefined> | undefined;
-        const firstIssue = issues ? Object.values(issues).flat()[0] : null;
-        throw new Error(firstIssue ?? result.error ?? "listing_update_failed");
-      }
-      setEditing(false);
-      setFeedbackMessage(isFrench
-        ? "Annonce modifiée et envoyée pour validation. Elle sera republiée après approbation."
-        : "Listing updated and submitted for review. It will be republished after approval.");
-      await queryClient.invalidateQueries({ queryKey: ["marketplace-item", params.id] });
-      await queryClient.invalidateQueries({ queryKey: ["marketplace-items"] });
-      await queryClient.invalidateQueries({ queryKey: ["marketplace-own-items"] });
+      if (!response.ok) throw new Error(result.error ?? "DELETE_FAILED");
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ["marketplace-item", params.id] }),
+        queryClient.invalidateQueries({ queryKey: ["marketplace-items"] }),
+        queryClient.invalidateQueries({ queryKey: ["marketplace-own-items"] }),
+      ]);
+      setDeleteDialogOpen(false);
+      router.push("/marketplace");
     } catch (error) {
-      const message = error instanceof Error ? error.message : "";
-      setEditMessage(message === "FORBIDDEN"
-        ? (isFrench ? "Vous ne pouvez pas modifier cette annonce." : "You cannot edit this listing.")
-        : getNetworkErrorMessage(error)
-          ?? (isFrench ? "La modification a échoué. Vérifiez les champs et réessayez." : "The update failed. Check the fields and try again."));
+      const code = error instanceof Error ? error.message : "";
+      setDeleteError(code === "LISTING_HAS_ORDERS"
+        ? (isFrench ? "Cette annonce ne peut pas être supprimée car elle est liée à une commande." : "This listing cannot be deleted because it has an order.")
+        : code === "FORBIDDEN"
+          ? (isFrench ? "Vous ne pouvez pas supprimer cette annonce." : "You cannot delete this listing.")
+          : (isFrench ? "La suppression a échoué. Réessayez." : "Deletion failed. Please try again."));
     } finally {
-      setSavingEdit(false);
+      setDeleting(false);
     }
   }
 
@@ -168,6 +144,31 @@ export default function MarketplaceListingPage() {
   if (listingQuery.isError || !listingQuery.data) return <main className="mx-auto max-w-6xl py-16 text-center"><h1 className="section-title">{isFrench ? "Annonce introuvable" : "Listing not found"}</h1><p className="mt-2 text-sm text-ink-muted">{isFrench ? "Cette annonce n’est plus disponible ou vous n’avez pas les droits nécessaires." : "This listing is unavailable or you do not have permission to view it."}</p><Link href={adminPreview ? "/admin?section=marketplace" : "/marketplace"} className="btn-ghost mt-6 !rounded-lg"><ArrowLeft size={15} aria-hidden="true" />{adminPreview ? (isFrench ? "Retour à l’administration" : "Back to admin") : (isFrench ? "Retour au marketplace" : "Back to marketplace")}</Link></main>;
 
   const item = listingQuery.data;
+  if (editing) {
+    return (
+      <main className="mx-auto max-w-4xl space-y-6 pb-12">
+        <nav aria-label={isFrench ? "Fil d’Ariane" : "Breadcrumb"}>
+          <button type="button" onClick={() => setEditing(false)} className="inline-flex items-center gap-2 text-sm text-ink-muted transition hover:text-gold-soft">
+            <ArrowLeft size={15} aria-hidden="true" />{isFrench ? "Retour à l’annonce" : "Back to listing"}
+          </button>
+        </nav>
+        <MarketplaceSellWizard
+          initialLanguage={item.language ?? (isFrench ? "fr" : "en")}
+          initialData={item}
+          onCancel={() => setEditing(false)}
+          onPublished={() => {
+            setEditing(false);
+            setFeedbackMessage(isFrench
+              ? "Annonce modifiée et envoyée pour validation. Elle sera republiée après approbation."
+              : "Listing updated and submitted for review. It will be republished after approval.");
+            void queryClient.invalidateQueries({ queryKey: ["marketplace-item", params.id] });
+            void queryClient.invalidateQueries({ queryKey: ["marketplace-items"] });
+            void queryClient.invalidateQueries({ queryKey: ["marketplace-own-items"] });
+          }}
+        />
+      </main>
+    );
+  }
   const included = item.includedItems ?? {};
   const audience = item.audience ?? {};
   const financial = item.financial ?? {};
@@ -250,7 +251,9 @@ export default function MarketplaceListingPage() {
           <section className="space-y-4 rounded-2xl border border-midnight-border bg-midnight-card/40 p-5" aria-labelledby="listing-specific-title"><h2 id="listing-specific-title" className="text-base font-semibold text-ink">{isFrench ? `Détails ${itemType}` : `${itemType} details`}</h2><dl className="grid gap-4 sm:grid-cols-2">{Object.entries(details).map(([key, value]) => { const values = Array.isArray(value) ? value : [value]; return <div key={key} className="min-w-0"><dt className="text-xs text-ink-muted">{detailLabels[key] ?? key}</dt><dd className="mt-1 flex flex-wrap gap-2 text-sm text-ink">{values.map((entry, index) => { const rendered = displayValue(entry); return rendered ? isHttpUrl(rendered) ? <a key={`${key}-${index}`} href={rendered} target="_blank" rel="noreferrer" className="max-w-full break-all text-gold-soft hover:underline">{isFrench ? "Ouvrir le lien" : "Open link"}<ArrowUpRight size={12} className="ml-1 inline" aria-hidden="true" /></a> : <span key={`${key}-${index}`}>{rendered}{index < values.length - 1 ? "," : ""}</span> : null; })}</dd></div>; })}</dl></section>
         </article>
 
-        <aside className="lg:sticky lg:top-6"><div className="space-y-4 rounded-2xl border border-midnight-border bg-midnight-card/60 p-5"><p className="text-xs font-semibold uppercase text-ink-muted">{itemType}</p><p className="text-xs text-ink-muted">{isFrench ? "Prix de l’offre" : "Listing price"}</p><p className="-mt-3 font-display text-2xl font-semibold text-gold-soft">{formatUsd(item.priceCents / 100, isFrench ? "fr-FR" : "en-US")}</p>
+        <aside className="lg:sticky lg:top-6"><div className="space-y-4 rounded-2xl border border-midnight-border bg-midnight-card/60 p-5"><p className="text-xs font-semibold uppercase text-ink-muted">{itemType}</p>{item.isSold
+          ? <p className="font-display text-2xl font-semibold text-ink-muted">{soldLabel}</p>
+          : <><p className="text-xs text-ink-muted">{isFrench ? "Prix de l’offre" : "Listing price"}</p><p className="-mt-3 font-display text-2xl font-semibold text-gold-soft">{formatUsd(item.priceCents / 100, isFrench ? "fr-FR" : "en-US")}</p></>}
           {item.isOwner && item.moderationStatus !== "APPROVED" && <p className="rounded-lg border border-amber-300/20 bg-amber-300/5 px-3 py-2 text-xs text-amber-200">{isFrench ? "Cette annonce n’est pas publiée pour le moment." : "This listing is not currently published."}</p>}
           {adminPreview ? <>
             <div className="flex flex-wrap gap-2 text-xs"><span className={item.moderationStatus === "APPROVED" ? "badge-gold" : item.moderationStatus === "REJECTED" ? "badge border-rose-400/30 text-rose-300" : "badge border-amber-300/30 text-amber-200"}>{item.moderationStatus === "APPROVED" ? (isFrench ? "Approuvée" : "Approved") : item.moderationStatus === "REJECTED" ? (isFrench ? "Refusée" : "Rejected") : (isFrench ? "En attente" : "Pending")}</span><span className={`badge ${item.isActive ? "border-emerald-400/30 text-emerald-300" : "text-ink-muted"}`}>{item.isActive ? (isFrench ? "En ligne" : "Published") : (isFrench ? "Masquée" : "Hidden")}</span></div>
@@ -260,29 +263,52 @@ export default function MarketplaceListingPage() {
             {item.moderationStatus !== "REJECTED" && <button type="button" onClick={() => void reviewListing(false)} disabled={working} className="btn-ghost w-full !rounded-xl text-rose-300 disabled:opacity-50">{working ? <LoaderCircle size={16} className="animate-spin" aria-hidden="true" /> : <X size={15} aria-hidden="true" />}{isFrench ? "Refuser l’annonce" : "Reject listing"}</button>}
             {reviewMessage && <p role="status" className="text-xs text-emerald-300">{reviewMessage}</p>}
             {reviewError && <p role="alert" className="text-xs text-rose-300">{reviewError}</p>}
-          </> : item.isOwner ? editing ? (
-            <form onSubmit={saveListing} className="space-y-3" aria-label={isFrench ? "Modifier l’annonce" : "Edit listing"}>
-              <h2 className="text-sm font-semibold text-ink">{isFrench ? "Modifier l’annonce et le prix" : "Edit listing and price"}</h2>
-              <label className="block"><span className="label">{isFrench ? "Titre" : "Title"}</span><input required minLength={3} maxLength={100} value={editForm.title} onChange={(event) => setEditForm({ ...editForm, title: event.target.value })} className="input" /></label>
-              <label className="block"><span className="label">{isFrench ? "Prix (USD)" : "Price (USD)"}</span><input required type="number" min="0.50" max="999999.99" step="0.01" value={editForm.price} onChange={(event) => setEditForm({ ...editForm, price: event.target.value })} className="input" /></label>
-              <label className="block"><span className="label">{isFrench ? "Description" : "Description"}</span><textarea required minLength={500} maxLength={10000} rows={6} value={editForm.description} onChange={(event) => setEditForm({ ...editForm, description: event.target.value })} className="input resize-y" /></label>
-              <label className="block"><span className="label">{isFrench ? "Accroche" : "Pitch"}</span><textarea required minLength={10} maxLength={180} rows={2} value={editForm.pitch} onChange={(event) => setEditForm({ ...editForm, pitch: event.target.value })} className="input resize-y" /></label>
-              <label className="block"><span className="label">{isFrench ? "Lien du produit" : "Product URL"}</span><input required type="url" value={editForm.productUrl} onChange={(event) => setEditForm({ ...editForm, productUrl: event.target.value })} className="input" /></label>
-              {editMessage && <p role="alert" className="text-xs text-rose-300">{editMessage}</p>}
-              <button type="submit" disabled={savingEdit} className="btn-gold w-full !rounded-xl disabled:opacity-50">{savingEdit ? <LoaderCircle size={15} className="animate-spin" aria-hidden="true" /> : <Save size={15} aria-hidden="true" />}{isFrench ? "Enregistrer les modifications" : "Save changes"}</button>
-              <button type="button" onClick={() => setEditing(false)} disabled={savingEdit} className="btn-ghost w-full !rounded-xl">{isFrench ? "Annuler" : "Cancel"}</button>
-              <p className="text-xs leading-relaxed text-ink-muted">{isFrench ? "Toute modification renvoie l’annonce en validation et la masque temporairement." : "Any change sends the listing for review and temporarily hides it."}</p>
-            </form>
-          ) : (
+          </> : item.isOwner && !item.isSold ? (
             <>
-              <button type="button" onClick={startEditing} className="btn-outline w-full !rounded-xl"><Pencil size={15} aria-hidden="true" />{isFrench ? "Modifier l’annonce / le prix" : "Edit listing / price"}</button>
+              <button type="button" onClick={startEditing} className="btn-outline w-full !rounded-xl"><Pencil size={15} aria-hidden="true" />{isFrench ? "Modifier les détails de l’annonce" : "Edit listing details"}</button>
               {feedbackMessage && <p role="status" className="text-xs text-emerald-300">{feedbackMessage}</p>}
             </>
+          ) : item.isOwner && item.isSold ? (
+            <p className="text-xs text-ink-muted">{isFrench ? "Une annonce vendue ne peut plus être modifiée." : "A sold listing can no longer be edited."}</p>
           ) : <>
             <MarketplaceContactSeller listingId={item.id} listingTitle={item.title} sellerId={item.seller.id} sellerName={item.seller.handle ? `@${item.seller.handle}` : item.seller.name} sellerImage={item.seller.image} isFrench={isFrench} />
           </>}
+          {!adminPreview && item.isOwner && <>
+            <button type="button" onClick={() => { setDeleteError(""); setDeleteDialogOpen(true); }} className="btn-ghost w-full !rounded-xl border border-rose-400/30 text-rose-300 hover:bg-rose-400/10">
+              <Trash2 size={15} aria-hidden="true" />
+              {isFrench ? "Supprimer l’annonce" : "Delete listing"}
+            </button>
+            {!deleteDialogOpen && deleteError && <p role="alert" className="text-xs text-rose-300">{deleteError}</p>}
+          </>}
         </div></aside>
       </div>
+      {!adminPreview && item.isOwner && (
+        <Dialog open={deleteDialogOpen} onOpenChange={(open) => { if (!deleting) setDeleteDialogOpen(open); }}>
+          <DialogContent className="border-midnight-border bg-midnight-card text-ink sm:max-w-md" showCloseButton={!deleting}>
+            <DialogHeader className="text-left">
+              <div className="mb-1 grid size-11 place-items-center rounded-xl border border-rose-400/25 bg-rose-400/10 text-rose-300">
+                <AlertTriangle size={20} aria-hidden="true" />
+              </div>
+              <DialogTitle className="text-lg text-ink">{isFrench ? "Supprimer cette annonce ?" : "Delete this listing?"}</DialogTitle>
+              <DialogDescription className="text-sm leading-relaxed text-ink-muted">
+                {isFrench
+                  ? <>L’annonce <span className="font-medium text-ink">« {item.title} »</span> sera supprimée définitivement. Cette action est irréversible.</>
+                  : <>The listing <span className="font-medium text-ink">“{item.title}”</span> will be permanently deleted. This action cannot be undone.</>}
+              </DialogDescription>
+            </DialogHeader>
+            {deleteError && <p role="alert" className="rounded-lg border border-rose-400/20 bg-rose-400/5 px-3 py-2 text-sm text-rose-300">{deleteError}</p>}
+            <DialogFooter className="gap-2 sm:gap-2">
+              <button type="button" onClick={() => setDeleteDialogOpen(false)} disabled={deleting} className="btn-ghost !rounded-xl">
+                {isFrench ? "Garder l’annonce" : "Keep listing"}
+              </button>
+              <button type="button" onClick={() => void deleteListing()} disabled={deleting} className="inline-flex min-h-10 items-center justify-center gap-2 rounded-xl border border-rose-400/35 bg-rose-500/15 px-4 py-2 text-sm font-medium text-rose-200 transition hover:bg-rose-500/25 disabled:cursor-not-allowed disabled:opacity-50">
+                {deleting ? <LoaderCircle size={15} className="animate-spin" aria-hidden="true" /> : <Trash2 size={15} aria-hidden="true" />}
+                {deleting ? (isFrench ? "Suppression…" : "Deleting…") : (isFrench ? "Supprimer définitivement" : "Delete permanently")}
+              </button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      )}
     </main>
   );
 }

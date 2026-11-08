@@ -470,6 +470,10 @@ export function RegisterForm() {
         <Link href="/terms" className="font-medium text-gold-soft underline decoration-gold/40 underline-offset-4 transition hover:text-gold-bright">
           {t("auth.registrationTermsLink")}
         </Link>{" "}{t("auth.registrationTermsSuffix")}
+        {" "}{locale === "fr" ? "Voir aussi la" : "Also see the"}{" "}
+        <Link href="/privacy" className="font-medium text-gold-soft underline decoration-gold/40 underline-offset-4 transition hover:text-gold-bright">
+          {locale === "fr" ? "politique de confidentialité" : "privacy policy"}
+        </Link>.
       </p>}
 
       {!verificationPending && <p className="mt-5 text-center text-sm text-ink-muted">
