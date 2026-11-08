@@ -125,7 +125,6 @@ export async function GET(request: Request) {
       FROM "User"
       GROUP BY 1
       ORDER BY users DESC
-      LIMIT 100
     `),
     prisma.project.findMany({
       where: { teamName: null },

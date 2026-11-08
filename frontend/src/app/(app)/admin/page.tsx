@@ -4,6 +4,7 @@ import { useDeferredValue, useEffect, useMemo, useRef, useState, type FormEvent,
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import * as CountryFlags from "country-flag-icons/react/3x2";
 import {
   Activity,
   ArrowUpRight,
@@ -20,6 +21,7 @@ import {
   MapPin,
   MoreHorizontal,
   ReviewIcon,
+  Search,
   ShieldCheck,
   Star,
   Store,
@@ -953,6 +955,13 @@ function countryDisplayName(code: string) {
   return new Intl.DisplayNames(["fr"], { type: "region" }).of(code) ?? code;
 }
 
+function CountryFlag({ code }: { code: string }) {
+  const Flag = CountryFlags[code as keyof typeof CountryFlags];
+  return Flag
+    ? <Flag className="block h-4 w-6 shrink-0 rounded-[3px] object-cover shadow-sm" aria-hidden="true" />
+    : <Globe2 size={15} className="shrink-0 text-ink-muted" aria-hidden="true" />;
+}
+
 type GeoMapMarker = { key: string; name: string; users: number; lat: number; lon: number };
 type GeoMapCenter = { lat: number; lon: number };
 const GEO_TILE_SIZE = 256;
@@ -1150,6 +1159,7 @@ function GeoTileMap({ markers, selectedKey, onSelect }: { markers: GeoMapMarker[
 
 function AdminGeoInsights({ distribution }: { distribution: AdminData["countryDistribution"] }) {
   const [selectedGeoKey, setSelectedGeoKey] = useState("");
+  const [countryQuery, setCountryQuery] = useState("");
   const locations = useMemo(() => {
     const countries = new Map<string, { key: string; name: string; continent: string; users: number; lat?: number; lon?: number; examples: string[] }>();
     for (const item of distribution) {
@@ -1173,37 +1183,120 @@ function AdminGeoInsights({ distribution }: { distribution: AdminData["countryDi
   const maxUsers = Math.max(1, ...locations.map((item) => item.users));
   const activeLocation = locations.find((item) => item.key === selectedGeoKey) ?? locations[0];
   const continentCounts = locations.reduce<Record<string, number>>((counts, item) => {
-    if (item.continent !== "À préciser") counts[item.continent] = (counts[item.continent] ?? 0) + item.users;
+    const continent = item.continent === "À préciser" ? "Autres / non déterminé" : item.continent;
+    counts[continent] = (counts[continent] ?? 0) + item.users;
     return counts;
   }, {});
+  const continentColors: Record<string, string> = {
+    Afrique: "#8cff00",
+    Europe: "#00a7ff",
+    Asie: "#a78bfa",
+    Amériques: "#fb923c",
+    Océanie: "#f472b6",
+    "Autres / non déterminé": "#64748b",
+  };
+  const circumference = 2 * Math.PI * 39;
+  const continents = Object.entries(continentCounts)
+    .map(([name, users]) => ({ name, users, color: continentColors[name] ?? "#64748b" }))
+    .sort((first, second) => second.users - first.users);
+  const continentSegments = continents.reduce<{ offset: number; segments: { name: string; color: string; length: number; offset: number }[] }>(
+    (result, continent) => {
+      const length = total ? (continent.users / total) * circumference : 0;
+      return {
+        offset: result.offset + length,
+        segments: [...result.segments, { name: continent.name, color: continent.color, length, offset: result.offset }],
+      };
+    },
+    { offset: 0, segments: [] },
+  ).segments;
+  const filteredLocations = locations.filter((item) =>
+    item.name.toLocaleLowerCase("fr").includes(countryQuery.trim().toLocaleLowerCase("fr")) ||
+    item.key.toLowerCase().includes(countryQuery.trim().toLowerCase()),
+  );
   return <section className="card min-w-0 overflow-hidden" aria-labelledby="admin-analytics-geography">
     <header className="flex flex-wrap items-start justify-between gap-3 border-b border-midnight-border/70 p-4 sm:p-5">
       <div><h2 id="admin-analytics-geography" className="text-sm font-semibold text-ink">Répartition par pays</h2><p className="mt-1 text-xs text-ink-muted">Pays estimés à partir de l’adresse IP au moment de la connexion</p></div>
-      <span className="rounded-full border border-midnight-border bg-midnight-deep/60 px-2.5 py-1 text-[10px] text-ink-muted">{total.toLocaleString("fr-FR")} utilisateurs agrégés</span>
+      <div className="flex flex-wrap gap-2">
+        <span className="rounded-full border border-midnight-border bg-midnight-deep/60 px-2.5 py-1 text-[10px] text-ink-muted">{total.toLocaleString("fr-FR")} profils géolocalisés</span>
+        <span className="rounded-full border border-midnight-border bg-midnight-deep/60 px-2.5 py-1 text-[10px] text-ink-muted">{locations.length} pays et territoires</span>
+      </div>
     </header>
     <div className="grid lg:grid-cols-[minmax(0,1.35fr)_minmax(16rem,.65fr)]">
       <div className="p-4 sm:p-5">
         <GeoTileMap markers={mapped} selectedKey={activeLocation?.key} onSelect={(marker) => setSelectedGeoKey(marker.key)} />
-        <div className="mt-4 flex flex-wrap gap-2">
-          {Object.entries(continentCounts).sort((first, second) => second[1] - first[1]).map(([continent, users]) => <span key={continent} className="inline-flex items-center gap-2 rounded-full border border-midnight-border bg-midnight-deep/50 px-2.5 py-1.5 text-[10px] text-ink-muted"><span className="h-1.5 w-1.5 rounded-full bg-gold" />{continent}<strong className="tabular-nums text-ink">{users.toLocaleString("fr-FR")}</strong></span>)}
+        <div className="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-3">
+          {continents.map(({ name, users, color }) => <div key={name} className="flex min-w-0 items-center gap-2 rounded-xl border border-midnight-border/70 bg-midnight-deep/35 px-3 py-2">
+            <span className="h-2 w-2 shrink-0 rounded-full" style={{ backgroundColor: color }} />
+            <span className="min-w-0 flex-1 truncate text-[10px] text-ink-muted">{name}</span>
+            <strong className="text-[11px] tabular-nums text-ink">{users.toLocaleString("fr-FR")}</strong>
+          </div>)}
         </div>
       </div>
       <div className="border-t border-midnight-border/70 p-4 sm:p-5 lg:border-l lg:border-t-0">
         {activeLocation && <div className="mb-4 rounded-xl border border-gold/20 bg-gradient-to-br from-gold/10 to-transparent p-4">
-          <p className="text-[10px] font-semibold uppercase tracking-[.14em] text-gold-soft">Pays sélectionné</p>
-          <p className="mt-2 text-lg font-semibold text-ink">{activeLocation.name}</p>
-          <p className="mt-1 text-xs text-ink-muted">{activeLocation.users.toLocaleString("fr-FR")} profils · {total ? Math.round((activeLocation.users / total) * 100) : 0}% des profils agrégés</p>
-          {activeLocation.examples.length > 0 && activeLocation.examples[0] !== activeLocation.name && <p className="mt-2 truncate text-[10px] text-ink-muted">{activeLocation.examples.join(" · ")}</p>}
+          <div className="flex items-center gap-3">
+            <span className="grid h-11 w-14 shrink-0 place-items-center rounded-lg border border-midnight-border/70 bg-midnight-deep/60"><CountryFlag code={activeLocation.key} /></span>
+            <div className="min-w-0"><p className="text-[10px] font-semibold uppercase tracking-[.14em] text-gold-soft">Pays sélectionné</p><p className="mt-1 truncate text-lg font-semibold text-ink">{activeLocation.name}</p></div>
+          </div>
+          <div className="mt-4 grid grid-cols-2 gap-2">
+            <div className="rounded-lg border border-midnight-border/60 bg-midnight-deep/35 p-2.5"><p className="text-[10px] text-ink-muted">Profils</p><p className="mt-1 text-base font-semibold tabular-nums text-ink">{activeLocation.users.toLocaleString("fr-FR")}</p></div>
+            <div className="rounded-lg border border-midnight-border/60 bg-midnight-deep/35 p-2.5"><p className="text-[10px] text-ink-muted">Part de la communauté</p><p className="mt-1 text-base font-semibold tabular-nums text-ink">{total ? ((activeLocation.users / total) * 100).toLocaleString("fr-FR", { maximumFractionDigits: 1 }) : 0}%</p></div>
+          </div>
         </div>}
-        <div className="flex items-center justify-between gap-2"><h3 className="text-xs font-semibold text-ink">Principaux pays</h3><span className="text-[10px] text-ink-muted">{locations.length} pays</span></div>
-        <ol className="mt-3 space-y-3">
-          {locations.slice(0, 6).map((item, index) => <li key={item.key}>
-            <button type="button" onClick={() => setSelectedGeoKey(item.key)} aria-pressed={activeLocation?.key === item.key} className="group w-full rounded-lg text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold/60">
-              <span className="flex items-center justify-between gap-3 text-[11px]"><span className="flex min-w-0 items-center gap-2 text-ink-muted group-hover:text-ink"><span className={`grid h-5 w-5 shrink-0 place-items-center rounded-md text-[9px] font-semibold ${activeLocation?.key === item.key ? "bg-gold/20 text-gold-soft" : "bg-midnight-card text-ink-muted"}`}>{String(index + 1).padStart(2, "0")}</span><span className="truncate">{item.name}</span></span><strong className="shrink-0 tabular-nums text-ink">{item.users.toLocaleString("fr-FR")}</strong></span>
-              <span className="ml-7 mt-2 block h-1 overflow-hidden rounded-full bg-midnight-border"><span className="block h-full rounded-full bg-gradient-to-r from-gold/70 to-gold transition-[width] duration-700" style={{ width: `${Math.max(3, (item.users / maxUsers) * 100)}%` }} /></span>
-            </button>
-          </li>)}
-          {!locations.length && <li className="py-4 text-xs text-ink-muted">Aucune donnée de pays disponible.</li>}
+        <div className="mb-4 flex items-center gap-4 rounded-xl border border-midnight-border/70 bg-midnight-deep/30 p-3">
+          <div className="relative h-24 w-24 shrink-0">
+            <svg viewBox="0 0 100 100" className="h-full w-full -rotate-90" role="img" aria-label="Répartition des profils par continent">
+              <circle cx="50" cy="50" r="39" fill="none" stroke="rgb(var(--midnight-border))" strokeWidth="9" />
+              {continentSegments.map(({ name, color, length, offset }) => <circle key={name} cx="50" cy="50" r="39" fill="none" stroke={color} strokeWidth="9" strokeDasharray={`${length} ${circumference - length}`} strokeDashoffset={-offset} />)}
+            </svg>
+            <span className="absolute inset-0 grid place-content-center text-center"><strong className="font-display text-lg leading-none tabular-nums text-ink">{continents.length}</strong><span className="mt-1 text-[9px] text-ink-muted">régions</span></span>
+          </div>
+          <div className="min-w-0 flex-1">
+            <h3 className="text-xs font-semibold text-ink">Présence mondiale</h3>
+            <p className="mt-1 text-[10px] leading-relaxed text-ink-muted">Répartition des profils par grandes régions</p>
+            <div className="mt-2 space-y-1">
+              {continents.slice(0, 3).map(({ name, users, color }) => <div key={name} className="flex items-center gap-2 text-[10px]">
+                <span className="h-1.5 w-1.5 rounded-full" style={{ backgroundColor: color }} />
+                <span className="min-w-0 flex-1 truncate text-ink-muted">{name}</span>
+                <strong className="tabular-nums text-ink">{total ? Math.round((users / total) * 100) : 0}%</strong>
+              </div>)}
+            </div>
+          </div>
+        </div>
+        <div className="flex items-center justify-between gap-2"><h3 className="text-xs font-semibold text-ink">Tous les pays</h3><span className="text-[10px] text-ink-muted">{filteredLocations.length} / {locations.length}</span></div>
+        <label className="relative mt-3 block">
+          <span className="sr-only">Rechercher un pays</span>
+          <Search size={14} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-ink-muted" aria-hidden="true" />
+          <input value={countryQuery} onChange={(event) => setCountryQuery(event.target.value)} placeholder="Rechercher un pays ou un code…" className="w-full rounded-xl border border-midnight-border bg-midnight-deep/50 py-2 pl-9 pr-3 text-xs text-ink placeholder:text-ink-muted/70 focus:border-gold/60 focus:outline-none focus:ring-2 focus:ring-gold/20" />
+        </label>
+        <ol className="mt-2 max-h-72 divide-y divide-midnight-border/50 overflow-y-auto overscroll-contain pr-1">
+          {filteredLocations.map((item) => {
+            const share = total ? (item.users / total) * 100 : 0;
+            const active = activeLocation?.key === item.key;
+            return (
+              <li key={item.key}>
+                <button type="button" onClick={() => setSelectedGeoKey(item.key)} aria-pressed={active} className={`group w-full rounded-lg px-2 py-2.5 text-left transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold/60 ${active ? "bg-gold/5" : "hover:bg-white/[0.03]"}`}>
+                  <span className="flex items-center gap-2.5">
+                    <CountryFlag code={item.key} />
+                    <span className="min-w-0 flex-1">
+                      <span className="flex items-center gap-2">
+                        <span className="truncate text-[11px] font-medium text-ink">{item.name}</span>
+                        <span className="shrink-0 text-[9px] uppercase tracking-wide text-ink-muted">{item.key}</span>
+                      </span>
+                      <span className="mt-1.5 flex items-center gap-2">
+                        <span className="h-1 flex-1 overflow-hidden rounded-full bg-midnight-border">
+                          <span className="block h-full rounded-full bg-gradient-to-r from-sky-500 to-gold" style={{ width: `${Math.max(2, (item.users / maxUsers) * 100)}%` }} />
+                        </span>
+                        <span className="w-9 text-right text-[9px] tabular-nums text-ink-muted">{share.toLocaleString("fr-FR", { maximumFractionDigits: 1 })}%</span>
+                      </span>
+                    </span>
+                    <strong className="min-w-9 text-right text-[11px] tabular-nums text-ink">{item.users.toLocaleString("fr-FR")}</strong>
+                  </span>
+                </button>
+              </li>
+            );
+          })}
+          {!filteredLocations.length && <li className="py-4 text-xs text-ink-muted">{locations.length ? "Aucun pays ne correspond à cette recherche." : "Aucune donnée de pays disponible."}</li>}
         </ol>
       </div>
     </div>
