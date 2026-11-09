@@ -1055,18 +1055,52 @@ export function PostCard({
             )}
             {dialogMode === "report" && (
               <>
-                <label className="block text-xs font-medium text-ink-muted">
-                  {t("feed.reportReason")}
-                  <select value={reportReason} onChange={(event) => setReportReason(event.target.value as PostReportReason)} className="input mt-1.5 !rounded-lg">
-                    <option value="spam">{t("feed.reportReasons.spam")}</option>
-                    <option value="harassment">{t("feed.reportReasons.harassment")}</option>
-                    <option value="inappropriate">{t("feed.reportReasons.inappropriate")}</option>
-                    <option value="other">{t("feed.reportReasons.other")}</option>
-                  </select>
-                </label>
+                <fieldset>
+                  <legend className="text-sm font-semibold text-ink">{t("feed.reportReason")}</legend>
+                  <div className="mt-3 grid gap-2 sm:grid-cols-2">
+                    {([
+                      ["spam", t("feed.reportReasons.spam")],
+                      ["harassment", t("feed.reportReasons.harassment")],
+                      ["inappropriate", t("feed.reportReasons.inappropriate")],
+                      ["other", t("feed.reportReasons.other")],
+                    ] as const).map(([reason, label]) => {
+                      const selected = reportReason === reason;
+                      return (
+                        <label
+                          key={reason}
+                          className={cn(
+                            "flex min-h-14 cursor-pointer items-center gap-3 rounded-xl border px-3.5 py-3 text-sm transition",
+                            selected
+                              ? "border-gold/50 bg-gold/[0.08] text-ink shadow-[0_0_0_1px_rgba(212,175,55,0.12)]"
+                              : "border-midnight-border bg-midnight-deep/35 text-ink-muted hover:border-gold/25 hover:bg-midnight-deep/70 hover:text-ink",
+                          )}
+                        >
+                          <input
+                            type="radio"
+                            name={`post-report-reason-${post.id}`}
+                            value={reason}
+                            checked={selected}
+                            onChange={() => setReportReason(reason)}
+                            className="peer sr-only"
+                          />
+                          <span
+                            aria-hidden="true"
+                            className={cn(
+                              "grid h-4 w-4 shrink-0 place-items-center rounded-full border transition",
+                              selected ? "border-gold bg-gold text-midnight-deep" : "border-midnight-border bg-midnight-card",
+                            )}
+                          >
+                            {selected && <FontAwesomeIcon icon={faCheck} className="h-2.5 w-2.5" />}
+                          </span>
+                          <span className="min-w-0 flex-1 leading-5">{label}</span>
+                        </label>
+                      );
+                    })}
+                  </div>
+                </fieldset>
                 <label className="block text-xs font-medium text-ink-muted">
                   {t("feed.reportDetails")}
-                  <textarea value={reportDetails} onChange={(event) => setReportDetails(event.target.value)} maxLength={1000} rows={3} className="input mt-1.5 resize-y !rounded-lg" />
+                  <textarea value={reportDetails} onChange={(event) => setReportDetails(event.target.value)} maxLength={1000} rows={4} className="input mt-1.5 resize-y !rounded-lg" />
                 </label>
               </>
             )}
