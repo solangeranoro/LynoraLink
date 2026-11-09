@@ -1,19 +1,39 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Eye, EyeOff, Loader2, Mail, Lock, User, AtSign, Github, Twitter, X, MapPin, Phone, CalendarRange, ShieldCheck } from "@/components/FontAwesomeIcons";
+import { getCountries } from "libphonenumber-js";
+import * as CountryFlags from "country-flag-icons/react/3x2";
+import { Eye, EyeOff, Loader2, Mail, Lock, User, AtSign, Github, Twitter, X, MapPin, Phone, CalendarRange, ShieldCheck, ChevronDown, Globe2, Search } from "@/components/FontAwesomeIcons";
 import { OAuthButtons } from "@/components/auth/OAuthButtons";
 import { useTranslation } from "@/lib/i18n";
 import { getNetworkErrorMessage } from "@/lib/error-messages";
 
 const TOTAL_STEPS = 3;
 
+function CountryFlag({ code }: { code: string }) {
+  const Flag = CountryFlags[code as keyof typeof CountryFlags];
+  return Flag
+    ? <Flag className="block h-4 w-6 rounded-[3px] object-cover shadow-sm" aria-hidden="true" />
+    : <Globe2 size={15} className="text-ink-muted" aria-hidden="true" />;
+}
+
 export function RegisterForm() {
   const { t, locale } = useTranslation();
   const router = useRouter();
   const [currentStep, setCurrentStep] = useState(1);
+  const countries = useMemo(() => {
+    const countryNames = new Intl.DisplayNames([locale], { type: "region" });
+    return getCountries()
+      .map((code) => ({ code, name: countryNames.of(code) ?? code }))
+      .sort((first, second) => first.name.localeCompare(second.name, locale));
+  }, [locale]);
+  const [countryPickerOpen, setCountryPickerOpen] = useState(false);
+  const [countrySearch, setCountrySearch] = useState("");
+  const countryPickerRef = useRef<HTMLDivElement>(null);
+  const countryButtonRef = useRef<HTMLButtonElement>(null);
+  const countrySearchRef = useRef<HTMLInputElement>(null);
 
   const [form, setForm] = useState({
     name: "",
@@ -22,12 +42,18 @@ export function RegisterForm() {
     confirmPassword: "",
     age: "",
     city: "",
+    country: "",
     phoneNumber: "",
     handle: "",
     headline: "",
     bio: "",
     githubUrl: "",
     twitterUrl: "",
+  });
+  const selectedCountry = countries.find(({ code }) => code === form.country);
+  const filteredCountries = countries.filter(({ code, name }) => {
+    const query = countrySearch.trim().toLocaleLowerCase(locale);
+    return !query || name.toLocaleLowerCase(locale).includes(query) || code.toLowerCase().includes(query);
   });
   const [skills, setSkills] = useState<string[]>([]);
   const [skillInput, setSkillInput] = useState("");
@@ -47,6 +73,31 @@ export function RegisterForm() {
     const timer = window.setTimeout(() => setToastMessage(""), 3_500);
     return () => window.clearTimeout(timer);
   }, [toastMessage]);
+
+  useEffect(() => {
+    if (!countryPickerOpen) {
+      setCountrySearch("");
+      return;
+    }
+    countrySearchRef.current?.focus();
+    function closeOnOutsideClick(event: PointerEvent) {
+      if (event.target instanceof Node && !countryPickerRef.current?.contains(event.target)) {
+        setCountryPickerOpen(false);
+      }
+    }
+    function closeOnEscape(event: KeyboardEvent) {
+      if (event.key === "Escape") {
+        setCountryPickerOpen(false);
+        countryButtonRef.current?.focus();
+      }
+    }
+    document.addEventListener("pointerdown", closeOnOutsideClick);
+    document.addEventListener("keydown", closeOnEscape);
+    return () => {
+      document.removeEventListener("pointerdown", closeOnOutsideClick);
+      document.removeEventListener("keydown", closeOnEscape);
+    };
+  }, [countryPickerOpen]);
 
   function update(key: keyof typeof form) {
     return (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
@@ -343,10 +394,71 @@ export function RegisterForm() {
 
             <div className="grid gap-4 sm:grid-cols-2">
               <div className="space-y-1.5">
-                <label htmlFor="age" className="label !normal-case !tracking-normal !text-ink">{t("auth.age")}</label>
-                <div className="relative">
-                  <CalendarRange className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-ink-muted" />
-                  <input id="age" name="age" type="number" inputMode="numeric" min={13} max={120} value={form.age} onChange={update("age")} className="input pl-10" placeholder="25" />
+                <label id="country-label" htmlFor="country" className="label !normal-case !tracking-normal !text-ink">{t("auth.country")}</label>
+                <div ref={countryPickerRef} className="relative">
+                  <button
+                    ref={countryButtonRef}
+                    id="country"
+                    type="button"
+                    aria-labelledby="country-label"
+                    aria-haspopup="listbox"
+                    aria-expanded={countryPickerOpen}
+                    aria-controls="country-options"
+                    onClick={() => setCountryPickerOpen((open) => !open)}
+                    className="input flex min-h-12 w-full items-center gap-3 text-left"
+                  >
+                    <span className="grid h-7 w-9 shrink-0 place-items-center rounded-md border border-midnight-border bg-midnight-card text-lg" aria-hidden="true">
+                      {selectedCountry ? <CountryFlag code={selectedCountry.code} /> : <Globe2 size={15} className="text-ink-muted" />}
+                    </span>
+                    <span className={`min-w-0 flex-1 truncate ${selectedCountry ? "text-ink" : "text-ink-muted"}`}>
+                      {selectedCountry?.name ?? t("auth.selectCountry")}
+                    </span>
+                    <ChevronDown size={14} className={`shrink-0 text-ink-muted transition-transform ${countryPickerOpen ? "rotate-180" : ""}`} aria-hidden="true" />
+                  </button>
+                  {countryPickerOpen && (
+                    <div className="absolute left-0 right-0 top-[calc(100%+0.5rem)] z-30 overflow-hidden rounded-2xl border border-midnight-border bg-midnight-card shadow-2xl shadow-black/40">
+                      <div className="border-b border-midnight-border bg-midnight-deep/70 p-2.5">
+                        <div className="relative">
+                          <Search size={14} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-ink-muted" aria-hidden="true" />
+                          <input
+                            ref={countrySearchRef}
+                            type="search"
+                            value={countrySearch}
+                            onChange={(event) => setCountrySearch(event.target.value)}
+                            onKeyDown={(event) => {
+                              if (event.key === "ArrowDown") {
+                                event.preventDefault();
+                                countryPickerRef.current?.querySelector<HTMLButtonElement>('[role="option"]')?.focus();
+                              }
+                            }}
+                            placeholder={t("auth.searchCountry")}
+                            aria-label={t("auth.searchCountry")}
+                            className="h-10 w-full rounded-xl border border-midnight-border bg-midnight-card pl-9 pr-3 text-sm text-ink outline-none transition placeholder:text-ink-muted/70 focus:border-gold/50"
+                          />
+                        </div>
+                      </div>
+                      <div id="country-options" role="listbox" aria-labelledby="country-label" className="max-h-64 overflow-y-auto p-1.5">
+                        {filteredCountries.length ? filteredCountries.map(({ code, name }) => (
+                          <button
+                            key={code}
+                            type="button"
+                            role="option"
+                            aria-selected={form.country === code}
+                            onClick={() => {
+                              setForm((previous) => ({ ...previous, country: code }));
+                              setCountryPickerOpen(false);
+                              countryButtonRef.current?.focus();
+                            }}
+                            className={`flex min-h-10 w-full items-center gap-3 rounded-xl px-2.5 text-left text-sm transition hover:bg-white/5 focus-visible:bg-white/5 focus-visible:outline-none ${form.country === code ? "bg-gold/10 text-gold-soft" : "text-ink"}`}
+                          >
+                            <span className="grid h-7 w-9 shrink-0 place-items-center rounded-md border border-midnight-border bg-midnight-deep" aria-hidden="true"><CountryFlag code={code} /></span>
+                            <span className="min-w-0 flex-1 truncate">{name}</span>
+                            {form.country === code && <span className="text-xs font-medium text-gold-soft">{code}</span>}
+                          </button>
+                        )) : <p className="px-3 py-6 text-center text-sm text-ink-muted">{t("auth.noCountriesFound")}</p>}
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
               <div className="space-y-1.5">
@@ -358,11 +470,20 @@ export function RegisterForm() {
               </div>
             </div>
 
-            <div className="space-y-1.5">
-              <label htmlFor="phoneNumber" className="label !normal-case !tracking-normal !text-ink">{t("auth.phoneNumber")}</label>
-              <div className="relative">
-                <Phone className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-ink-muted" />
-                <input id="phoneNumber" name="phoneNumber" type="tel" autoComplete="tel" value={form.phoneNumber} onChange={update("phoneNumber")} className="input pl-10" placeholder="+33 6 12 34 56 78" />
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div className="space-y-1.5">
+                <label htmlFor="age" className="label !normal-case !tracking-normal !text-ink">{t("auth.age")}</label>
+                <div className="relative">
+                  <CalendarRange className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-ink-muted" />
+                  <input id="age" name="age" type="number" inputMode="numeric" min={13} max={120} value={form.age} onChange={update("age")} className="input pl-10" placeholder="25" />
+                </div>
+              </div>
+              <div className="space-y-1.5">
+                <label htmlFor="phoneNumber" className="label !normal-case !tracking-normal !text-ink">{t("auth.phoneNumber")}</label>
+                <div className="relative">
+                  <Phone className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-ink-muted" />
+                  <input id="phoneNumber" name="phoneNumber" type="tel" autoComplete="tel" value={form.phoneNumber} onChange={update("phoneNumber")} className="input pl-10" placeholder="+33 6 12 34 56 78" />
+                </div>
               </div>
             </div>
 

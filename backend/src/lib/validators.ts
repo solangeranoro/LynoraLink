@@ -15,6 +15,7 @@ export const registerSchema = z
       .optional()
       .or(z.literal(""))
       .transform((value) => value === "" || value === undefined ? undefined : Number(value)),
+    country: z.string().regex(/^[A-Z]{2}$/).optional().or(z.literal("")),
     city: z.string().trim().max(100).optional().or(z.literal("")),
     phoneNumber: z.string().trim().max(30).regex(/^[+()\d\s-]*$/).optional().or(z.literal("")),
     handle: z
