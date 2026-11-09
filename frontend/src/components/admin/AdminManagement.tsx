@@ -52,6 +52,7 @@ type AdminProjectRow = AdminRow & ProfileProjectPreview & {
 type AdminPostRow = FeedPost & {
   moderationStatus: ReviewStatus;
   _count: FeedPost["_count"] & { reports: number };
+  reports: { id: string; reason: "spam" | "harassment" | "inappropriate" | "other"; details: string | null; createdAt: string }[];
 };
 type PageData = {
   items?: AdminRow[];
@@ -83,6 +84,12 @@ const titles: Record<AdminSection, string> = {
 };
 const statusLabels: Record<ReviewStatus, string> = { PENDING: "En attente", APPROVED: "Approuvé", REJECTED: "Refusé" };
 const projectStageLabels: Record<string, string> = { IDEA: "Idée", DEVELOPMENT: "En développement", LAUNCHED: "Lancé" };
+const reportReasonLabels: Record<AdminPostRow["reports"][number]["reason"], string> = {
+  spam: "Spam ou publicité",
+  harassment: "Harcèlement",
+  inappropriate: "Contenu inapproprié",
+  other: "Autre motif",
+};
 
 function responseRows(section: AdminSection, data: PageData): AdminRow[] {
   if (section === "marketplace") return data.items ?? [];
@@ -302,7 +309,7 @@ export function AdminManagement({ section }: { section: AdminSection }) {
 
   return <section className="space-y-5">
     <header className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-      <div className="min-w-0"><h2 className="font-display text-2xl font-semibold text-ink">{titles[section]}</h2><p className="mt-1 text-sm text-ink-muted">{section === "marketplace" ? "La vérification vendeur est gratuite et obligatoire. Les acheteurs contactent les vendeurs et concluent leurs transactions directement; LynoraLink ne traite aucun paiement." : section === "projects" || section === "teams" ? "Les projets et équipes sont publiés sans validation de la plateforme. L’approbation des projets créés dans une équipe est gérée par son responsable." : "Gestion des contenus et décisions de modération."}</p></div>
+      <div className="min-w-0"><h2 className="font-display text-2xl font-semibold text-ink">{titles[section]}</h2><p className="mt-1 text-sm text-ink-muted">{section === "marketplace" ? "La vérification vendeur est gratuite et obligatoire. Les acheteurs contactent les vendeurs et concluent leurs transactions directement; LynoraLink ne traite aucun paiement." : section === "projects" || section === "teams" ? "Les projets et équipes sont publiés sans validation de la plateforme. L’approbation des projets créés dans une équipe est gérée par son responsable." : section === "posts" ? "Seules les publications signalées par la communauté sont affichées, avec les motifs transmis." : "Gestion des contenus et décisions de modération."}</p></div>
       {(section === "marketplace" || section === "posts") && <div className="flex flex-wrap gap-2 text-xs">
         {(["PENDING", "APPROVED", "REJECTED"] as const).map((key) => <span key={key} className="rounded-full border border-midnight-border px-2.5 py-1 text-ink-muted">{statusLabels[key]} · {(statusCounts[key] ?? 0).toLocaleString("fr-FR")}</span>)}
       </div>}
@@ -409,6 +416,18 @@ export function AdminManagement({ section }: { section: AdminSection }) {
                 <span className={post._count.reports ? "text-amber-200" : ""}>{post._count.reports.toLocaleString("fr-FR")} signalements</span>
                 <span>{(post._count.likes + post._count.comments).toLocaleString("fr-FR")} interactions</span>
                 {post.isFeatured && <span className="text-gold-soft">Mise en avant</span>}
+              </div>
+              <div className="mt-3 space-y-2 border-t border-midnight-border/70 pt-3">
+                <h3 className="text-xs font-semibold text-ink">Motifs de signalement</h3>
+                {post.reports.map((report) => (
+                  <article key={report.id} className="rounded-lg border border-amber-300/15 bg-amber-300/[0.04] p-3">
+                    <div className="flex flex-wrap items-center justify-between gap-2">
+                      <span className="text-xs font-medium text-amber-200">{reportReasonLabels[report.reason]}</span>
+                      <time className="text-[10px] text-ink-muted" dateTime={report.createdAt}>{new Date(report.createdAt).toLocaleString("fr-FR")}</time>
+                    </div>
+                    {report.details && <p className="mt-2 whitespace-pre-wrap break-words text-xs leading-5 text-ink-muted">{report.details}</p>}
+                  </article>
+                ))}
               </div>
               <div className="mt-3 flex flex-wrap gap-1.5 border-t border-midnight-border/70 pt-3">
                 <button type="button" disabled={busyId === post.id} onClick={() => featureRow(post)} className="btn-outline min-h-8 !rounded-lg !px-2.5 !py-1.5 text-[10px] disabled:opacity-50">{post.isFeatured ? "Retirer la mise en avant" : "Mettre en avant"}</button>

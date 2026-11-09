@@ -28,6 +28,7 @@ export async function GET(request: Request) {
   if (requestedType !== "ALL" && !postTypes.includes(requestedType as typeof postTypes[number])) return NextResponse.json({ error: "INVALID_TYPE" }, { status: 400 });
 
   const where: Prisma.PostWhereInput = {
+    reports: { some: {} },
     ...(requestedStatus === "ALL" ? {} : { moderationStatus: requestedStatus as typeof statuses[number] }),
     ...(requestedType === "ALL" ? {} : { type: requestedType as typeof postTypes[number] }),
     ...(search ? { OR: [
@@ -58,12 +59,16 @@ export async function GET(request: Request) {
         team: { select: { id: true, title: true, slug: true, logoUrl: true, teamName: true } },
         attachments: { select: { id: true, name: true, mimeType: true, size: true } },
         poll: { select: { id: true, type: true, question: true, options: true } },
+        reports: {
+          orderBy: { createdAt: "desc" },
+          select: { id: true, reason: true, details: true, createdAt: true },
+        },
         _count: { select: { reports: true, likes: true, comments: true } },
       },
     }),
     prisma.post.count({ where }),
-    prisma.post.groupBy({ by: ["moderationStatus"], _count: { _all: true } }),
-    prisma.post.groupBy({ by: ["type"], _count: { _all: true } }),
+    prisma.post.groupBy({ by: ["moderationStatus"], where: { reports: { some: {} } }, _count: { _all: true } }),
+    prisma.post.groupBy({ by: ["type"], where: { reports: { some: {} } }, _count: { _all: true } }),
   ]);
   const pollIds = posts.flatMap((post) => post.poll ? [post.poll.id] : []);
   const voteGroups = pollIds.length

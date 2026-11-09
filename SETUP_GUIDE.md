@@ -146,7 +146,7 @@ Appliquez les migrations avec `npm run db:migrate` en développement ou `npx pri
 > If neither Brevo nor Resend is configured, password reset links are **logged to the API console**
 > in local development. Configure one provider in production; otherwise reset requests return `503`.
 >
-> Set `CONTACT_EMAIL` in the API environment to receive messages submitted through the public contact form.
+> The public contact form sends support requests to `contact@lynoralink.com` by default and sends the sender a confirmation email. Set `CONTACT_EMAIL` in the API environment only if the support inbox changes. Configure a verified Brevo or Resend sender so replies can be delivered reliably; support replies go to the address provided by the sender.
 
 ---
 
