@@ -3,23 +3,28 @@
 import Link from "next/link";
 import { LandingTopNav } from "@/components/LandingTopNav";
 import { useTranslation } from "@/lib/i18n";
+import { cn } from "@/lib/utils";
 
 export function InfoPageShell({
   eyebrow,
   title,
   description,
   children,
+  pageClassName,
+  contentClassName,
 }: {
   eyebrow: string;
   title: string;
   description: string;
   children: React.ReactNode;
+  pageClassName?: string;
+  contentClassName?: string;
 }) {
   const { locale } = useTranslation();
   const isFrench = locale === "fr";
 
   return (
-    <main className="info-page min-h-screen text-white">
+    <main className={cn("info-page min-h-screen text-white", pageClassName)}>
       <LandingTopNav />
       <div aria-hidden="true" className="h-[76px]" />
 
@@ -32,7 +37,7 @@ export function InfoPageShell({
       </section>
 
       <div className="info-page-content relative mx-auto max-w-5xl px-5 py-10 sm:px-8 sm:py-14 lg:px-12">
-        <div className="info-page-content-inner max-w-3xl space-y-6">{children}</div>
+        <div className={cn("info-page-content-inner max-w-3xl space-y-6", contentClassName)}>{children}</div>
       </div>
 
       <footer className="info-page-footer">

@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState, type ChangeEvent, type FormEvent } from "react";
 import Link from "next/link";
+import NextImage from "next/image";
 import { signOut, useSession } from "next-auth/react";
 import {
   ArrowUpRight,
@@ -9,6 +10,7 @@ import {
   BellRing,
   Camera,
   Check,
+  Image as ImageIcon,
   Globe2,
   Loader2,
   LockKeyhole,
@@ -28,7 +30,7 @@ import {
 } from "@/components/FontAwesomeIcons";
 import { LanguageSwitcher } from "@/components/LanguageSwitcher";
 import { Avatar } from "@/components/Avatar";
-import { uploadAvatarImage } from "@/lib/cloudinary";
+import { getUploadErrorCode, uploadAvatarImage, uploadCoverImage } from "@/lib/cloudinary";
 import {
   type AppearancePreferences,
   applyAppearancePreferences,
@@ -51,6 +53,7 @@ type AccountProfile = {
   name: string;
   email: string;
   image: string | null;
+  coverImage: string | null;
   handle: string | null;
   age: number | null;
   city: string | null;
@@ -93,6 +96,7 @@ export default function SettingsPage() {
   const [saved, setSaved] = useState(false);
   const isFrench = locale === "fr";
   const avatarInput = useRef<HTMLInputElement>(null);
+  const coverInput = useRef<HTMLInputElement>(null);
   const avatarDialog = useRef<HTMLDialogElement>(null);
   const [avatarModalOpen, setAvatarModalOpen] = useState(false);
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
@@ -101,6 +105,52 @@ export default function SettingsPage() {
   const [avatarUploading, setAvatarUploading] = useState(false);
   const [avatarProgress, setAvatarProgress] = useState(0);
   const [avatarProcessing, setAvatarProcessing] = useState(false);
+  const [coverUploading, setCoverUploading] = useState(false);
+  const [coverProgress, setCoverProgress] = useState(0);
+  const [coverMessage, setCoverMessage] = useState("");
+
+  async function selectCover(event: ChangeEvent<HTMLInputElement>) {
+    const file = event.currentTarget.files?.[0];
+    event.currentTarget.value = "";
+    if (!file) return;
+    if (!["image/avif", "image/gif", "image/jpeg", "image/png", "image/webp"].includes(file.type) || file.size === 0 || file.size > 8 * 1024 * 1024) {
+      setCoverMessage(isFrench ? "Choisissez une image JPG, PNG, WebP, GIF ou AVIF de moins de 8 Mo." : "Choose a JPG, PNG, WebP, GIF, or AVIF image under 8 MB.");
+      return;
+    }
+    setCoverUploading(true);
+    setCoverProgress(0);
+    setCoverMessage("");
+    try {
+      const coverImage = await uploadCoverImage(file, setCoverProgress);
+      setProfile((current) => current ? { ...current, coverImage } : current);
+      setCoverMessage(isFrench ? "Photo de couverture mise à jour." : "Cover photo updated.");
+    } catch (error) {
+      const code = getUploadErrorCode(error);
+      setCoverMessage(code === "cloudinary_not_configured"
+        ? (isFrench ? "Le service d’images est indisponible." : "The image service is unavailable.")
+        : code === "profile_update_unavailable"
+          ? (isFrench ? "L’image a été envoyée, mais n’a pas pu être enregistrée." : "The image uploaded, but couldn't be saved.")
+          : getNetworkErrorMessage(error) ?? (isFrench ? "Impossible d’envoyer la photo de couverture. Réessayez." : "Couldn't upload the cover photo. Try again."));
+    } finally {
+      setCoverUploading(false);
+    }
+  }
+
+  async function removeCover() {
+    if (!profile?.coverImage || coverUploading) return;
+    setCoverUploading(true);
+    setCoverMessage("");
+    try {
+      const response = await fetch("/api/profile/cover", { method: "DELETE" });
+      if (!response.ok) throw new Error("cover_remove_failed");
+      setProfile((current) => current ? { ...current, coverImage: null } : current);
+      setCoverMessage(isFrench ? "Photo de couverture supprimée." : "Cover photo removed.");
+    } catch (error) {
+      setCoverMessage(getNetworkErrorMessage(error) ?? (isFrench ? "Impossible de supprimer la photo de couverture." : "Couldn't remove the cover photo."));
+    } finally {
+      setCoverUploading(false);
+    }
+  }
 
   useEffect(() => {
     const dialog = avatarDialog.current;
@@ -403,77 +453,63 @@ export default function SettingsPage() {
   const enabledNotificationCount = Object.values(notifications).filter(Boolean).length;
 
   return (
-    <div className="mx-auto max-w-6xl space-y-6 pb-12">
-      <header className="relative isolate overflow-hidden rounded-2xl border border-midnight-border bg-gradient-to-br from-midnight-card via-midnight-card/90 to-[#102d38]/80 p-5 shadow-[0_20px_60px_rgba(0,0,0,0.16)] sm:p-7 lg:p-8">
-        <div aria-hidden="true" className="pointer-events-none absolute -right-12 -top-24 -z-10 h-72 w-72 rounded-full bg-emerald-400/[0.08] blur-3xl" />
-        <div aria-hidden="true" className="pointer-events-none absolute bottom-0 left-1/3 -z-10 h-px w-2/3 bg-gradient-to-r from-transparent via-gold/35 to-transparent" />
-        <div>
+    <div className="mx-auto max-w-6xl space-y-7 pb-12">
+      <header className="flex flex-wrap items-end justify-between gap-5 border-b border-midnight-border pb-6">
+        <div className="min-w-0">
+          <p className="mb-2 text-xs font-semibold uppercase tracking-[0.16em] text-gold-soft">
+            {isFrench ? "Espace personnel" : "Personal workspace"}
+          </p>
           <h1 className="font-display text-3xl font-semibold tracking-tight text-ink sm:text-4xl">{t("nav.settings")}</h1>
           <p className="mt-2 max-w-lg text-sm leading-relaxed text-ink-muted">
             {isFrench ? "Compte, préférences et sécurité." : "Account, preferences, and security."}
           </p>
         </div>
-        <div className="mt-6 flex flex-wrap items-center justify-between gap-4 border-t border-midnight-border/80 pt-5 sm:mt-7 sm:pt-6">
-          <div className="flex min-w-0 items-center gap-3.5">
-            <div className="rounded-full p-0.5 ring-1 ring-gold/30">
-              <Avatar src={session?.user?.image} name={session?.user?.name} size={44} />
-            </div>
-            <div className="min-w-0">
-              <p className="max-w-56 truncate text-sm font-semibold text-ink">{session?.user?.name ?? "Maker"}</p>
-              <p className="max-w-56 truncate text-xs text-ink-muted">{session?.user?.email}</p>
-            </div>
+        <div className="flex min-w-0 items-center gap-3">
+          <Avatar src={session?.user?.image} name={session?.user?.name} size={40} />
+          <div className="min-w-0">
+            <p className="max-w-56 truncate text-sm font-semibold text-ink">{session?.user?.name ?? "Maker"}</p>
+            <p className="max-w-56 truncate text-xs text-ink-muted">{session?.user?.email}</p>
           </div>
-          <span className="inline-flex items-center gap-2 rounded-full border border-midnight-border bg-midnight-deep/40 px-3 py-2 text-xs font-medium text-ink-muted">
-            <ShieldCheck size={14} className="text-emerald-300" aria-hidden="true" />
-            {isFrench ? "Compte sécurisé" : "Account protected"}
-          </span>
         </div>
       </header>
 
-      <div className="grid items-start gap-5 md:grid-cols-[220px_minmax(0,1fr)] lg:grid-cols-[240px_minmax(0,1fr)] lg:gap-7">
-        <nav aria-label={isFrench ? "Sections des paramètres" : "Settings sections"} className="min-w-0 md:sticky md:top-24 md:self-start">
-          <p className="mb-3 hidden px-2 text-[10px] font-semibold uppercase tracking-[0.16em] text-ink-muted md:block">
+      <div className="grid items-start gap-7 md:grid-cols-[210px_minmax(0,1fr)] lg:grid-cols-[230px_minmax(0,1fr)] lg:gap-10">
+        <nav aria-label={isFrench ? "Sections des paramètres" : "Settings sections"} className="min-w-0 md:sticky md:top-24 md:self-start md:border-r md:border-midnight-border md:pr-5">
+          <p className="mb-3 hidden px-3 text-[10px] font-semibold uppercase tracking-[0.16em] text-ink-muted md:block">
             {isFrench ? "Votre compte" : "Your account"}
           </p>
-          <div className="flex gap-2 overflow-x-auto rounded-xl border border-midnight-border bg-midnight-card/45 p-2 md:block md:space-y-1.5 md:overflow-visible md:p-2">
-          {sections.map(({ id, label, description, icon: Icon }, index) => (
+          <div className="flex gap-1 overflow-x-auto border-b border-midnight-border md:block md:space-y-1 md:overflow-visible md:border-0">
+          {sections.map(({ id, label, description, icon: Icon }) => (
             <button
               key={id}
               type="button"
               onClick={() => setSection(id)}
               aria-current={section === id ? "page" : undefined}
-              className={`flex min-w-max items-center gap-3 rounded-lg border px-3 py-3 text-left transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold/50 md:w-full ${
+              className={`flex min-w-max items-center gap-3 border-b-2 px-3 py-3 text-left transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold/50 md:w-full md:rounded-md md:border-b-0 ${
                 section === id
-                  ? "border-gold/20 bg-gradient-to-r from-gold/[0.12] to-emerald-400/[0.06] text-gold-soft shadow-sm md:shadow-[inset_2px_0_0_#086f58]"
-                  : "border-transparent text-ink-muted hover:border-midnight-border/80 hover:bg-midnight-deep/40 hover:text-ink"
+                  ? "border-gold text-gold-soft md:bg-gold/[0.07]"
+                  : "border-transparent text-ink-muted hover:text-ink md:hover:bg-midnight-card/50"
               }`}
             >
-              <span className={`grid h-9 w-9 shrink-0 place-items-center rounded-lg ${section === id ? "bg-gold/10 text-gold" : "bg-midnight-deep/60 text-ink-muted"}`}>
+              <span className={`hidden h-8 w-8 shrink-0 place-items-center rounded-md md:grid ${section === id ? "text-gold" : "text-ink-muted"}`}>
                 <Icon size={16} aria-hidden="true" />
               </span>
               <span className="min-w-0 text-left">
                 <span className="block text-sm font-semibold">{label}</span>
-                <span className="mt-1 hidden text-[11px] font-normal leading-relaxed text-ink-muted md:block">{description}</span>
+                <span className="mt-1 hidden text-xs font-normal leading-relaxed text-ink-muted md:block">{description}</span>
               </span>
-              <span className="ml-auto hidden text-[10px] tabular-nums text-ink-muted md:block">0{index + 1}</span>
             </button>
           ))}
           </div>
         </nav>
 
         <div className="min-w-0 space-y-5">
-          <div className="flex items-start justify-between gap-4 rounded-xl border border-midnight-border bg-midnight-card/45 px-4 py-4 sm:px-5">
-            <div className="flex min-w-0 items-start gap-3">
-              <span className="mt-0.5 grid h-10 w-10 shrink-0 place-items-center rounded-xl border border-gold/20 bg-gradient-to-br from-gold/15 to-emerald-400/[0.06] text-gold-soft">
-                <activeSection.icon size={17} aria-hidden="true" />
-              </span>
-              <div className="min-w-0">
-                <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-gold-soft/80">{isFrench ? "Paramètres" : "Settings"}</p>
-                <h2 className="mt-1 text-lg font-semibold text-ink">{activeSection.label}</h2>
-                <p className="mt-1 text-xs text-ink-muted">{activeSection.description}</p>
-              </div>
+          <div className="border-b border-midnight-border pb-4">
+            <div className="flex items-center gap-2 text-gold-soft">
+              <activeSection.icon size={16} aria-hidden="true" />
+              <h2 className="text-lg font-semibold text-ink">{activeSection.label}</h2>
             </div>
-            <span className="hidden shrink-0 pt-1 text-xs tabular-nums text-ink-muted sm:block">0{sections.findIndex(({ id }) => id === section) + 1} / 0{sections.length}</span>
+            <p className="mt-1 text-sm text-ink-muted">{activeSection.description}</p>
           </div>
           {section === "account" && (
             <>
@@ -506,6 +542,37 @@ export default function SettingsPage() {
                       <button type="button" onClick={() => { setAvatarFile(null); setAvatarError(""); setAvatarModalOpen(true); }} title={t("settings.changeAvatar")} className="btn-ghost !rounded-lg !p-2.5">
                         <Camera size={17} aria-hidden="true" /><span className="sr-only">{isFrench ? "Changer l’avatar" : "Change avatar"}</span>
                       </button>
+                    </div>
+
+                    <div className="flex flex-wrap items-center gap-4 border-b border-midnight-border p-5 sm:px-6">
+                      <div className="relative h-16 w-28 shrink-0 overflow-hidden rounded-lg bg-gradient-to-br from-[#18304a] via-[#12423f] to-[#8a7130] ring-1 ring-midnight-border">
+                        {profile.coverImage && (
+                          <NextImage
+                            src={profile.coverImage}
+                            alt={isFrench ? "Aperçu de la photo de couverture" : "Cover photo preview"}
+                            fill
+                            sizes="112px"
+                            unoptimized
+                            className="object-cover"
+                          />
+                        )}
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <p className="text-sm font-medium text-ink">{isFrench ? "Photo de couverture" : "Cover photo"}</p>
+                        <p className="mt-1 text-xs text-ink-muted">{isFrench ? "Bannière de votre profil public · format paysage, 8 Mo maximum." : "Banner for your public profile · landscape image, 8 MB maximum."}</p>
+                        {coverMessage && <p role="status" className="mt-1 text-xs text-ink-muted">{coverMessage}</p>}
+                      </div>
+                      <input ref={coverInput} type="file" accept="image/avif,image/gif,image/jpeg,image/png,image/webp" onChange={(event) => void selectCover(event)} className="sr-only" aria-label={isFrench ? "Choisir une photo de couverture" : "Choose a cover photo"} />
+                      <div className="flex items-center gap-2">
+                        {profile.coverImage && (
+                          <button type="button" onClick={() => void removeCover()} disabled={coverUploading} className="btn-ghost !min-h-9 !rounded-lg !px-3 !py-2 text-xs text-rose-200">
+                            {isFrench ? "Supprimer" : "Remove"}
+                          </button>
+                        )}
+                        <button type="button" onClick={() => coverInput.current?.click()} disabled={coverUploading} className="btn-ghost !min-h-9 !rounded-lg !px-3 !py-2 text-xs disabled:opacity-60">
+                          {coverUploading ? `${coverProgress}%` : <><ImageIcon size={14} aria-hidden="true" />{isFrench ? (profile.coverImage ? "Changer" : "Ajouter") : (profile.coverImage ? "Change" : "Add")}</>}
+                        </button>
+                      </div>
                     </div>
 
                     <div className="grid gap-4 p-5 sm:grid-cols-2 sm:p-6">

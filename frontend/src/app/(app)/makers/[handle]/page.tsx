@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { useParams, useRouter } from "next/navigation";
 import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -19,6 +20,7 @@ type MakerProfile = {
   id: string;
   name: string | null;
   image: string | null;
+  coverImage: string | null;
   handle: string | null;
   headline: string | null;
   bio: string | null;
@@ -137,22 +139,23 @@ export default function MakerProfilePage() {
   const associationLabel = association?.status === "ACCEPTED" ? t("makers.associated") : incoming ? t("makers.acceptAssociation") : association?.status === "PENDING" ? t("makers.associationSent") : t("makers.associate");
   return (
     <div className="space-y-6 pb-8">
-      <header className="card relative overflow-hidden">
-        <div aria-hidden="true" className="relative h-32 overflow-hidden bg-gradient-to-br from-[#1d3455] via-[#18304a] to-[#12423f]">
-          <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_78%_20%,rgba(212,175,55,0.22),transparent_38%)]" />
-          <div className="absolute -right-8 -top-28 h-64 w-64 rounded-full border border-white/10" />
-          <div className="absolute -right-2 -top-20 h-48 w-48 rounded-full border border-white/10" />
-          <div className="absolute inset-x-0 bottom-0 h-px bg-gradient-to-r from-transparent via-gold/50 to-transparent" />
+      <header className="relative border-b border-midnight-border pb-6 sm:pb-7">
+        <div className="relative isolate h-32 overflow-hidden rounded-xl bg-gradient-to-br from-[#18304a] via-[#12423f] to-[#8a7130] sm:h-44">
+          {maker.coverImage && (
+            <Image src={maker.coverImage} alt="" fill sizes="(max-width: 768px) 100vw, 1100px" unoptimized className="object-cover" />
+          )}
+          <div aria-hidden="true" className="absolute inset-0 bg-gradient-to-t from-midnight-deep/55 via-transparent to-midnight-deep/10" />
         </div>
-        <div className="relative flex flex-col gap-5 px-5 pb-6 sm:flex-row sm:items-end sm:px-7">
+        <div className="grid grid-cols-[76px_minmax(0,1fr)] items-end gap-x-3 px-3 pt-3 sm:grid-cols-[76px_minmax(0,1fr)_auto] sm:gap-x-5 sm:px-5">
           {isSelf ? (
-            <Link href="/settings" aria-label={t("makers.editProfile")} className="-mt-14 shrink-0 rounded-full p-1.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold/60"><Avatar src={maker.image} name={maker.name} size={104} className="rounded-full bg-midnight-card ring-4 ring-midnight-card" /></Link>
+            <Link href="/settings" aria-label={t("makers.editProfile")} className="relative z-10 -mt-10 self-start rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold/60 sm:-mt-11"><Avatar src={maker.image} name={maker.name} size={76} className="rounded-full bg-midnight-deep ring-4 ring-midnight-deep" /></Link>
           ) : maker.image ? (
-            <a href={maker.image} target="_blank" rel="noreferrer" aria-label={t("makers.viewAvatar", { name: maker.name ?? maker.handle ?? "Maker" })} className="-mt-14 shrink-0 rounded-full p-1.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold/60"><Avatar src={maker.image} name={maker.name} size={104} className="rounded-full bg-midnight-card ring-4 ring-midnight-card" /></a>
-          ) : <div className="-mt-14 shrink-0 rounded-full p-1.5"><Avatar src={maker.image} name={maker.name} size={104} className="rounded-full bg-midnight-card ring-4 ring-midnight-card" /></div>}
-          <div className="min-w-0 flex-1 pb-1">
+            <a href={maker.image} target="_blank" rel="noreferrer" aria-label={t("makers.viewAvatar", { name: maker.name ?? maker.handle ?? "Maker" })} className="relative z-10 -mt-10 self-start rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold/60 sm:-mt-11"><Avatar src={maker.image} name={maker.name} size={76} className="rounded-full bg-midnight-deep ring-4 ring-midnight-deep" /></a>
+          ) : <div className="relative z-10 -mt-10 self-start sm:-mt-11"><Avatar src={maker.image} name={maker.name} size={76} className="rounded-full bg-midnight-deep ring-4 ring-midnight-deep" /></div>}
+          <div className="min-w-0 flex-1">
+            <p className="mb-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-gold-soft">{isFrench ? "Profil maker" : "Maker profile"}</p>
             <div className="flex flex-wrap items-center gap-2"><h1 className="font-display text-2xl font-semibold tracking-tight text-ink sm:text-3xl">{maker.name ?? maker.handle}</h1>{maker.isVerified && <VerifiedBadge label={t("feed.verifiedMaker")} />}</div>
-            {maker.headline && <p className="mt-1.5 text-sm font-medium text-gold-soft sm:text-base">{maker.headline}</p>}
+            {maker.headline && <p className="mt-1.5 text-sm font-medium text-ink sm:text-base">{maker.headline}</p>}
             {maker.handle && <p className="mt-1 text-xs text-ink-muted">@{maker.handle}</p>}
             <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-2 text-xs">
               <span className={`inline-flex items-center gap-1.5 ${maker.isOnline ? "text-emerald-300" : "text-ink-muted"}`}><span className={`h-1.5 w-1.5 rounded-full ${maker.isOnline ? "bg-emerald-400" : "bg-ink-muted/50"}`} />{maker.isOnline ? t("makers.online") : t("makers.offline")}</span>
@@ -161,7 +164,7 @@ export default function MakerProfilePage() {
             </div>
           </div>
           {!isSelf && session?.user && (
-            <div className="flex max-w-full flex-wrap gap-2 sm:justify-end">
+            <div className="col-span-2 flex max-w-full flex-wrap gap-2 px-1 sm:col-span-1 sm:justify-end sm:px-0">
             {association?.status === "ACCEPTED" ? null : outgoing ? (
               <button type="button" disabled={associationMutation.isPending} onClick={() => associationMutation.mutate({ maker, cancel: true })} className="btn-ghost !rounded-xl">
                 <X size={15} aria-hidden="true" />{t("makers.cancelAssociation")}
@@ -183,28 +186,36 @@ export default function MakerProfilePage() {
             </div>
           )}
         </div>
+        <section aria-label={isFrench ? "Statistiques du profil" : "Profile statistics"} className="mt-6 flex max-w-xl divide-x divide-midnight-border border-t border-midnight-border pt-4">
+          {[
+            { label: t("makers.projects"), value: maker.projects.length, icon: Globe2 },
+            { label: isFrench ? "Publications" : "Updates", value: maker._count.posts, icon: FileText },
+            { label: isFrench ? "Collaborations" : "Collaborations", value: maker._count.collaborations, icon: UsersRound },
+          ].map(({ label, value, icon: Icon }) => (
+            <div key={label} className="flex min-w-0 flex-1 items-center gap-2 px-3 first:pl-0 last:pr-0 sm:gap-3 sm:px-5">
+              <Icon size={15} className="shrink-0 text-gold-soft" aria-hidden="true" />
+              <div className="min-w-0">
+                <p className="truncate text-sm font-semibold tabular-nums text-ink">{value}</p>
+                <p className="truncate text-[10px] text-ink-muted sm:text-xs">{label}</p>
+              </div>
+            </div>
+          ))}
+        </section>
       </header>
 
-      <section aria-labelledby="maker-badges-title" className="card space-y-3 p-5 sm:p-6">
-        <div className="flex items-center justify-between gap-3">
-          <h2 id="maker-badges-title" className="section-title text-base">{t("gamification.profileBadges")}</h2>
-          <span className="text-xs text-ink-muted">{maker.badges.length}</span>
-        </div>
-        <BadgeCollection badges={maker.badges} emptyLabel={t("gamification.emptyPublicBadges")} />
-      </section>
-      <MakerRankingCard standing={maker.standing} />
-
-      <section aria-label={isFrench ? "Statistiques du profil" : "Profile statistics"} className="card grid grid-cols-3 divide-x divide-midnight-border px-1 py-3 sm:px-5 sm:py-4">
-        {[
-          { label: t("makers.projects"), value: maker.projects.length, icon: Globe2 },
-          { label: isFrench ? "Publications" : "Updates", value: maker._count.posts, icon: FileText },
-          { label: isFrench ? "Collaborations" : "Collaborations", value: maker._count.collaborations, icon: UsersRound },
-        ].map(({ label, value, icon: Icon }) => (
-          <div key={label} className="flex min-w-0 items-center justify-center gap-2 px-1.5 sm:gap-3 sm:px-4">
-            <span className="hidden h-9 w-9 shrink-0 place-items-center rounded-lg bg-gold/10 text-gold-soft sm:grid"><Icon size={17} aria-hidden="true" /></span>
-            <div className="min-w-0 text-center sm:text-left"><p className="truncate text-base font-semibold tabular-nums text-ink sm:text-lg">{value}</p><p className="truncate text-[10px] text-ink-muted sm:text-xs">{label}</p></div>
+      <section aria-label={isFrench ? "Badges et classement maker" : "Maker badges and ranking"} className="card overflow-hidden p-0">
+        <div className="grid lg:grid-cols-[minmax(0,1.1fr)_minmax(0,0.9fr)]">
+          <div className="min-w-0 p-5 sm:p-6">
+            <div className="mb-2 flex items-center justify-between gap-3">
+              <h2 id="maker-badges-title" className="section-title text-base">{t("gamification.profileBadges")}</h2>
+              <span className="text-xs tabular-nums text-ink-muted">{maker.badges.length}</span>
+            </div>
+            <BadgeCollection badges={maker.badges} emptyLabel={t("gamification.emptyPublicBadges")} compact />
           </div>
-        ))}
+          <div className="min-w-0 border-t border-midnight-border p-5 sm:p-6 lg:border-l lg:border-t-0">
+            <MakerRankingCard standing={maker.standing} embedded />
+          </div>
+        </div>
       </section>
 
       {(associationMutation.isError || messageMutation.isError || inviteMutation.isError) && <p role="alert" className="text-sm text-rose-300">{t("makers.actionError")}</p>}

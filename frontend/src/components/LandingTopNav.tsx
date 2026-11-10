@@ -3,17 +3,28 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
-import { ArrowRight } from "@/components/FontAwesomeIcons";
+import { ArrowRight, Moon, Sun } from "@/components/FontAwesomeIcons";
 import { LanguageSwitcher } from "@/components/LanguageSwitcher";
 import { Logo } from "@/components/Logo";
 import { useTranslation } from "@/lib/i18n";
+import { readAppearancePreferences, saveAppearancePreferences } from "@/lib/appearance";
 
 export function LandingTopNav() {
   const { locale } = useTranslation();
   const pathname = usePathname();
   const isFrench = locale === "fr";
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [isLightTheme, setIsLightTheme] = useState(false);
   const sectionHref = (section: string) => pathname === "/" ? `#${section}` : `/#${section}`;
+
+  useEffect(() => {
+    const root = document.documentElement;
+    const syncTheme = () => setIsLightTheme(root.dataset.theme === "light");
+    const observer = new MutationObserver(syncTheme);
+    syncTheme();
+    observer.observe(root, { attributes: true, attributeFilter: ["data-theme"] });
+    return () => observer.disconnect();
+  }, []);
 
   useEffect(() => {
     setMobileMenuOpen(false);
@@ -27,6 +38,30 @@ export function LandingTopNav() {
     window.addEventListener("keydown", closeOnEscape);
     return () => window.removeEventListener("keydown", closeOnEscape);
   }, [mobileMenuOpen]);
+
+  function toggleTheme() {
+    const preferences = readAppearancePreferences();
+    const nextTheme = isLightTheme ? "dark" : "light";
+    saveAppearancePreferences({ ...preferences, theme: nextTheme });
+  }
+
+  const themeToggle = (mobile = false) => (
+    <button
+      type="button"
+      className={`landing-theme-toggle ${mobile ? "landing-theme-toggle-mobile" : "landing-theme-toggle-desktop"}`}
+      onClick={toggleTheme}
+      aria-label={isLightTheme
+        ? (isFrench ? "Activer le mode sombre" : "Switch to dark mode")
+        : (isFrench ? "Activer le mode clair" : "Switch to light mode")}
+      title={isLightTheme
+        ? (isFrench ? "Activer le mode sombre" : "Switch to dark mode")
+        : (isFrench ? "Activer le mode clair" : "Switch to light mode")}
+      aria-pressed={isLightTheme}
+    >
+      {isLightTheme ? <Moon size={16} aria-hidden="true" /> : <Sun size={16} aria-hidden="true" />}
+      {mobile && <span>{isFrench ? "Changer de thème" : "Change theme"}</span>}
+    </button>
+  );
 
   return (
     <header className="landing-header pointer-events-none fixed inset-x-0 top-3 z-50 text-white">
@@ -55,8 +90,10 @@ export function LandingTopNav() {
           <Link onClick={() => setMobileMenuOpen(false)} href="/login" className="landing-nav-link py-3 text-sm text-white/75 transition xl:hidden">
             {isFrench ? "Connexion" : "Sign in"}
           </Link>
+          <div className="xl:hidden">{themeToggle(true)}</div>
         </nav>
         <div className="flex shrink-0 items-center gap-1.5 sm:gap-3">
+          {themeToggle()}
           <LanguageSwitcher variant="landing" />
           <Link href="/login" className="landing-nav-login hidden px-3 py-2 text-sm font-medium text-white/85 transition xl:inline-flex">
             {isFrench ? "Connexion" : "Sign in"}

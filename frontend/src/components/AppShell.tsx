@@ -43,27 +43,29 @@ export function AppShell({
   return (
     <ActionToastProvider>
       <FirebaseForegroundNotifications />
-      <div className="min-h-screen lg:flex">
-        {!isAdminArea && <Sidebar className="sticky top-0 hidden h-screen shrink-0 lg:flex" />}
-        <div className="min-w-0 flex-1">
-          <TopNav />
-          <main className={cn("min-w-0", isAdminArea && "bg-midnight-deep", className)}>
-            <div className={cn("mx-auto flex w-full gap-6 px-4 py-6 sm:px-6 xl:px-8", isFullWidthMobilePage && "px-0", isAdminArea && "xl:px-0", isMessagesPage && "py-0 md:py-6")}>
-              <div className="min-w-0 flex-1">{children}</div>
-              {rightRail && pathname === "/dashboard" && (
-                <div className="hidden w-72 shrink-0 min-[1440px]:block min-[1600px]:w-80">
-                  <div className="sticky top-20 flex h-[calc(100dvh-6rem)] flex-col gap-4">
-                    <div className="sidebar-scrollbar-hidden min-h-0 flex-1 space-y-4 overflow-y-auto overscroll-contain">
-                      <WorkspaceQuickActions />
-                    </div>
-                    <div className="shrink-0">
-                      <ActiveMakers />
+      <div className="min-h-screen">
+        <TopNav />
+        <div className="lg:flex">
+          {!isAdminArea && <Sidebar className="sticky top-16 hidden h-[calc(100dvh-4rem)] shrink-0 self-start lg:flex" />}
+          <div className="min-w-0 flex-1">
+            <main className={cn("min-w-0", isAdminArea && "bg-midnight-deep", className)}>
+              <div className={cn("mx-auto flex w-full gap-6 px-4 py-6 sm:px-6 xl:px-8", isFullWidthMobilePage && "px-0", isAdminArea && "xl:px-0", isMessagesPage && "py-0 md:py-6")}>
+                <div className="min-w-0 flex-1">{children}</div>
+                {rightRail && pathname === "/dashboard" && (
+                  <div className="hidden w-72 shrink-0 min-[1440px]:block min-[1600px]:w-80">
+                    <div className="sticky top-20 flex h-[calc(100dvh-6rem)] flex-col gap-4">
+                      <div className="sidebar-scrollbar-hidden min-h-0 flex-1 space-y-4 overflow-y-auto overscroll-contain">
+                        <WorkspaceQuickActions />
+                      </div>
+                      <div className="shrink-0">
+                        <ActiveMakers />
+                      </div>
                     </div>
                   </div>
-                </div>
-              )}
-            </div>
-          </main>
+                )}
+              </div>
+            </main>
+          </div>
         </div>
       </div>
     </ActionToastProvider>

@@ -35,6 +35,7 @@ export async function GET(_request: Request, props: { params: Promise<{ handle: 
       email: true,
       name: true,
       image: true,
+      coverImage: true,
       handle: true,
       headline: true,
       bio: true,

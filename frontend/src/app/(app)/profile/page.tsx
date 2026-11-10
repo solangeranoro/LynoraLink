@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { useSession } from "next-auth/react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
@@ -27,6 +28,7 @@ type UserProfile = {
   name: string | null;
   email: string;
   image: string | null;
+  coverImage: string | null;
   handle: string | null;
   city: string | null;
   headline: string | null;
@@ -176,64 +178,68 @@ export default function ProfilePage() {
 
   return (
     <div className="space-y-6 pb-8">
-      <header className="card relative overflow-hidden">
-        <div aria-hidden="true" className="relative h-32 overflow-hidden bg-gradient-to-br from-[#1d3455] via-[#18304a] to-[#12423f]">
-          <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_78%_20%,rgba(212,175,55,0.22),transparent_38%)]" />
-          <div className="absolute -right-8 -top-28 h-64 w-64 rounded-full border border-white/10" />
-          <div className="absolute -right-2 -top-20 h-48 w-48 rounded-full border border-white/10" />
-          <div className="absolute inset-x-0 bottom-0 h-px bg-gradient-to-r from-transparent via-gold/50 to-transparent" />
+      <header className="relative border-b border-midnight-border pb-6 sm:pb-7">
+        <div
+          className="relative isolate h-32 overflow-hidden rounded-xl bg-gradient-to-br from-[#18304a] via-[#12423f] to-[#8a7130] sm:h-44"
+        >
+          {profile.coverImage && (
+            <Image src={profile.coverImage} alt="" fill sizes="(max-width: 768px) 100vw, 1100px" unoptimized className="object-cover" />
+          )}
+          <div aria-hidden="true" className="absolute inset-0 bg-gradient-to-t from-midnight-deep/55 via-transparent to-midnight-deep/10" />
         </div>
-        <div className="relative flex flex-col gap-4 px-5 pb-6 sm:px-7">
-          <div className="flex min-w-0 items-end gap-4 sm:gap-5">
-            <Link href="/settings" title={isFrench ? "Modifier la photo et le profil" : "Edit profile and avatar"} aria-label={isFrench ? "Modifier le profil" : "Edit profile"} className="-mt-14 shrink-0 rounded-full p-1.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold/60">
-              <Avatar src={profile.image} name={profile.name} size={104} className="rounded-full bg-midnight-card ring-4 ring-midnight-card" />
-            </Link>
-            <div className="min-w-0 flex-1 pb-1">
-              <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
-                <h1 className="font-display text-2xl font-semibold tracking-tight text-ink sm:text-3xl">{profile.name ?? "Maker"}</h1>
-                {profile.isVerified && <VerifiedBadge label={isFrench ? "Profil vérifié" : "Verified profile"} />}
-              </div>
-              {profile.headline && <p className="mt-1.5 text-sm font-medium text-gold-soft sm:text-base">{profile.headline}</p>}
-              {profile.handle && <p className="mt-1 text-xs text-ink-muted">@{profile.handle}</p>}
-              <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-2 text-xs">
-                <span className={`inline-flex items-center gap-1.5 ${profile.isOnline ? "text-emerald-300" : "text-ink-muted"}`}><span className={`h-1.5 w-1.5 rounded-full ${profile.isOnline ? "bg-emerald-400" : "bg-ink-muted/50"}`} />{profile.isOnline ? (isFrench ? "En ligne" : "Online") : (isFrench ? "Hors ligne" : "Offline")}</span>
-                {profile.openToCoBuild && <span className="inline-flex items-center gap-1.5 font-medium text-gold-soft"><Handshake size={13} aria-hidden="true" />{t("makers.brainstormAvailability")}</span>}
-                {(profile.location || profile.city) && <span className="inline-flex items-center gap-1.5 text-ink-muted"><MapPin size={13} aria-hidden="true" />{profile.location ?? profile.city}</span>}
-              </div>
+        <div className="grid grid-cols-[76px_minmax(0,1fr)] items-end gap-x-3 px-3 pt-3 sm:grid-cols-[76px_minmax(0,1fr)_auto] sm:gap-x-5 sm:px-5">
+          <Link href="/settings" title={isFrench ? "Modifier la photo et le profil" : "Edit profile and avatar"} aria-label={isFrench ? "Modifier le profil" : "Edit profile"} className="relative z-10 -mt-10 self-start rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold/60 sm:-mt-11">
+            <Avatar src={profile.image} name={profile.name} size={76} className="rounded-full bg-midnight-deep ring-4 ring-midnight-deep" />
+          </Link>
+          <div className="min-w-0 flex-1">
+            <p className="mb-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-gold-soft">{isFrench ? "Espace maker" : "Maker workspace"}</p>
+            <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+              <h1 className="font-display text-2xl font-semibold tracking-tight text-ink sm:text-3xl">{profile.name ?? "Maker"}</h1>
+              {profile.isVerified && <VerifiedBadge label={isFrench ? "Profil vérifié" : "Verified profile"} />}
+            </div>
+            {profile.headline && <p className="mt-1.5 text-sm font-medium text-ink sm:text-base">{profile.headline}</p>}
+            {profile.handle && <p className="mt-1 text-xs text-ink-muted">@{profile.handle}</p>}
+            <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-2 text-xs">
+              <span className={`inline-flex items-center gap-1.5 ${profile.isOnline ? "text-emerald-300" : "text-ink-muted"}`}><span className={`h-1.5 w-1.5 rounded-full ${profile.isOnline ? "bg-emerald-400" : "bg-ink-muted/50"}`} />{profile.isOnline ? (isFrench ? "En ligne" : "Online") : (isFrench ? "Hors ligne" : "Offline")}</span>
+              {profile.openToCoBuild && <span className="inline-flex items-center gap-1.5 font-medium text-gold-soft"><Handshake size={13} aria-hidden="true" />{t("makers.brainstormAvailability")}</span>}
+              {(profile.location || profile.city) && <span className="inline-flex items-center gap-1.5 text-ink-muted"><MapPin size={13} aria-hidden="true" />{profile.location ?? profile.city}</span>}
             </div>
           </div>
-          <div className="flex flex-wrap justify-end gap-2">
-            <Link href={`/makers/${encodeURIComponent(profile.handle ?? profile.id)}`} className="btn-ghost !rounded-lg">
-              <ExternalLink size={15} aria-hidden="true" />{isFrench ? "Aperçu public" : "Public preview"}
+          <div className="col-span-2 flex flex-wrap gap-2 px-1 sm:col-span-1 sm:justify-end sm:px-0">
+            <Link href={`/makers/${encodeURIComponent(profile.handle ?? profile.id)}`} className="btn-ghost !min-h-9 !rounded-lg !py-2 text-xs">
+              <ExternalLink size={14} aria-hidden="true" />{isFrench ? "Aperçu public" : "Public preview"}
             </Link>
-            <Link href="/settings" className="btn-gold !rounded-lg">
-              <Pencil size={15} aria-hidden="true" />{isFrench ? "Modifier le profil" : "Edit profile"}
+            <Link href="/settings" className="btn-gold !min-h-9 !rounded-lg !py-2 text-xs">
+              <Pencil size={14} aria-hidden="true" />{isFrench ? "Modifier le profil" : "Edit profile"}
             </Link>
           </div>
         </div>
+        <section aria-label={isFrench ? "Statistiques du profil" : "Profile statistics"} className="mt-5 flex max-w-xl divide-x divide-midnight-border border-t border-midnight-border pt-4 sm:ml-5">
+          {stats.map(({ label, value, icon: Icon }) => (
+            <div key={label} className="flex min-w-0 flex-1 items-center gap-2 px-3 first:pl-0 last:pr-0 sm:gap-3 sm:px-5">
+              <Icon size={15} className="shrink-0 text-gold-soft" aria-hidden="true" />
+              <div className="min-w-0">
+                <p className="truncate text-sm font-semibold tabular-nums text-ink">{value}</p>
+                <p className="truncate text-[10px] text-ink-muted sm:text-xs">{label}</p>
+              </div>
+            </div>
+          ))}
+        </section>
       </header>
 
-      <section aria-labelledby="profile-badges-title" className="card space-y-3 p-5 sm:p-6">
-        <div className="flex items-center justify-between gap-3">
-          <h2 id="profile-badges-title" className="section-title text-base">{t("gamification.profileBadges")}</h2>
-          <span className="text-xs text-ink-muted">{profile.badges.length}</span>
-        </div>
-        <BadgeCollection badges={profile.badges} emptyLabel={t("gamification.emptyBadges")} />
-      </section>
-      <MakerRankingCard standing={profile.standing} />
-
-      <section aria-label={isFrench ? "Statistiques du profil" : "Profile statistics"} className="card grid grid-cols-3 divide-x divide-midnight-border px-1 py-3 sm:px-5 sm:py-4">
-        {stats.map(({ label, value, icon: Icon }) => (
-          <div key={label} className="flex min-w-0 items-center justify-center gap-2 px-1.5 sm:gap-3 sm:px-4">
-            <span className="hidden h-9 w-9 shrink-0 place-items-center rounded-lg bg-gold/10 text-gold-soft sm:grid">
-              <Icon size={17} aria-hidden="true" />
-            </span>
-            <div className="min-w-0 text-center sm:text-left">
-              <p className="truncate text-base font-semibold tabular-nums text-ink sm:text-lg">{value}</p>
-              <p className="truncate text-[10px] text-ink-muted sm:text-xs">{label}</p>
+      <section aria-label={isFrench ? "Badges et classement maker" : "Maker badges and ranking"} className="card overflow-hidden p-0">
+        <div className="grid lg:grid-cols-[minmax(0,1.1fr)_minmax(0,0.9fr)]">
+          <div className="min-w-0 p-5 sm:p-6">
+            <div className="mb-2 flex items-center justify-between gap-3">
+              <h2 id="profile-badges-title" className="section-title text-base">{t("gamification.profileBadges")}</h2>
+              <span className="text-xs tabular-nums text-ink-muted">{profile.badges.length}</span>
             </div>
+            <BadgeCollection badges={profile.badges} emptyLabel={t("gamification.emptyBadges")} compact />
           </div>
-        ))}
+          <div className="min-w-0 border-t border-midnight-border p-5 sm:p-6 lg:border-l lg:border-t-0">
+            <MakerRankingCard standing={profile.standing} embedded />
+          </div>
+        </div>
       </section>
 
       <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_19rem] xl:grid-cols-[minmax(0,1fr)_21rem]">
@@ -305,18 +311,24 @@ export default function ProfilePage() {
               <ul className="divide-y divide-midnight-border">
                 {associatedPeople.slice(0, 3).map((person) => (
                   <li key={person.id}>
-                    <Link
-                      href={`/makers/${encodeURIComponent(person.handle ?? person.id)}`}
-                      aria-label={isFrench ? `Voir le profil de ${person.name ?? person.handle ?? "Maker"}` : `View ${person.name ?? person.handle ?? "Maker"}'s profile`}
-                      className="group flex min-w-0 items-center gap-3 rounded-lg py-3 transition hover:bg-midnight-deep/35 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold/50"
-                    >
-                      <Avatar src={person.image} name={person.name} size={40} />
+                    <div className="group flex min-w-0 items-center gap-3 rounded-lg py-3 transition hover:bg-midnight-deep/35">
+                      <Link
+                        href={`/makers/${encodeURIComponent(person.handle ?? person.id)}`}
+                        aria-label={isFrench ? `Voir le profil de ${person.name ?? person.handle ?? "Maker"}` : `View ${person.name ?? person.handle ?? "Maker"}'s profile`}
+                        className="shrink-0 rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold/50"
+                      >
+                        <Avatar src={person.image} name={person.name} size={40} />
+                      </Link>
                       <span className="min-w-0 flex-1">
-                        <span className="block truncate text-sm font-semibold text-ink group-hover:text-gold-soft">{person.name ?? person.handle ?? "Maker"}</span>
+                        <Link href={`/makers/${encodeURIComponent(person.handle ?? person.id)}`} className="block truncate text-sm font-semibold text-ink group-hover:text-gold-soft">
+                          {person.name ?? person.handle ?? "Maker"}
+                        </Link>
                         {person.handle && <span className="block truncate text-xs text-ink-muted">@{person.handle}</span>}
                       </span>
-                      <ExternalLink size={14} aria-hidden="true" className="shrink-0 text-ink-muted transition group-hover:text-gold-soft" />
-                    </Link>
+                      <Link href={`/makers/${encodeURIComponent(person.handle ?? person.id)}`} aria-label={isFrench ? `Voir le profil de ${person.name ?? person.handle ?? "Maker"}` : `View ${person.name ?? person.handle ?? "Maker"}'s profile`} className="shrink-0">
+                        <ExternalLink size={14} aria-hidden="true" className="text-ink-muted transition group-hover:text-gold-soft" />
+                      </Link>
+                    </div>
                   </li>
                 ))}
               </ul>

@@ -211,6 +211,7 @@ model User {
   email                String    @unique
   emailVerified        DateTime?
   image                String?
+  coverImage           String?
   passwordHash         String?
   handle               String?   @unique
   twoFactorEnabled     Boolean   @default(false)

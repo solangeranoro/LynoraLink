@@ -1,7 +1,6 @@
 "use client";
 
-import Link from "next/link";
-import { ChevronDown } from "@/components/FontAwesomeIcons";
+import { EditorialInfoLayout } from "@/components/EditorialInfoLayout";
 import { InfoPageShell } from "@/components/InfoPageShell";
 import { useTranslation } from "@/lib/i18n";
 
@@ -39,6 +38,34 @@ const questions = {
       question: "Where can I ask for help or request account changes?",
       answer: "Use the Contact page to send a message to the LynoraLink team. For a password you cannot access, use the password-reset link on the sign-in page.",
     },
+    {
+      question: "What should I include in my maker profile?",
+      answer: "Add only information that helps other members understand your skills, interests, and the projects you want to build. Keep your details current, and do not include passwords, private customer information, or confidential business material.",
+    },
+    {
+      question: "Who can see my profile and community posts?",
+      answer: "Information you publish in profiles, projects, and community features is intended to help members discover and collaborate with one another. Treat content shared in those spaces as potentially visible to other members, and review each feature before posting sensitive details.",
+    },
+    {
+      question: "Does LynoraLink process payments for Marketplace deals?",
+      answer: "No. The Marketplace provides listings and contact tools; members arrange and complete transactions directly with one another. Verify the other party and agree on the terms before sharing work or making a payment.",
+    },
+    {
+      question: "How do I report a problem or challenge a restriction?",
+      answer: "Contact the LynoraLink team through the Contact page and explain what happened. If you are asking for a restriction to be reviewed, include enough context to identify it, but never send your password or authentication codes.",
+    },
+    {
+      question: "Can I request deletion of my account?",
+      answer: "Yes. Send an account-specific deletion request through the Contact page. The team may need to review the request and any applicable legal or security requirements before completing it.",
+    },
+    {
+      question: "What browser information does LynoraLink save?",
+      answer: "The site saves your language and appearance preferences in your browser’s local storage. Authentication cookies help maintain your sign-in. See the Cookies page for the storage keys, effects of clearing site data, and third-party sign-in notes.",
+    },
+    {
+      question: "Why is a country shown on my account?",
+      answer: "After a successful sign-in, LynoraLink uses ipinfo.io to estimate a country from the connecting IP address and stores the returned country code. It is an approximate estimate, can be affected by VPNs or network routing, and is not your precise location. See the Privacy page for details.",
+    },
   ],
   fr: [
     {
@@ -73,6 +100,34 @@ const questions = {
       question: "Comment demander de l’aide ou modifier mon compte ?",
       answer: "Utilisez la page Contact pour écrire à l’équipe LynoraLink. Si vous ne pouvez plus accéder à votre mot de passe, utilisez le lien de réinitialisation sur la page de connexion.",
     },
+    {
+      question: "Que renseigner dans mon profil maker ?",
+      answer: "Ajoutez les informations qui permettent aux autres membres de comprendre vos compétences, vos centres d’intérêt et les projets que vous souhaitez construire. Gardez votre profil à jour et n’y publiez ni mot de passe, ni donnée privée de client, ni information professionnelle confidentielle.",
+    },
+    {
+      question: "Qui peut voir mon profil et mes publications ?",
+      answer: "Les informations publiées dans les profils, les projets et les espaces communautaires servent à faciliter les rencontres et la collaboration. Considérez qu’elles peuvent être visibles par d’autres membres et vérifiez le fonctionnement de chaque espace avant d’y publier des informations sensibles.",
+    },
+    {
+      question: "LynoraLink traite-t-il les paiements du Marketplace ?",
+      answer: "Non. Le Marketplace fournit des annonces et des outils de contact; les membres organisent et réalisent directement leurs transactions. Vérifiez l’identité de votre interlocuteur et convenez des conditions avant de partager un travail ou d’effectuer un paiement.",
+    },
+    {
+      question: "Comment signaler un problème ou contester une restriction ?",
+      answer: "Contactez l’équipe LynoraLink via la page Contact et expliquez la situation. Pour demander le réexamen d’une restriction, donnez assez de contexte pour l’identifier, mais ne transmettez jamais votre mot de passe ni vos codes d’authentification.",
+    },
+    {
+      question: "Puis-je demander la suppression de mon compte ?",
+      answer: "Oui. Envoyez une demande de suppression de compte via la page Contact. L’équipe pourra examiner la demande ainsi que les éventuelles obligations légales ou de sécurité avant de la traiter.",
+    },
+    {
+      question: "Quelles informations le navigateur mémorise-t-il ?",
+      answer: "Le site enregistre vos préférences de langue et d’apparence dans le stockage local du navigateur. Les cookies d’authentification contribuent au maintien de votre connexion. Consultez la page Cookies pour connaître les clés de stockage, les effets de leur suppression et les informations sur les connexions tierces.",
+    },
+    {
+      question: "Pourquoi un pays apparaît-il sur mon compte ?",
+      answer: "Après une connexion réussie, LynoraLink utilise ipinfo.io pour estimer un pays à partir de l’adresse IP de connexion et enregistre le code pays renvoyé. Cette estimation est approximative, peut être affectée par un VPN ou le routage réseau, et ne correspond pas à votre position précise. La page Confidentialité donne plus de détails.",
+    },
   ],
 } as const;
 
@@ -80,6 +135,11 @@ export default function FAQPage() {
   const { locale } = useTranslation();
   const isFrench = locale === "fr";
   const entries = isFrench ? questions.fr : questions.en;
+  const sections = entries.map(({ question, answer }, index) => ({
+    id: `question-${index + 1}`,
+    title: question,
+    body: answer,
+  }));
 
   return (
     <InfoPageShell
@@ -88,29 +148,16 @@ export default function FAQPage() {
       description={isFrench
         ? "Les réponses aux questions fréquentes sur les profils, les projets et la collaboration sur LynoraLink."
         : "Answers to common questions about profiles, projects, and collaboration on LynoraLink."}
+      pageClassName="documentation-page"
+      contentClassName="documentation-content !max-w-none !space-y-0"
     >
-      <div className="divide-y divide-[#d9e5ea] border-y border-[#d9e5ea]">
-        {entries.map(({ question, answer }, index) => (
-          <details key={question} className="group py-1" open={index === 0}>
-            <summary className="flex cursor-pointer list-none items-center justify-between gap-4 py-4 font-display text-base font-semibold text-[#14273a] marker:hidden sm:py-5 sm:text-lg">
-              <span>{question}</span>
-              <ChevronDown size={18} className="shrink-0 text-[#367586] transition-transform group-open:rotate-180" aria-hidden="true" />
-            </summary>
-            <p className="max-w-2xl pb-5 pr-8 text-sm leading-7 text-[#526779]">{answer}</p>
-          </details>
-        ))}
-      </div>
-      <section className="border-l-2 border-[#087d82] bg-white/70 px-5 py-4">
-        <h2 className="font-display text-base font-semibold text-[#14273a]">
-          {isFrench ? "Vous avez encore une question ?" : "Still have a question?"}
-        </h2>
-        <p className="mt-2 text-sm leading-6 text-[#526779]">
-          {isFrench ? "Écrivez-nous et l’équipe vous répondra." : "Send us a message and the team will get back to you."}
-        </p>
-        <Link href="/contact" className="mt-4 inline-flex min-h-10 items-center rounded-md bg-[#086f58] px-4 text-sm font-semibold text-[#071827] transition hover:bg-[#0a795e]">
-          {isFrench ? "Contacter l’équipe" : "Contact the team"}
-        </Link>
-      </section>
+      <EditorialInfoLayout
+        sections={sections}
+        contentsLabel={isFrench ? "Questions fréquentes" : "Frequently asked"}
+        questionLabel={isFrench ? "UNE AUTRE QUESTION ?" : "ANOTHER QUESTION?"}
+        contactPrompt={isFrench ? "Notre équipe est là pour vous aider à avancer." : "Our team is here to help you move forward."}
+        contactLabel={isFrench ? "Contacter l’équipe" : "Contact the team"}
+      />
     </InfoPageShell>
   );
 }

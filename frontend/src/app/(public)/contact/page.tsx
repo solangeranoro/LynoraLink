@@ -69,34 +69,41 @@ export default function ContactPage() {
       eyebrow={isFrench ? "Assistance LynoraLink" : "LynoraLink support"}
       title={isFrench ? "Comment pouvons-nous vous aider ?" : "How can we help?"}
       description={isFrench ? "Écrivez à notre équipe pour une question, un retour ou un problème. Votre demande sera transmise directement au support." : "Contact our team with a question, feedback, or an issue. Your request will be sent directly to support."}
+      pageClassName="documentation-page contact-page"
+      contentClassName="contact-content !max-w-none !space-y-0"
     >
-      <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_17rem]">
-        <form onSubmit={submit} className="space-y-5 rounded-2xl border border-[#d9e5ea] bg-white p-5 shadow-[0_16px_50px_rgba(20,39,58,0.08)] sm:p-7">
+      <div className="contact-layout">
+        <form onSubmit={submit} className="contact-form">
+          <header className="contact-form-heading">
+            <span>{isFrench ? "FORMULAIRE DE CONTACT" : "CONTACT FORM"}</span>
+            <h2>{isFrench ? "Envoyez-nous un message" : "Send us a message"}</h2>
+            <p>{isFrench ? "Les champs marqués d’un astérisque sont obligatoires." : "Fields marked with an asterisk are required."}</p>
+          </header>
           <div className="grid gap-5 sm:grid-cols-2">
             <div>
-              <label htmlFor="contact-name" className="mb-1.5 block text-sm font-medium text-[#14273a]">{isFrench ? "Nom complet" : "Full name"}</label>
-              <input id="contact-name" required minLength={2} maxLength={100} autoComplete="name" value={form.name} onChange={(event) => updateForm("name", event.target.value)} className="w-full rounded-xl border border-[#c4d6df] bg-white px-3.5 py-3 text-sm text-[#14273a] outline-none transition placeholder:text-[#8193a1] focus:border-[#087d82] focus:ring-2 focus:ring-[#087d82]/15" placeholder={isFrench ? "Votre nom" : "Your name"} />
+              <label htmlFor="contact-name">{isFrench ? "Nom complet" : "Full name"} <span aria-hidden="true">*</span></label>
+              <input id="contact-name" required minLength={2} maxLength={100} autoComplete="name" value={form.name} onChange={(event) => updateForm("name", event.target.value)} placeholder={isFrench ? "Votre nom" : "Your name"} />
             </div>
             <div>
-              <label htmlFor="contact-email" className="mb-1.5 block text-sm font-medium text-[#14273a]">{isFrench ? "Adresse e-mail" : "Email address"}</label>
-              <input id="contact-email" required type="email" maxLength={254} autoComplete="email" value={form.email} onChange={(event) => updateForm("email", event.target.value)} className="w-full rounded-xl border border-[#c4d6df] bg-white px-3.5 py-3 text-sm text-[#14273a] outline-none transition placeholder:text-[#8193a1] focus:border-[#087d82] focus:ring-2 focus:ring-[#087d82]/15" placeholder={isFrench ? "vous@exemple.com" : "you@example.com"} />
+              <label htmlFor="contact-email">{isFrench ? "Adresse e-mail" : "Email address"} <span aria-hidden="true">*</span></label>
+              <input id="contact-email" required type="email" maxLength={254} autoComplete="email" value={form.email} onChange={(event) => updateForm("email", event.target.value)} placeholder={isFrench ? "vous@exemple.com" : "you@example.com"} />
             </div>
           </div>
           <div>
-            <label htmlFor="contact-subject" className="mb-1.5 block text-sm font-medium text-[#14273a]">{isFrench ? "Objet" : "Subject"}</label>
-            <input id="contact-subject" required minLength={3} maxLength={150} value={form.subject} onChange={(event) => updateForm("subject", event.target.value)} className="w-full rounded-xl border border-[#c4d6df] bg-white px-3.5 py-3 text-sm text-[#14273a] outline-none transition placeholder:text-[#8193a1] focus:border-[#087d82] focus:ring-2 focus:ring-[#087d82]/15" placeholder={isFrench ? "En quelques mots" : "A short summary"} />
+            <label htmlFor="contact-subject">{isFrench ? "Objet" : "Subject"} <span aria-hidden="true">*</span></label>
+            <input id="contact-subject" required minLength={3} maxLength={150} value={form.subject} onChange={(event) => updateForm("subject", event.target.value)} placeholder={isFrench ? "En quelques mots" : "A short summary"} />
           </div>
           <div>
-            <label htmlFor="contact-message" className="mb-1.5 block text-sm font-medium text-[#14273a]">{isFrench ? "Votre message" : "Your message"}</label>
-            <textarea id="contact-message" required minLength={10} maxLength={5000} rows={7} value={form.message} onChange={(event) => updateForm("message", event.target.value)} className="w-full resize-y rounded-xl border border-[#c4d6df] bg-white px-3.5 py-3 text-sm leading-6 text-[#14273a] outline-none transition placeholder:text-[#8193a1] focus:border-[#087d82] focus:ring-2 focus:ring-[#087d82]/15" placeholder={isFrench ? "Décrivez votre demande avec autant de détails que nécessaire…" : "Tell us how we can help…"} />
-            <p className="mt-1.5 text-right text-xs text-[#8193a1]">{form.message.length}/5000</p>
+            <label htmlFor="contact-message">{isFrench ? "Votre message" : "Your message"} <span aria-hidden="true">*</span></label>
+            <textarea id="contact-message" required minLength={10} maxLength={5000} rows={7} value={form.message} onChange={(event) => updateForm("message", event.target.value)} placeholder={isFrench ? "Décrivez votre demande avec autant de détails que nécessaire…" : "Tell us how we can help…"} />
+            <p className="contact-character-count">{form.message.length}/5000</p>
           </div>
           <div className="absolute -left-[10000px] top-auto h-px w-px overflow-hidden" aria-hidden="true">
             <label htmlFor="contact-website">Website</label>
             <input id="contact-website" tabIndex={-1} autoComplete="off" value={form.website} onChange={(event) => updateForm("website", event.target.value)} />
           </div>
           {status !== "idle" && (
-            <div role={status === "sent" ? "status" : status === "sending" ? "status" : "alert"} aria-live="polite" className={`flex items-start gap-2.5 rounded-xl border p-3.5 text-sm leading-5 ${status === "sent" ? "border-emerald-200 bg-emerald-50 text-emerald-800" : status === "sending" ? "border-[#d9e5ea] bg-[#f5f8fa] text-[#526779]" : "border-red-200 bg-red-50 text-red-800"}`}>
+            <div data-state={status} role={status === "sent" ? "status" : status === "sending" ? "status" : "alert"} aria-live="polite" className="contact-status">
               {status === "sent" ? <Check size={16} className="mt-0.5 shrink-0" aria-hidden="true" /> : status === "sending" ? <LoaderCircle size={16} className="mt-0.5 shrink-0 animate-spin" aria-hidden="true" /> : null}
               <span>
                 {status === "sending" && (isFrench ? "Envoi sécurisé de votre message…" : "Sending your message securely…")}
@@ -111,25 +118,26 @@ export default function ContactPage() {
               </span>
             </div>
           )}
-          <div className="flex flex-col gap-3 border-t border-[#e6edf0] pt-5 sm:flex-row sm:items-center sm:justify-between">
-            <p className="flex items-center gap-2 text-xs leading-5 text-[#718391]">
-              <ShieldCheck size={15} className="shrink-0 text-[#087d82]" aria-hidden="true" />
+          <div className="contact-form-footer">
+            <p>
+              <ShieldCheck size={15} aria-hidden="true" />
               {isFrench ? "Vos coordonnées servent uniquement à répondre à votre demande." : "Your details are used only to respond to your request."}
             </p>
-            <button type="submit" disabled={status === "sending"} className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-[#086f58] px-5 text-sm font-semibold text-white shadow-sm transition hover:bg-[#075f4d] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#087d82] focus-visible:ring-offset-2 disabled:cursor-wait disabled:opacity-60">
+            <button type="submit" disabled={status === "sending"} className="contact-submit">
               {status === "sending" ? <LoaderCircle size={16} className="animate-spin" aria-hidden="true" /> : <Send size={15} aria-hidden="true" />}
               {status === "sending" ? (isFrench ? "Envoi en cours…" : "Sending…") : (isFrench ? "Envoyer au support" : "Send to support")}
             </button>
           </div>
         </form>
-        <aside className="h-fit rounded-2xl border border-[#d9e5ea] bg-gradient-to-br from-white to-[#f2f8f7] p-5 shadow-[0_16px_50px_rgba(20,39,58,0.06)] sm:p-6">
-          <span className="grid h-11 w-11 place-items-center rounded-xl bg-[#087d82]/10 text-[#087d82]"><Mail size={20} aria-hidden="true" /></span>
-          <h2 className="mt-4 font-display text-lg font-semibold text-[#14273a]">{isFrench ? "Contacter le support" : "Contact support"}</h2>
-          <p className="mt-2 text-sm leading-6 text-[#526779]">{isFrench ? "Vous préférez votre messagerie ? Écrivez-nous directement. Les réponses à nos e-mails arrivent dans cette même boîte." : "Prefer using your email app? Contact us directly. Replies to our messages will arrive in the same inbox."}</p>
-          <a href={`mailto:${supportEmail}`} className="mt-4 inline-flex max-w-full items-center gap-2 break-all text-sm font-semibold text-[#087d82] transition hover:text-[#075f4d]">
+        <aside className="contact-support">
+          <span className="contact-support-icon"><Mail size={20} aria-hidden="true" /></span>
+          <span className="contact-support-kicker">{isFrench ? "CONTACT DIRECT" : "DIRECT CONTACT"}</span>
+          <h2>{isFrench ? "Contacter le support" : "Contact support"}</h2>
+          <p>{isFrench ? "Vous préférez votre messagerie ? Écrivez-nous directement. Les réponses à nos e-mails arrivent dans cette même boîte." : "Prefer using your email app? Contact us directly. Replies to our messages will arrive in the same inbox."}</p>
+          <a href={`mailto:${supportEmail}`}>
             <span className="break-all">{supportEmail}</span><Mail size={14} className="shrink-0" aria-hidden="true" />
           </a>
-          <div className="mt-5 border-t border-[#d9e5ea] pt-4 text-xs leading-5 text-[#718391]">
+          <div className="contact-support-note">
             {isFrench ? "Chaque demande reçue via le formulaire fait l’objet d’un accusé de réception par e-mail." : "Every message sent through this form receives an email confirmation."}
           </div>
         </aside>

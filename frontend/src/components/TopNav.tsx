@@ -2,9 +2,11 @@
 
 import { useCallback, useEffect, useRef, useState, type FormEvent } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { usePathname, useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import type { IconDefinition } from "@fortawesome/fontawesome-svg-core";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
   faBars,
@@ -13,8 +15,8 @@ import {
   faChevronDown,
   faChartColumn,
   faComments,
-  faCode,
   faCompass,
+  faFlask,
   faFolderOpen,
   faGear,
   faHandshake,
@@ -30,6 +32,7 @@ import {
 } from "@fortawesome/free-solid-svg-icons";
 import { Avatar } from "@/components/Avatar";
 import { Logo } from "@/components/Logo";
+import { useCopilotNavigationLoader } from "@/components/CopilotNavigationLoader";
 import { useLogoutTransition } from "@/components/auth/LogoutTransition";
 import { LanguageSwitcher } from "@/components/LanguageSwitcher";
 import { NavigationCountBadge, type NavigationCountKey, useNavigationCounts } from "@/components/NavigationCounts";
@@ -343,15 +346,18 @@ export function TopNav() {
     return `/projects/${notification.targetId}`;
   }
 
-  const nav = [
+  const { showCopilotSplash } = useCopilotNavigationLoader();
+  const nav: { href: string; label: string; icon?: IconDefinition; countKey?: NavigationCountKey }[] = [
     { href: "/dashboard", label: t("nav.dashboard"), icon: faTableCellsLarge },
     { href: "/projects", label: t("nav.myProjects"), icon: faFolderOpen, countKey: "myProjects" as NavigationCountKey },
     { href: "/teams", label: t("nav.myTeam"), icon: faUsers, countKey: "myTeams" as NavigationCountKey },
     { href: "/discover", label: t("nav.discover"), icon: faCompass, countKey: "discoverProjects" as NavigationCountKey },
     { href: "/makers", label: t("nav.makers"), icon: faHandshake, countKey: "makers" as NavigationCountKey },
     { href: "/messages", label: t("nav.messages"), icon: faComments, countKey: "unreadMessages" as NavigationCountKey },
-    { href: "/coding", label: "LynoraCoding", icon: faCode },
+    { href: "/copilot", label: t("nav.aiCopilot") },
+    { href: "/analytics", label: t("nav.analytics"), icon: faChartColumn },
     { href: "/marketplace", label: t("nav.marketplace"), icon: faStore, countKey: "marketplaceItems" as NavigationCountKey },
+    { href: "/tester-applications", label: t("nav.testerApplications"), icon: faFlask },
     { href: "/top-makers", label: t("nav.topMakers"), icon: faTrophy, countKey: "topMakers" as NavigationCountKey },
   ];
   const visibleNav = nav;
@@ -432,7 +438,7 @@ export function TopNav() {
     if (!searchOpen || searchQuery.trim().length < 2) return null;
 
     return (
-      <div id={listId} role="listbox" className="absolute left-0 right-0 top-12 z-50 overflow-hidden rounded-xl border border-midnight-border bg-midnight-card shadow-card">
+      <div id={listId} role="listbox" className="absolute left-0 right-0 top-[calc(100%+0.65rem)] z-50 overflow-hidden rounded-2xl border border-midnight-border/80 bg-midnight-card/95 shadow-[0_20px_60px_rgba(0,0,0,0.32)] backdrop-blur-xl">
         {searchLoading ? (
           <p className="px-4 py-3 text-sm text-ink-muted">{isFrench ? "Recherche…" : "Searching…"}</p>
         ) : searchError ? (
@@ -510,8 +516,13 @@ export function TopNav() {
   }
 
   return (
-    <header className="sticky top-0 z-40 border-b border-midnight-border bg-midnight-deep/90 backdrop-blur-xl">
-      <div className={cn("relative mx-auto flex h-16 w-full items-center gap-3 px-4 sm:px-6 xl:pr-8", isAdminArea && "lg:pl-72")}>
+    <header className="sticky top-0 z-40 border-b border-midnight-border/70 bg-midnight-deep/90 backdrop-blur-xl">
+      <div className={cn("relative mx-auto flex h-14 w-full items-center gap-2.5 px-3 sm:h-16 sm:gap-3 sm:px-6 xl:pr-8", isAdminArea && "lg:pl-72")}>
+        {!isAdminArea && (
+          <Link href="/dashboard" aria-label="LynoraLink" className="hidden shrink-0 items-center lg:flex">
+            <Logo size={36} withWordmark priority wordmarkClassName="text-[1.35rem]" />
+          </Link>
+        )}
         <button
           type="button"
           aria-label={mobileMenuOpen
@@ -520,20 +531,36 @@ export function TopNav() {
           aria-expanded={mobileMenuOpen}
           aria-controls="mobile-primary-navigation"
           onClick={() => setMobileMenuOpen((open) => !open)}
-          className="grid h-10 w-10 shrink-0 place-items-center rounded-lg border border-midnight-border text-ink-muted transition hover:bg-midnight-card/70 hover:text-ink lg:hidden"
+          className="grid h-9 w-9 shrink-0 place-items-center rounded-full border border-midnight-border/80 bg-midnight-card/35 text-ink-muted shadow-sm transition hover:border-gold/35 hover:bg-midnight-card/70 hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold/40 sm:h-10 sm:w-10 lg:hidden"
         >
           <FontAwesomeIcon icon={mobileMenuOpen ? faXmark : faBars} className="h-[19px] w-[19px]" aria-hidden="true" />
         </button>
 
+        {!isAdminArea && (
+          <Link
+            href="/dashboard"
+            aria-label="LynoraLink"
+            className={cn("flex min-w-0 shrink-0 items-center lg:hidden", mobileSearchOpen && "hidden")}
+          >
+            <Logo
+              size={29}
+              withWordmark
+              priority
+              className="gap-2"
+              wordmarkClassName="text-[1.08rem] max-[380px]:hidden"
+            />
+          </Link>
+        )}
+
         <div className={cn(
           "relative min-w-0 max-w-md flex-1",
           mobileSearchOpen
-            ? "absolute left-16 right-4 top-3 z-50 w-auto max-w-none flex-none sm:static sm:w-full sm:max-w-md sm:flex-1"
+            ? "absolute left-3 right-3 top-1.5 z-50 w-auto max-w-none flex-none sm:static sm:w-full sm:max-w-md sm:flex-1"
             : "hidden sm:block",
           isAdminArea && "lg:ml-4",
         )}>
-          <form role="search" onSubmit={submitSearch}>
-            <FontAwesomeIcon icon={faMagnifyingGlass} aria-hidden="true" className="pointer-events-none absolute left-3.5 top-1/2 h-[17px] w-[17px] -translate-y-1/2 text-ink-muted" />
+          <form role="search" onSubmit={submitSearch} className="relative">
+            <FontAwesomeIcon icon={faMagnifyingGlass} aria-hidden="true" className="pointer-events-none absolute left-4 top-1/2 h-[16px] w-[16px] -translate-y-1/2 text-ink-muted transition-colors" />
             <input
               type="search"
               role="combobox"
@@ -566,7 +593,7 @@ export function TopNav() {
               }}
               placeholder={isFrench ? "Rechercher une personne, un projet ou une équipe…" : "Search people, projects, and teams…"}
               autoFocus={mobileSearchOpen}
-              className="h-10 w-full rounded-lg border border-midnight-border bg-midnight-card/55 pl-10 pr-12 text-sm text-ink placeholder:text-ink-muted/80 outline-none transition focus:border-gold/50 focus:bg-midnight-card focus:ring-2 focus:ring-gold/15"
+              className="h-10 w-full rounded-full border border-midnight-border/80 bg-midnight-card/65 pl-11 pr-12 text-sm text-ink shadow-[inset_0_1px_0_rgba(255,255,255,0.035)] placeholder:text-ink-muted/80 outline-none transition duration-200 hover:border-midnight-border hover:bg-midnight-card/80 focus:border-gold/55 focus:bg-midnight-card/95 focus:shadow-[0_0_0_4px_rgba(140,255,0,0.08)] sm:h-11"
             />
             <button
               type="button"
@@ -575,7 +602,7 @@ export function TopNav() {
                 setSearchOpen(false);
                 setMobileSearchOpen(false);
               }}
-              className="absolute right-2 top-1/2 grid h-8 w-8 -translate-y-1/2 place-items-center rounded-md text-ink-muted hover:bg-midnight-deep hover:text-ink sm:hidden"
+              className="absolute right-1.5 top-1/2 grid h-8 w-8 -translate-y-1/2 place-items-center rounded-full text-ink-muted transition hover:bg-midnight-deep hover:text-ink sm:hidden"
             >
               <FontAwesomeIcon icon={faXmark} className="h-4 w-4" aria-hidden="true" />
             </button>
@@ -591,7 +618,7 @@ export function TopNav() {
             aria-expanded={mobileSearchOpen}
             aria-controls="mobile-topnav-search"
             onClick={() => setMobileSearchOpen((open) => !open)}
-            className="mr-3 grid h-10 w-10 place-items-center rounded-lg text-ink-muted transition hover:bg-midnight-card/70 hover:text-ink sm:hidden"
+            className="grid h-9 w-9 place-items-center rounded-full border border-midnight-border/80 bg-midnight-card/35 text-ink-muted shadow-sm transition hover:border-gold/35 hover:bg-midnight-card/70 hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold/40 sm:hidden"
           >
             <FontAwesomeIcon icon={faMagnifyingGlass} className="h-[19px] w-[19px]" aria-hidden="true" />
           </button>
@@ -601,7 +628,7 @@ export function TopNav() {
                 aria-label={t("nav.messages")}
                 aria-current={pathname.startsWith("/messages") ? "page" : undefined}
                 className={cn(
-                  "relative grid h-10 w-10 place-items-center rounded-lg transition",
+                  "relative grid h-9 w-9 place-items-center rounded-full transition sm:h-10 sm:w-10",
                   pathname.startsWith("/messages") ? "bg-gold/10 text-gold-soft" : "text-ink-muted hover:bg-midnight-card/70 hover:text-ink",
                 )}
               >
@@ -618,7 +645,7 @@ export function TopNav() {
                   aria-controls="notification-popover"
                   onClick={toggleNotifications}
                   className={cn(
-                    "relative grid h-10 w-10 place-items-center rounded-lg transition",
+                    "relative grid h-9 w-9 place-items-center rounded-full transition sm:h-10 sm:w-10",
                     notificationsOpen ? "bg-gold/10 text-gold-soft" : "text-ink-muted hover:bg-midnight-card/70 hover:text-ink",
                   )}
                 >
@@ -670,7 +697,7 @@ export function TopNav() {
               aria-controls="topnav-profile-menu"
               onClick={() => setProfileOpen((open) => !open)}
               className={cn(
-                "flex h-10 items-center gap-2 rounded-lg px-1.5 transition hover:bg-midnight-card/70 sm:px-2",
+                "flex h-9 items-center gap-1.5 rounded-full px-1 transition hover:bg-midnight-card/70 sm:h-10 sm:gap-2 sm:px-2",
                 profileOpen && "bg-midnight-card/70",
               )}
             >
@@ -721,12 +748,9 @@ export function TopNav() {
       </div>
 
       {mobileMenuOpen && (
-        <div id="mobile-primary-navigation" className="absolute inset-x-0 top-full z-50 h-[calc(100dvh-4rem)] lg:hidden">
-          <button type="button" onClick={closeMenu} aria-label={locale === "fr" ? "Fermer le menu" : "Close menu"} className="absolute inset-0 bg-black/60" />
-          <aside className="absolute inset-y-0 left-0 flex w-[min(20rem,calc(100vw-3rem))] flex-col border-r border-midnight-border bg-midnight-deep shadow-2xl">
-            <div className="flex h-16 shrink-0 items-center justify-between border-b border-midnight-border px-4">
-              <Link href="/dashboard" onClick={closeMenu} className="flex items-center"><Logo size={36} withWordmark priority /></Link>
-            </div>
+        <div id="mobile-primary-navigation" className="absolute inset-x-0 top-full z-50 h-[calc(100dvh-3.5rem)] sm:h-[calc(100dvh-4rem)] lg:hidden">
+          <button type="button" onClick={closeMenu} aria-label={locale === "fr" ? "Fermer le menu" : "Close menu"} className="absolute inset-0 bg-black/55 backdrop-blur-[2px]" />
+          <aside className="absolute inset-y-2 left-2 flex w-[min(21rem,calc(100vw-1rem))] flex-col overflow-hidden rounded-3xl border border-midnight-border/80 bg-midnight-deep/95 shadow-[0_24px_70px_rgba(0,0,0,0.5)] backdrop-blur-2xl">
             <Link href="/projects/new" onClick={closeMenu} className="btn-gold mx-4 mt-4">
               <FontAwesomeIcon icon={faPlus} className="h-4 w-4" aria-hidden="true" />
               {t("nav.createProject")}
@@ -739,14 +763,22 @@ export function TopNav() {
                 <Link
                   key={href}
                   href={href}
+                  prefetch={href === "/copilot" ? false : undefined}
                   onClick={closeMenu}
+                  onNavigate={() => {
+                    if (href === "/copilot") showCopilotSplash();
+                  }}
                   aria-current={active ? "page" : undefined}
                   className={cn(
-                    "flex min-h-11 items-center gap-3 rounded-lg px-3 text-sm font-medium transition",
+                    "flex min-h-11 items-center gap-3 rounded-xl px-3 text-sm font-medium transition",
                     active ? "bg-gold/10 text-gold-soft" : "text-ink-muted hover:bg-midnight-card/70 hover:text-ink",
                   )}
                 >
-                  <FontAwesomeIcon icon={Icon} className="h-[18px] w-[18px]" aria-hidden="true" />
+                  {href === "/copilot" ? (
+                    <Image src="/logo_assistant_ia.svg" alt="" width={20} height={20} className="h-5 w-5 shrink-0 object-contain" aria-hidden="true" />
+                  ) : Icon ? (
+                    <FontAwesomeIcon icon={Icon} className={cn("h-[18px] w-[18px]", active ? "text-gold" : "text-ink-muted")} aria-hidden="true" />
+                  ) : null}
                   <span className="min-w-0 flex-1 truncate">{label}</span>
                   {countKey && <NavigationCountBadge count={navigationCounts.badgeCounts?.[countKey]} />}
                 </Link>
@@ -754,7 +786,7 @@ export function TopNav() {
             })}
               </div>
           </nav>
-            <div className="shrink-0 border-t border-midnight-border p-3">
+            <div className="shrink-0 border-t border-midnight-border/70 p-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))]">
               <Link href="/profile" onClick={closeMenu} className="flex min-w-0 items-center gap-3 rounded-lg p-2 transition hover:bg-midnight-card/60">
                 <Avatar src={session?.user?.image} name={profileName} size={36} />
                 <span className="min-w-0 flex-1">
@@ -762,7 +794,7 @@ export function TopNav() {
                   <span className="block truncate text-xs text-ink-muted">{session?.user?.handle ? `@${session.user.handle}` : t("nav.profile")}</span>
                 </span>
               </Link>
-              <div className="mt-2 flex items-center justify-between border-t border-midnight-border pt-2">
+              <div className="mt-2 flex items-center justify-between border-t border-midnight-border/70 pt-2">
                 <Link href="/settings" onClick={closeMenu} className="flex items-center gap-2 rounded-md px-2 py-2 text-xs text-ink-muted hover:bg-midnight-card hover:text-ink">
                   <FontAwesomeIcon icon={faGear} className="h-4 w-4" aria-hidden="true" />{t("nav.settings")}
                 </Link>

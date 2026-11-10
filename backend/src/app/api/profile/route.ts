@@ -47,6 +47,7 @@ const profileSelect = {
   name: true,
   email: true,
   image: true,
+  coverImage: true,
   handle: true,
   headline: true,
   age: true,

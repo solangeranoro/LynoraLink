@@ -45,6 +45,14 @@ export async function uploadAvatarImage(
   return uploadImage(file, "/api/profile/avatar", onProgress, undefined, undefined, onTransferComplete);
 }
 
+export async function uploadCoverImage(
+  file: File,
+  onProgress?: (progress: number) => void,
+  onTransferComplete?: () => void,
+) {
+  return uploadImage(file, "/api/profile/cover", onProgress, undefined, "cover", onTransferComplete);
+}
+
 export async function uploadTeamLogoImage(
   file: File,
   onProgress?: (progress: number) => void,
@@ -94,7 +102,7 @@ async function uploadImage(
   }
 
   const formData = new FormData();
-  formData.set("file", uploadFile, uploadFile === file ? file.name : "avatar.jpg");
+  formData.set("file", uploadFile, uploadFile === file ? file.name : purpose === "cover" ? "cover.jpg" : "avatar.jpg");
   if (teamId) formData.set("teamId", teamId);
   if (purpose) formData.set("purpose", purpose);
   return new Promise<string>((resolve, reject) => {
