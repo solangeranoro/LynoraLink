@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState, type ChangeEvent, type FormEvent, type KeyboardEvent, type ReactNode } from "react";
 import { flushSync } from "react-dom";
 import Link from "next/link";
+import Image from "next/image";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { ArrowLeft, CalendarDays, Check, ChevronDown, Code2, CornerDownRight, FileText, LoaderCircle, MessageCircle, MessagesSquare, MoreHorizontal, Paperclip, Plus, Search, Send, Trash2, X } from "@/components/FontAwesomeIcons";
 import { Avatar } from "@/components/Avatar";
@@ -77,8 +78,24 @@ function accountDisplayName(person: { name: string | null; handle?: string | nul
   return person.isPlatformAccount ? "LynoraLink" : displayName(person);
 }
 
-function accountAvatar(person: { image: string | null; isPlatformAccount?: boolean }) {
-  return person.isPlatformAccount ? "/logo_lynora-brand.png" : person.image;
+function AccountAvatar({
+  person,
+  size,
+}: {
+  person: { image: string | null; name: string | null; handle?: string | null; isPlatformAccount?: boolean; isOnline?: boolean };
+  size: number;
+}) {
+  if (person.isPlatformAccount) {
+    return (
+      <span
+        className="relative inline-flex shrink-0 items-center justify-center rounded-full bg-white p-1 ring-1 ring-midnight-border"
+        style={{ width: size, height: size }}
+      >
+        <Image src="/logo_lynora-brand.png" alt="LynoraLink" width={size - 8} height={size - 8} className="h-full w-full object-contain" />
+      </span>
+    );
+  }
+  return <Avatar src={person.image} name={person.name} online={person.isOnline} size={size} />;
 }
 
 function messageTime(date: string, locale: "en" | "fr") {
@@ -783,7 +800,7 @@ export default function MessageCenter() {
               </div>
               <div className="min-h-0 flex-1 overflow-y-auto px-2 pb-2">
                 {conversationsQuery.isLoading ? <div className="space-y-2 p-2"><div className="skeleton h-16" /><div className="skeleton h-16" /></div> : conversationsQuery.isError ? <p className="p-3 text-xs text-ink-muted">{isFrench ? "Impossible de charger les conversations." : "Couldn't load conversations."}</p> : filteredConversations.length ? (
-                  <ul className="space-y-1">{filteredConversations.map((conversation) => { const person = conversation.participants[0]; const selected = conversation.id === selectedId; return <li key={conversation.id}><button type="button" onClick={() => { setSelectedId(conversation.id); setComposeOpen(false); }} aria-current={selected ? "true" : undefined} className={`flex w-full items-center gap-3 rounded-lg px-2.5 py-2.5 text-left transition ${selected ? "bg-gold/10 ring-1 ring-inset ring-gold/20" : "hover:bg-midnight-card/70"}`}><Avatar src={person ? accountAvatar(person) : null} name={person ? accountDisplayName(person) : null} online={person?.isOnline} size={38} /><span className="min-w-0 flex-1"><span className="flex items-center justify-between gap-2"><span className="truncate text-sm font-medium text-ink">{conversation.isGroup ? conversation.title : accountDisplayName(person ?? { name: null })}</span>{conversation.lastMessage && <span className="shrink-0 text-[10px] text-ink-muted">{timeAgo(conversation.lastMessage.createdAt, locale)}</span>}</span><span className="mt-1 flex min-w-0 items-center gap-1.5 text-xs text-ink-muted">{conversation.lastMessage ? renderConversationPreview(conversation.lastMessage, session?.user?.id, isFrench) : (isFrench ? "Commencez la conversation" : "Start the conversation")}</span></span></button></li>; })}</ul>
+                  <ul className="space-y-1">{filteredConversations.map((conversation) => { const person = conversation.participants[0]; const selected = conversation.id === selectedId; return <li key={conversation.id}><button type="button" onClick={() => { setSelectedId(conversation.id); setComposeOpen(false); }} aria-current={selected ? "true" : undefined} className={`flex w-full items-center gap-3 rounded-lg px-2.5 py-2.5 text-left transition ${selected ? "bg-gold/10 ring-1 ring-inset ring-gold/20" : "hover:bg-midnight-card/70"}`}>{person && <AccountAvatar person={person} size={38} />}<span className="min-w-0 flex-1"><span className="flex items-center justify-between gap-2"><span className="truncate text-sm font-medium text-ink">{conversation.isGroup ? conversation.title : accountDisplayName(person ?? { name: null })}</span>{conversation.lastMessage && <span className="shrink-0 text-[10px] text-ink-muted">{timeAgo(conversation.lastMessage.createdAt, locale)}</span>}</span><span className="mt-1 flex min-w-0 items-center gap-1.5 text-xs text-ink-muted">{conversation.lastMessage ? renderConversationPreview(conversation.lastMessage, session?.user?.id, isFrench) : (isFrench ? "Commencez la conversation" : "Start the conversation")}</span></span></button></li>; })}</ul>
                 ) : conversations.length ? <p className="p-3 text-xs text-ink-muted">{isFrench ? "Aucun résultat." : "No matches found."}</p> : <div className="flex h-full flex-col items-center justify-center px-5 py-8 text-center"><MessagesSquare size={25} className="text-gold-soft" aria-hidden="true" /><p className="mt-3 text-sm font-medium text-ink">{isFrench ? "Pas encore de conversation" : "No conversations yet"}</p><p className="mt-1 text-xs leading-relaxed text-ink-muted">{isFrench ? "Envoyez un message à un maker pour commencer." : "Message a maker to get started."}</p><button type="button" onClick={startCompose} className="mt-3 text-xs font-semibold text-gold-soft hover:text-gold-bright">{isFrench ? "Trouver un maker" : "Find a maker"}</button></div>}
               </div>
             </>
@@ -795,7 +812,7 @@ export default function MessageCenter() {
             <>
               <header className="flex h-14 shrink-0 items-center gap-3 border-b border-midnight-border px-4">
                 <button type="button" onClick={() => setSelectedId(null)} aria-label={isFrench ? "Retour aux conversations" : "Back to conversations"} className="grid h-8 w-8 place-items-center rounded-lg text-ink-muted hover:bg-midnight-card md:hidden"><ArrowLeft size={17} aria-hidden="true" /></button>
-                {participant ? participant.isPlatformAccount ? <div className="flex min-w-0 items-center gap-3"><Avatar src={accountAvatar(participant)} name={accountDisplayName(participant)} size={36} /><div className="min-w-0"><h2 className="truncate text-sm font-semibold text-ink">{personName}</h2><p className="truncate text-xs text-ink-muted">{isFrench ? "L’équipe LynoraLink" : "The LynoraLink team"}</p></div></div> : <Link href={`/makers/${encodeURIComponent(participant.handle ?? participant.id)}`} className="group flex min-w-0 items-center gap-3 rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold/50"><Avatar src={participant.image} name={participant.name} online={participant.isOnline} size={36} /><div className="min-w-0"><h2 className="truncate text-sm font-semibold text-ink group-hover:text-gold-soft">{personName}</h2><p className="truncate text-xs text-ink-muted">{participant.isOnline ? (isFrench ? "En ligne" : "Online") : (participant.headline ?? (isFrench ? "Conversation privée" : "Private conversation"))}</p></div></Link> : <div className="min-w-0"><h2 className="text-sm font-semibold text-ink">{personName}</h2></div>}
+                {participant ? participant.isPlatformAccount ? <div className="flex min-w-0 items-center gap-3"><AccountAvatar person={participant} size={36} /><div className="min-w-0"><h2 className="truncate text-sm font-semibold text-ink">{personName}</h2><p className="truncate text-xs text-ink-muted">{isFrench ? "L’équipe LynoraLink" : "The LynoraLink team"}</p></div></div> : <Link href={`/makers/${encodeURIComponent(participant.handle ?? participant.id)}`} className="group flex min-w-0 items-center gap-3 rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold/50"><Avatar src={participant.image} name={participant.name} online={participant.isOnline} size={36} /><div className="min-w-0"><h2 className="truncate text-sm font-semibold text-ink group-hover:text-gold-soft">{personName}</h2><p className="truncate text-xs text-ink-muted">{participant.isOnline ? (isFrench ? "En ligne" : "Online") : (participant.headline ?? (isFrench ? "Conversation privée" : "Private conversation"))}</p></div></Link> : <div className="min-w-0"><h2 className="text-sm font-semibold text-ink">{personName}</h2></div>}
               </header>
               <div ref={messageListRef} className="flex min-h-0 flex-1 flex-col overflow-y-auto overscroll-contain bg-midnight-deep/20 px-4 py-5 sm:px-6">
                 {conversationQuery.isLoading ? <div className="space-y-3"><div className="skeleton h-12 w-2/3" /><div className="skeleton ml-auto h-12 w-1/2" /></div> : conversationQuery.isError ? <p className="m-auto text-sm text-ink-muted">{isFrench ? "Impossible de charger les messages." : "Couldn't load messages."}</p> : thread?.messages.length ? (
@@ -807,7 +824,7 @@ export default function MessageCenter() {
                           const mine = message.senderId === session?.user?.id;
                           const authorName = accountDisplayName(message.sender);
                           const authorAvatar = message.sender.isPlatformAccount
-                            ? <Avatar src={accountAvatar(message.sender)} name={authorName} size={30} />
+                            ? <AccountAvatar person={message.sender} size={30} />
                             : (
                               <Link
                                 href={`/makers/${encodeURIComponent(message.sender.id)}`}

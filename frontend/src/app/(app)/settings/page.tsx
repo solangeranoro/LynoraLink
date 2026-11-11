@@ -95,6 +95,7 @@ export default function SettingsPage() {
   const [appearance, setAppearance] = useState<AppearancePreferences>(defaultAppearance);
   const [saved, setSaved] = useState(false);
   const isFrench = locale === "fr";
+  const deletionConfirmationPhrase = isFrench ? "supprimer mon compte" : "delete my account";
   const avatarInput = useRef<HTMLInputElement>(null);
   const coverInput = useRef<HTMLInputElement>(null);
   const avatarDialog = useRef<HTMLDialogElement>(null);
@@ -713,13 +714,13 @@ export default function SettingsPage() {
                         <input id="account-deletion-code" required inputMode="numeric" autoComplete="one-time-code" pattern="[0-9]{6}" maxLength={6} value={deletionCode} onChange={(event) => setDeletionCode(event.target.value.replace(/\D/g, "").slice(0, 6))} className="input text-center font-mono tracking-[0.3em]" placeholder="000000" />
                       </div>
                       <div>
-                        <label htmlFor="account-deletion-confirm" className="label">{isFrench ? "Saisissez SUPPRIMER pour confirmer" : "Type DELETE to confirm"}</label>
+                        <label htmlFor="account-deletion-confirm" className="label">{isFrench ? "Saisissez « supprimer mon compte » pour confirmer" : "Type “delete my account” to confirm"}</label>
                         <input id="account-deletion-confirm" required value={deletionConfirmation} onChange={(event) => setDeletionConfirmation(event.target.value)} className="input" autoComplete="off" />
                       </div>
                     </div>
                     {deletionFeedback && <p role={deletionFeedbackError ? "alert" : "status"} className={`text-sm ${deletionFeedbackError ? "text-rose-300" : "text-emerald-300"}`}>{deletionFeedback}</p>}
                     <div className="flex flex-wrap gap-2">
-                      <button type="submit" disabled={deletionBusy || deletionCode.length !== 6 || deletionConfirmation !== (isFrench ? "SUPPRIMER" : "DELETE")} className="inline-flex min-h-10 items-center gap-2 rounded-lg bg-rose-600 px-3.5 text-sm font-semibold text-white transition hover:bg-rose-500 disabled:cursor-not-allowed disabled:opacity-50">
+                      <button type="submit" disabled={deletionBusy || deletionCode.length !== 6 || deletionConfirmation !== deletionConfirmationPhrase} className="inline-flex min-h-10 items-center gap-2 rounded-lg bg-rose-600 px-3.5 text-sm font-semibold text-white transition hover:bg-rose-500 disabled:cursor-not-allowed disabled:opacity-50">
                         {deletionBusy ? (isFrench ? "Suppression…" : "Deleting…") : (isFrench ? "Supprimer définitivement" : "Delete account permanently")}
                       </button>
                       <button type="button" onClick={() => { setDeletionCodeSent(false); setDeletionCode(""); setDeletionConfirmation(""); setDeletionFeedback(""); }} disabled={deletionBusy} className="btn-ghost !min-h-10 !rounded-lg">

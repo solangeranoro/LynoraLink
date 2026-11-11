@@ -33,31 +33,33 @@ export async function findPlatformWelcomeConversations(conversationIds: string[]
 }
 
 function welcomeContent(name: string | null, preferredLang: "EN" | "FR") {
-  const greetingName = name?.trim() || (preferredLang === "FR" ? "maker" : "maker");
+  const greetingName = name?.trim() || "maker";
   if (preferredLang === "FR") {
-    return `Bienvenue sur LynoraLink, ${greetingName} ! 👋
+    return `Bienvenue sur LynoraLink, ${greetingName}.
 
-Ici, les makers partagent leurs avancées, trouvent des co-builders et font grandir leurs projets ensemble.
+Nous sommes ravis de vous accueillir au sein de notre communauté de makers. LynoraLink vous aide à présenter vos compétences, rencontrer des collaborateurs et faire avancer vos projets.
 
-Pour commencer :
-• Complétez votre profil et ajoutez vos compétences.
-• Découvrez des makers avec qui construire.
-• Présentez votre projet ou rejoignez une équipe.
+Pour bien démarrer :
+• Complétez votre profil afin de mettre en valeur votre expérience et vos compétences.
+• Découvrez des makers qui partagent vos intérêts.
+• Présentez une idée ou rejoignez une équipe pour construire ensemble.
 
-Au plaisir de découvrir ce que vous allez construire !
+Nous vous souhaitons une excellente expérience sur LynoraLink.
+
 — L’équipe LynoraLink`;
   }
 
-  return `Welcome to LynoraLink, ${greetingName}! 👋
+  return `Welcome to LynoraLink, ${greetingName}.
 
-This is where makers share progress, find co-builders, and bring projects to life together.
+We’re pleased to welcome you to our maker community. LynoraLink helps you showcase your skills, meet collaborators, and move your projects forward.
 
-To get started:
-• Complete your profile and add your skills.
-• Discover makers to build with.
-• Share your project or join a team.
+Here are a few ways to get started:
+• Complete your profile to highlight your experience and skills.
+• Discover makers who share your interests.
+• Share an idea or join a team to build something together.
 
-Looking forward to seeing what you build!
+We hope you enjoy your experience on LynoraLink.
+
 — The LynoraLink team`;
 }
 

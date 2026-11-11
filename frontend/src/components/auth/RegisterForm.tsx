@@ -35,6 +35,7 @@ export function RegisterForm() {
   const countryPickerRef = useRef<HTMLDivElement>(null);
   const countryButtonRef = useRef<HTMLButtonElement>(null);
   const countrySearchRef = useRef<HTMLInputElement>(null);
+  const registrationFormRef = useRef<HTMLFormElement>(null);
 
   const [form, setForm] = useState({
     name: "",
@@ -150,18 +151,6 @@ export function RegisterForm() {
     setCurrentStep((step) => Math.max(step - 1, 1));
   }
 
-  function preventImplicitSubmit(event: React.KeyboardEvent<HTMLFormElement>) {
-    if (
-      event.key !== "Enter" ||
-      event.defaultPrevented ||
-      verificationPending ||
-      currentStep !== TOTAL_STEPS ||
-      event.target instanceof HTMLTextAreaElement ||
-      event.target instanceof HTMLButtonElement
-    ) return;
-    event.preventDefault();
-  }
-
   function addSkill() {
     const value = skillInput.trim();
     if (!value || skills.includes(value) || skills.length >= 20) return;
@@ -173,69 +162,67 @@ export function RegisterForm() {
     setSkills((s) => s.filter((x) => x !== skill));
   }
 
-  async function onSubmit(e: React.FormEvent) {
-    e.preventDefault();
+  async function createAccount() {
+    if (loading || !registrationFormRef.current?.reportValidity()) return;
     setError(null);
     setNotice(null);
 
-    if (!verificationPending && currentStep < TOTAL_STEPS) {
-      if (validateStep(currentStep)) {
-        setCurrentStep((step) => Math.min(step + 1, TOTAL_STEPS));
-      }
-      return;
+    let registrationLocale = locale;
+    try {
+      const savedLocale = window.localStorage.getItem("lynora.locale");
+      if (savedLocale === "en" || savedLocale === "fr") registrationLocale = savedLocale;
+    } catch {
+      // Use the active interface language when browser storage is unavailable.
     }
 
-    if (verificationPending && !/^\d{6}$/.test(verificationCode)) {
+    setLoading(true);
+    try {
+      const response = await fetch("/api/auth/register", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          ...form,
+          age: form.age === "" ? undefined : Number(form.age),
+          phoneNumber: form.phoneNumber.trim() || undefined,
+          city: form.city.trim() || undefined,
+          skills,
+          preferredLang: registrationLocale === "fr" ? "FR" : "EN",
+        }),
+      });
+      const data = await response.json();
+
+      if (!response.ok) {
+        setLoading(false);
+        if (data.error === "EMAIL_TAKEN") return setError(t("auth.errors.emailTaken"));
+        if (data.error === "HANDLE_TAKEN") {
+          setCurrentStep(2);
+          return setError(t("auth.errors.handleTaken"));
+        }
+        if (data.error === "VALIDATION") return setError(t("auth.errors.registrationValidation"));
+        return setError(t("auth.errors.serviceUnavailable"));
+      }
+      setAccountCreated(true);
+      setVerificationPending(true);
+      setToastMessage(t("auth.registrationWelcomeToast"));
+      setNotice(data.emailSent ? t("auth.registrationCodeSent", { email: form.email }) : null);
+      if (!data.emailSent) setError(t("auth.errors.registrationEmailUnavailable"));
+    } catch (error) {
+      setError(getNetworkErrorMessage(error) ?? t("auth.errors.serviceUnavailable"));
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function verifyRegistration() {
+    if (loading) return;
+    setError(null);
+    setNotice(null);
+    if (!/^\d{6}$/.test(verificationCode)) {
       setError(t("auth.errors.invalidRegistrationCode"));
       return;
     }
 
     setLoading(true);
-    if (!accountCreated) {
-      if (!validateStep(1) || !validateStep(2)) {
-        setLoading(false);
-        return;
-      }
-
-      try {
-        const response = await fetch("/api/auth/register", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            ...form,
-            age: form.age === "" ? undefined : Number(form.age),
-            phoneNumber: form.phoneNumber.trim() || undefined,
-            city: form.city.trim() || undefined,
-            skills,
-            preferredLang: locale.toUpperCase(),
-          }),
-        });
-        const data = await response.json();
-
-        if (!response.ok) {
-          setLoading(false);
-          if (data.error === "EMAIL_TAKEN") return setError(t("auth.errors.emailTaken"));
-          if (data.error === "HANDLE_TAKEN") {
-            setCurrentStep(2);
-            return setError(t("auth.errors.handleTaken"));
-          }
-          if (data.error === "VALIDATION") return setError(t("auth.errors.registrationValidation"));
-          return setError(t("auth.errors.serviceUnavailable"));
-        }
-        setAccountCreated(true);
-        setVerificationPending(true);
-        setToastMessage(t("auth.registrationWelcomeToast"));
-        setNotice(data.emailSent ? t("auth.registrationCodeSent", { email: form.email }) : null);
-        if (!data.emailSent) setError(t("auth.errors.registrationEmailUnavailable"));
-        setLoading(false);
-        return;
-      } catch (error) {
-        setLoading(false);
-        setError(getNetworkErrorMessage(error) ?? t("auth.errors.serviceUnavailable"));
-        return;
-      }
-    }
-
     try {
       const verificationResponse = await fetch("/api/auth/register/verify", {
         method: "POST",
@@ -282,6 +269,21 @@ export function RegisterForm() {
     window.dispatchEvent(new Event("lynora:navigation-start"));
     router.replace("/welcome");
     router.refresh();
+  }
+
+  function onSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    setError(null);
+    setNotice(null);
+
+    if (verificationPending) {
+      void verifyRegistration();
+      return;
+    }
+
+    if (currentStep < TOTAL_STEPS && validateStep(currentStep)) {
+      setCurrentStep((step) => Math.min(step + 1, TOTAL_STEPS));
+    }
   }
 
   async function resendVerificationCode() {
@@ -339,7 +341,7 @@ export function RegisterForm() {
         </ol>
       </div>}
 
-      <form onSubmit={onSubmit} onKeyDown={preventImplicitSubmit} className="mt-5 space-y-4">
+      <form ref={registrationFormRef} onSubmit={onSubmit} className="mt-5 space-y-4">
         {verificationPending && (
           <fieldset className="space-y-4">
             <legend className="sr-only">{t("auth.registrationCodeTitle")}</legend>
@@ -609,9 +611,9 @@ export function RegisterForm() {
               {t("auth.continue")}
             </button>
           ) : (
-            <button type="submit" disabled={loading} className="btn-gold w-full sm:min-w-36 sm:w-auto">
+            <button type="button" onClick={() => void createAccount()} disabled={loading} className="btn-gold w-full sm:min-w-36 sm:w-auto">
               {loading && <Loader2 className="h-4 w-4 animate-spin" />}
-              {accountCreated ? t("auth.registrationVerifyAction") : t("auth.register")}
+              {t("auth.register")}
             </button>
           )}
         </div>}

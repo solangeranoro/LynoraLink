@@ -28,6 +28,73 @@ type WelcomeProfile = {
   location: string | null;
 };
 
+function WelcomePageSkeleton({ label }: { label: string }) {
+  return (
+    <div className="mx-auto w-full max-w-5xl space-y-9 py-2" aria-busy="true" aria-label={label}>
+      <section className="grid gap-8 border-b border-midnight-border pb-8 lg:grid-cols-[minmax(0,1fr)_18rem] lg:gap-12">
+        <div className="space-y-5">
+          <div className="skeleton h-3 w-44" />
+          <div className="skeleton h-12 w-3/4 max-w-xl sm:h-14" />
+          <div className="space-y-2">
+            <div className="skeleton h-4 w-full max-w-2xl" />
+            <div className="skeleton h-4 w-4/5 max-w-xl" />
+          </div>
+          <div className="flex flex-wrap gap-3 pt-2">
+            <div className="skeleton h-11 w-44 rounded-lg" />
+            <div className="skeleton h-11 w-40 rounded-lg" />
+          </div>
+        </div>
+        <div className="flex items-center gap-4 border-t border-midnight-border pt-5 lg:border-l lg:border-t-0 lg:pl-7 lg:pt-0">
+          <div className="skeleton h-16 w-16 shrink-0 rounded-full" />
+          <div className="min-w-0 flex-1 space-y-2">
+            <div className="skeleton h-4 w-32" />
+            <div className="skeleton h-3 w-24" />
+            <div className="skeleton mt-4 h-2 w-full rounded-full" />
+          </div>
+        </div>
+        <div className="flex flex-wrap items-center justify-between gap-2 border-t border-midnight-border pt-4 lg:col-span-2">
+          <div className="skeleton h-3 w-48" />
+          <div className="skeleton h-3 w-28" />
+        </div>
+      </section>
+      <section className="grid gap-9 lg:grid-cols-[minmax(0,1.5fr)_minmax(15rem,0.7fr)] lg:gap-12">
+        <div className="space-y-5">
+          <div className="space-y-2">
+            <div className="skeleton h-3 w-36" />
+            <div className="skeleton h-7 w-56" />
+          </div>
+          <div className="skeleton h-2 w-full rounded-full" />
+          <div className="grid gap-x-8 sm:grid-cols-2">
+            {Array.from({ length: 5 }, (_, index) => (
+              <div key={index} className="flex min-h-[5.5rem] items-center gap-3 border-t border-midnight-border py-3">
+                <div className="skeleton h-9 w-9 shrink-0 rounded-full" />
+                <div className="min-w-0 flex-1 space-y-2">
+                  <div className="skeleton h-3.5 w-28" />
+                  <div className="skeleton h-3 w-full max-w-48" />
+                </div>
+              </div>
+            ))}
+          </div>
+          <div className="skeleton h-10 w-40 rounded-lg" />
+        </div>
+        <aside className="space-y-5 border-t border-midnight-border pt-6 lg:border-l lg:border-t-0 lg:pl-8 lg:pt-0">
+          <div className="space-y-3">
+            <div className="skeleton h-3 w-28" />
+            <div className="skeleton h-5 w-40" />
+            <div className="skeleton h-3 w-full" />
+            <div className="skeleton h-3 w-4/5" />
+          </div>
+          <div className="space-y-4 border-t border-midnight-border pt-5">
+            <div className="skeleton h-3 w-32" />
+            <div className="skeleton h-12 w-full" />
+            <div className="skeleton h-12 w-full" />
+          </div>
+        </aside>
+      </section>
+    </div>
+  );
+}
+
 export function WelcomePage() {
   const { t } = useTranslation();
   const { data: session, status, update: updateSession } = useSession();
@@ -263,7 +330,7 @@ export function WelcomePage() {
   }
 
   if (!isRegistrationComplete || status === "loading") {
-    return <div className="skeleton mx-auto h-72 w-full max-w-md" aria-busy="true" />;
+    return <WelcomePageSkeleton label={t("welcome.loadingProfile")} />;
   }
 
   const firstName = session?.user?.name?.trim().split(/\s+/)[0];
@@ -284,12 +351,7 @@ export function WelcomePage() {
   }
 
   if (profileLoading) {
-    return (
-      <div className="mx-auto grid w-full max-w-5xl gap-6 py-8 lg:grid-cols-[1.1fr_0.9fr]" aria-busy="true" aria-label={t("welcome.loadingProfile")}>
-        <div className="skeleton h-72" />
-        <div className="skeleton h-72" />
-      </div>
-    );
+    return <WelcomePageSkeleton label={t("welcome.loadingProfile")} />;
   }
 
   if (profileError || !profile) {
@@ -320,87 +382,76 @@ export function WelcomePage() {
   const recommendedStep = checklist.find((item) => !item.done);
 
   return (
-    <div className="mx-auto w-full max-w-5xl space-y-5">
-      {avatarSuccessMessage && <p role="status" className="rounded-xl border border-emerald-400/30 bg-emerald-400/10 px-4 py-3 text-sm text-emerald-200">{avatarSuccessMessage}</p>}
-      <section className="card overflow-hidden p-5 sm:p-8 lg:p-10">
-          <div className="grid items-center gap-8 lg:grid-cols-[minmax(0,1.25fr)_minmax(17rem,0.75fr)]">
-            <div className="max-w-3xl">
-              <p className="mb-5 flex items-center gap-3 text-[11px] font-semibold uppercase tracking-[0.14em] text-gold-soft sm:text-xs">
-                <span className="h-px w-8 bg-gold" />{t("welcome.eyebrow")}
-              </p>
-              <h1 className="font-display text-4xl font-semibold leading-[1.05] text-ink sm:text-5xl">{title}</h1>
-              <p className="mt-5 max-w-2xl text-base leading-7 text-ink-muted sm:text-lg sm:leading-8">
-                {profile.headline?.trim() || t("welcome.subtitle")}
-              </p>
-              <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:items-center">
-                {completion < 100 ? (
-                  <button type="button" onClick={openProfileEditor} className="btn-gold min-h-12">
-                    {t("welcome.profileAction")}<ArrowRight size={16} aria-hidden="true" />
-                  </button>
-                ) : (
-                  <Link href="/profile" onClick={clearRegistrationMarker} className="btn-gold min-h-12">
-                    {t("welcome.viewProfileAction")}<ArrowRight size={16} aria-hidden="true" />
-                  </Link>
-                )}
-                <Link href="/dashboard" onClick={clearRegistrationMarker} className="btn-outline min-h-12">
-                  {t("welcome.dashboardAction")}
-                </Link>
-              </div>
-            </div>
+    <div className="mx-auto w-full max-w-5xl space-y-9 py-2">
+      {avatarSuccessMessage && <p role="status" className="rounded-lg border border-emerald-400/30 bg-emerald-400/10 px-4 py-3 text-sm text-emerald-200">{avatarSuccessMessage}</p>}
+      <section className="relative grid gap-8 overflow-hidden border-b border-midnight-border pb-8 lg:grid-cols-[minmax(0,1fr)_18rem] lg:gap-12">
+        <div aria-hidden="true" className="pointer-events-none absolute -right-24 -top-32 -z-10 h-80 w-80 rounded-full bg-gold/5 blur-3xl" />
+        <div className="max-w-3xl">
+          <p className="mb-5 flex items-center gap-3 text-[11px] font-semibold uppercase tracking-[0.14em] text-gold-soft sm:text-xs">
+            <span className="h-px w-8 bg-gold" />{t("welcome.eyebrow")}
+          </p>
+          <h1 className="font-display text-4xl font-semibold leading-[1.05] text-ink sm:text-5xl">{title}</h1>
+          <p className="mt-4 max-w-2xl text-base leading-7 text-ink-muted sm:text-lg sm:leading-8">
+            {profile.headline?.trim() || t("welcome.subtitle")}
+          </p>
+          <div className="mt-7 flex flex-col gap-3 sm:flex-row sm:items-center">
+            {completion < 100 ? (
+              <button type="button" onClick={openProfileEditor} className="btn-gold min-h-11">
+                {t("welcome.profileAction")}<ArrowRight size={16} aria-hidden="true" />
+              </button>
+            ) : (
+              <Link href="/profile" onClick={clearRegistrationMarker} className="btn-gold min-h-11">
+                {t("welcome.viewProfileAction")}<ArrowRight size={16} aria-hidden="true" />
+              </Link>
+            )}
+            <Link href="/dashboard" onClick={clearRegistrationMarker} className="btn-outline min-h-11">
+              {t("welcome.dashboardAction")}
+            </Link>
+          </div>
+        </div>
 
-            <div className="flex items-center gap-5 text-ink lg:justify-self-end">
-              <div className="relative">
-                <Avatar src={profile.image} name={displayName} size={64} />
-                <button
-                  type="button"
-                  onClick={openAvatarModal}
-                  aria-label={t("welcome.profileEditor.changePhoto")}
-                  title={t("welcome.profileEditor.changePhoto")}
-                  className="absolute -bottom-1 -right-1 grid h-8 w-8 place-items-center rounded-full border-2 border-midnight-card bg-gold text-midnight-deep shadow transition hover:brightness-110 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold-soft focus-visible:ring-offset-2 focus-visible:ring-offset-midnight-card"
-                >
-                  <Camera size={14} aria-hidden="true" />
-                </button>
-              </div>
-              <div
-                className="grid h-28 w-28 shrink-0 place-items-center rounded-full p-1 sm:h-32 sm:w-32"
-                style={{ background: `conic-gradient(from -90deg, rgb(var(--gold-soft)) ${completion}%, rgb(var(--midnight-border)) ${completion}% 100%)` }}
-                role="img"
-                aria-label={`${completion}% ${t("welcome.completeLabel")}`}
-              >
-                <span className="grid h-full w-full place-items-center rounded-full bg-midnight-deep text-center">
-                  <span><span className="block font-display text-3xl font-semibold">{completion}%</span><span className="mt-1 block text-[11px] text-ink-muted">{t("welcome.completeLabel")}</span></span>
-                </span>
-              </div>
-              <div className="min-w-0">
-                <p className="truncate text-sm font-semibold">{displayName}</p>
-                <p className="mt-1 truncate text-xs text-ink-muted">{profile.handle ? `@${profile.handle}` : session.user.email}</p>
-                <p className="mt-3 text-xs text-gold-soft">{t("welcome.stepsCount", { done: completedSteps, total: checklist.length })}</p>
-              </div>
+        <aside className="flex items-center gap-4 border-t border-midnight-border pt-5 lg:border-l lg:border-t-0 lg:pl-7 lg:pt-0">
+          <div className="relative shrink-0">
+            <Avatar src={profile.image} name={displayName} size={64} />
+            <button
+              type="button"
+              onClick={openAvatarModal}
+              aria-label={t("welcome.profileEditor.changePhoto")}
+              title={t("welcome.profileEditor.changePhoto")}
+              className="absolute -bottom-1 -right-1 grid h-8 w-8 place-items-center rounded-full border-2 border-midnight bg-gold text-midnight-deep shadow transition hover:brightness-110 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold-soft focus-visible:ring-offset-2 focus-visible:ring-offset-midnight"
+            >
+              <Camera size={14} aria-hidden="true" />
+            </button>
+          </div>
+          <div className="min-w-0 flex-1">
+            <p className="truncate text-sm font-semibold text-ink">{displayName}</p>
+            <p className="mt-1 truncate text-xs text-ink-muted">{profile.handle ? `@${profile.handle}` : session.user.email}</p>
+            <div className="mt-4 h-1.5 overflow-hidden rounded-full bg-midnight-border" role="progressbar" aria-label={t("welcome.profileProgress")} aria-valuemin={0} aria-valuemax={100} aria-valuenow={completion}>
+              <div className="h-full rounded-full bg-gold transition-[width] duration-500" style={{ width: `${completion}%` }} />
             </div>
+            <p className="mt-2 text-xs text-gold-soft">{t("welcome.stepsCount", { done: completedSteps, total: checklist.length })} · {completion}%</p>
           </div>
-          <div className="mt-8 flex flex-wrap items-center justify-between gap-3 border-t border-midnight-border pt-4 text-xs text-ink-muted sm:text-sm">
-            <p>{session.user.email}</p>
-            <p>{t("welcome.profileProgress")}</p>
-          </div>
+        </aside>
+        <div className="flex flex-wrap items-center justify-between gap-2 border-t border-midnight-border pt-4 text-xs text-ink-muted sm:text-sm lg:col-span-2">
+          <p>{session.user.email}</p>
+          <p>{t("welcome.profileProgress")}</p>
+        </div>
       </section>
 
-      <section className="card p-5 sm:p-8">
-          <div className="grid gap-8 lg:grid-cols-[minmax(0,1.55fr)_minmax(16rem,0.75fr)] lg:gap-10">
+      <section className="grid gap-9 lg:grid-cols-[minmax(0,1.5fr)_minmax(15rem,0.7fr)] lg:gap-12">
         <section aria-labelledby="welcome-progress-title" className="min-w-0">
-          <div className="flex flex-wrap items-end justify-between gap-4">
-            <div>
-              <p className="text-xs font-semibold uppercase tracking-[0.14em] text-gold-soft">{t("welcome.nextActionEyebrow")}</p>
-              <h2 id="welcome-progress-title" className="mt-2 font-display text-2xl font-semibold text-ink sm:text-3xl">{t("welcome.profileProgress")}</h2>
-            </div>
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-[0.14em] text-gold-soft">{t("welcome.nextActionEyebrow")}</p>
+            <h2 id="welcome-progress-title" className="mt-2 font-display text-2xl font-semibold text-ink sm:text-3xl">{t("welcome.profileProgress")}</h2>
           </div>
-          <div className="mt-6 h-2 overflow-hidden rounded-full bg-midnight-border" role="progressbar" aria-label={t("welcome.profileProgress")} aria-valuemin={0} aria-valuemax={100} aria-valuenow={completion}>
+          <div className="mt-5 h-2 overflow-hidden rounded-full bg-midnight-border" role="progressbar" aria-label={t("welcome.profileProgress")} aria-valuemin={0} aria-valuemax={100} aria-valuenow={completion}>
             <div className="h-full rounded-full bg-gold transition-[width] duration-500" style={{ width: `${completion}%` }} />
           </div>
           <div className="mt-1 flex justify-end">
             <span className="text-xs font-semibold text-gold-soft">{completion}% {t("welcome.completeLabel")}</span>
           </div>
 
-          <ol className="mt-5 grid gap-x-8 sm:grid-cols-2">
+          <ol className="mt-4 grid gap-x-8 sm:grid-cols-2">
             {checklist.map((item) => {
               const Icon = item.icon;
               return (
@@ -421,12 +472,12 @@ export function WelcomePage() {
               );
             })}
           </ol>
-          <button type="button" onClick={openProfileEditor} className="btn-outline mt-5 min-h-11">
+          <button type="button" onClick={openProfileEditor} className="btn-outline mt-5 min-h-10">
             {t("welcome.editProfileAction")}<ArrowRight size={16} aria-hidden="true" />
           </button>
         </section>
 
-        <aside className="border-t border-midnight-border pt-6 lg:border-l lg:border-t-0 lg:pl-8 lg:pt-0">
+        <aside className="space-y-6 border-t border-midnight-border pt-6 lg:border-l lg:border-t-0 lg:pl-8 lg:pt-0">
           <div className="border-l-2 border-gold pl-4">
             <p className="text-xs font-semibold uppercase tracking-[0.14em] text-gold-soft">{t("welcome.nextStepsTitle")}</p>
             {recommendedStep ? (
@@ -445,7 +496,7 @@ export function WelcomePage() {
             )}
           </div>
 
-          <div className="mt-7 border-t border-midnight-border pt-5">
+          <div className="border-t border-midnight-border pt-5">
             <p className="text-xs font-semibold uppercase tracking-[0.14em] text-ink-muted">{t("welcome.nextStepsTitle")}</p>
             <Link href="/discover" onClick={clearRegistrationMarker} className="group flex items-start gap-3 border-b border-midnight-border py-4">
               <Compass size={18} className="mt-0.5 shrink-0 text-gold-soft" aria-hidden="true" />
@@ -464,11 +515,10 @@ export function WelcomePage() {
               <ArrowRight size={15} className="mt-1 shrink-0 text-ink-muted transition group-hover:translate-x-0.5" aria-hidden="true" />
             </Link>
           </div>
-          <button type="button" onClick={() => { clearRegistrationMarker(); void logout(); }} className="mt-5 inline-flex min-h-10 items-center gap-2 text-sm font-medium text-ink-muted transition hover:text-gold-soft">
+          <button type="button" onClick={() => { clearRegistrationMarker(); void logout(); }} className="inline-flex min-h-10 items-center gap-2 text-sm font-medium text-ink-muted transition hover:text-gold-soft">
             <LogOut size={16} aria-hidden="true" />{t("welcome.logoutAction")}
           </button>
         </aside>
-          </div>
       </section>
 
       {editingProfile && profileDraft && (
