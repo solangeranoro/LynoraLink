@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import * as CountryFlags from "country-flag-icons/react/3x2";
+import worldCountries from "world-countries";
 import {
   Activity,
   ArrowUpRight,
@@ -920,7 +921,9 @@ function AdminLiveSectionView(props: { section: Exclude<Section, "overview" | "u
   return <AdminLiveDashboardView {...props} />;
 }
 
-const geoCountryCatalog: { code: string; name: string; aliases: string[]; continent: string; lat: number; lon: number }[] = [
+type GeoCountryCatalogEntry = { code: string; name: string; aliases: string[]; continent: string; lat: number; lon: number };
+
+const curatedGeoCountryCatalog: GeoCountryCatalogEntry[] = [
   { code: "MG", name: "Madagascar", aliases: ["madagascar"], continent: "Afrique", lat: -19, lon: 47 },
   { code: "FR", name: "France", aliases: ["france"], continent: "Europe", lat: 46, lon: 2 },
   { code: "US", name: "États-Unis", aliases: ["etats-unis", "united states", "usa", "us"], continent: "Amériques", lat: 39, lon: -98 },
@@ -948,6 +951,81 @@ const geoCountryCatalog: { code: string; name: string; aliases: string[]; contin
   { code: "AU", name: "Australie", aliases: ["australie", "australia"], continent: "Océanie", lat: -25, lon: 133 },
   { code: "BR", name: "Brésil", aliases: ["bresil", "brazil"], continent: "Amériques", lat: -10, lon: -52 },
   { code: "MX", name: "Mexique", aliases: ["mexique", "mexico"], continent: "Amériques", lat: 23, lon: -102 },
+  { code: "DZ", name: "Algérie", aliases: [], continent: "Afrique", lat: 28, lon: 3 },
+  { code: "AO", name: "Angola", aliases: [], continent: "Afrique", lat: -12, lon: 18 },
+  { code: "BJ", name: "Bénin", aliases: [], continent: "Afrique", lat: 9, lon: 2 },
+  { code: "BW", name: "Botswana", aliases: [], continent: "Afrique", lat: -22, lon: 24 },
+  { code: "BF", name: "Burkina Faso", aliases: [], continent: "Afrique", lat: 12, lon: -2 },
+  { code: "BI", name: "Burundi", aliases: [], continent: "Afrique", lat: -3, lon: 30 },
+  { code: "CV", name: "Cap-Vert", aliases: [], continent: "Afrique", lat: 16, lon: -24 },
+  { code: "CM", name: "Cameroun", aliases: [], continent: "Afrique", lat: 6, lon: 12 },
+  { code: "CF", name: "République centrafricaine", aliases: [], continent: "Afrique", lat: 7, lon: 21 },
+  { code: "TD", name: "Tchad", aliases: [], continent: "Afrique", lat: 15, lon: 19 },
+  { code: "KM", name: "Comores", aliases: [], continent: "Afrique", lat: -12, lon: 44 },
+  { code: "CG", name: "Congo", aliases: [], continent: "Afrique", lat: 1, lon: 15 },
+  { code: "CD", name: "République démocratique du Congo", aliases: [], continent: "Afrique", lat: -2, lon: 23 },
+  { code: "DJ", name: "Djibouti", aliases: [], continent: "Afrique", lat: 12, lon: 43 },
+  { code: "EG", name: "Égypte", aliases: [], continent: "Afrique", lat: 26, lon: 30 },
+  { code: "GQ", name: "Guinée équatoriale", aliases: [], continent: "Afrique", lat: 2, lon: 10 },
+  { code: "ER", name: "Érythrée", aliases: [], continent: "Afrique", lat: 15, lon: 39 },
+  { code: "SZ", name: "Eswatini", aliases: [], continent: "Afrique", lat: -27, lon: 31 },
+  { code: "ET", name: "Éthiopie", aliases: [], continent: "Afrique", lat: 9, lon: 40 },
+  { code: "GA", name: "Gabon", aliases: [], continent: "Afrique", lat: 0, lon: 12 },
+  { code: "GM", name: "Gambie", aliases: [], continent: "Afrique", lat: 14, lon: -16 },
+  { code: "GH", name: "Ghana", aliases: [], continent: "Afrique", lat: 8, lon: -2 },
+  { code: "GN", name: "Guinée", aliases: [], continent: "Afrique", lat: 11, lon: -10 },
+  { code: "GW", name: "Guinée-Bissau", aliases: [], continent: "Afrique", lat: 12, lon: -15 },
+  { code: "LS", name: "Lesotho", aliases: [], continent: "Afrique", lat: -29, lon: 28 },
+  { code: "LR", name: "Libéria", aliases: [], continent: "Afrique", lat: 7, lon: -9 },
+  { code: "LY", name: "Libye", aliases: [], continent: "Afrique", lat: 27, lon: 17 },
+  { code: "MW", name: "Malawi", aliases: [], continent: "Afrique", lat: -13, lon: 34 },
+  { code: "ML", name: "Mali", aliases: [], continent: "Afrique", lat: 17, lon: -4 },
+  { code: "MR", name: "Mauritanie", aliases: [], continent: "Afrique", lat: 20, lon: -10 },
+  { code: "MZ", name: "Mozambique", aliases: [], continent: "Afrique", lat: -19, lon: 35 },
+  { code: "NA", name: "Namibie", aliases: [], continent: "Afrique", lat: -22, lon: 17 },
+  { code: "NE", name: "Niger", aliases: [], continent: "Afrique", lat: 17, lon: 9 },
+  { code: "RW", name: "Rwanda", aliases: [], continent: "Afrique", lat: -2, lon: 30 },
+  { code: "ST", name: "Sao Tomé-et-Principe", aliases: [], continent: "Afrique", lat: 0, lon: 7 },
+  { code: "SC", name: "Seychelles", aliases: [], continent: "Afrique", lat: -5, lon: 56 },
+  { code: "SL", name: "Sierra Leone", aliases: [], continent: "Afrique", lat: 9, lon: -12 },
+  { code: "SO", name: "Somalie", aliases: [], continent: "Afrique", lat: 5, lon: 46 },
+  { code: "SS", name: "Soudan du Sud", aliases: [], continent: "Afrique", lat: 7, lon: 30 },
+  { code: "SD", name: "Soudan", aliases: [], continent: "Afrique", lat: 13, lon: 30 },
+  { code: "TZ", name: "Tanzanie", aliases: [], continent: "Afrique", lat: -6, lon: 35 },
+  { code: "TG", name: "Togo", aliases: [], continent: "Afrique", lat: 9, lon: 1 },
+  { code: "TN", name: "Tunisie", aliases: [], continent: "Afrique", lat: 34, lon: 9 },
+  { code: "UG", name: "Ouganda", aliases: [], continent: "Afrique", lat: 1, lon: 32 },
+  { code: "ZM", name: "Zambie", aliases: [], continent: "Afrique", lat: -13, lon: 28 },
+  { code: "ZW", name: "Zimbabwe", aliases: [], continent: "Afrique", lat: -19, lon: 29 },
+  { code: "EH", name: "Sahara occidental", aliases: [], continent: "Afrique", lat: 24, lon: -13 },
+];
+
+const curatedGeoCountryCodes = new Set(curatedGeoCountryCatalog.map((country) => country.code));
+const geoRegionNames: Record<string, string> = {
+  Africa: "Afrique",
+  Americas: "Amériques",
+  Asia: "Asie",
+  Europe: "Europe",
+  Oceania: "Océanie",
+  Antarctic: "Antarctique",
+};
+const geoCountryCatalog: GeoCountryCatalogEntry[] = [
+  ...curatedGeoCountryCatalog,
+  ...worldCountries
+    .filter((country) =>
+      /^[A-Z]{2}$/.test(country.cca2) &&
+      !curatedGeoCountryCodes.has(country.cca2) &&
+      Number.isFinite(country.latlng[0]) &&
+      Number.isFinite(country.latlng[1]),
+    )
+    .map((country) => ({
+      code: country.cca2,
+      name: countryDisplayName(country.cca2),
+      aliases: [],
+      continent: geoRegionNames[country.region] ?? "À préciser",
+      lat: country.latlng[0],
+      lon: country.latlng[1],
+    })),
 ];
 
 function countryDisplayName(code: string) {
@@ -1193,6 +1271,7 @@ function AdminGeoInsights({ distribution }: { distribution: AdminData["countryDi
     Asie: "#a78bfa",
     Amériques: "#fb923c",
     Océanie: "#f472b6",
+    Antarctique: "#67e8f9",
     "Autres / non déterminé": "#64748b",
   };
   const circumference = 2 * Math.PI * 39;

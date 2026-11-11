@@ -74,7 +74,7 @@ export function LandingTopNav() {
             wordmarkClassName="landing-brand-wordmark"
           />
         </Link>
-        <nav id="landing-primary-navigation" className={`${mobileMenuOpen ? "flex" : "hidden"} landing-mobile-nav absolute inset-x-0 top-[calc(100%+0.55rem)] flex-col gap-0 rounded-2xl border border-white/10 bg-[#062b25]/95 px-5 py-2 shadow-2xl backdrop-blur-xl xl:static xl:flex xl:flex-row xl:items-center xl:gap-7 xl:border-0 xl:bg-transparent xl:p-0 xl:shadow-none xl:backdrop-blur-none`} aria-label={isFrench ? "Navigation principale" : "Main navigation"}>
+        <nav id="landing-primary-navigation" className={`${mobileMenuOpen ? "flex" : "hidden"} landing-mobile-nav absolute inset-x-0 top-[calc(100%+0.55rem)] max-h-[calc(100dvh-6rem)] flex-col gap-0 overflow-y-auto overscroll-contain rounded-2xl border border-white/10 bg-[#062b25]/95 px-5 py-2 shadow-2xl backdrop-blur-xl xl:static xl:flex xl:max-h-none xl:flex-row xl:items-center xl:gap-7 xl:overflow-visible xl:border-0 xl:bg-transparent xl:p-0 xl:shadow-none xl:backdrop-blur-none`} aria-label={isFrench ? "Navigation principale" : "Main navigation"}>
           <a onClick={() => setMobileMenuOpen(false)} href={sectionHref("how-it-works")} className="landing-nav-link border-b border-white/10 py-3 text-sm text-white/75 transition xl:border-0 xl:py-0">
             {isFrench ? "Comment ça marche" : "How it works"}
           </a>
@@ -87,6 +87,10 @@ export function LandingTopNav() {
           <Link onClick={() => setMobileMenuOpen(false)} href="/faq" className="landing-nav-link py-3 text-sm text-white/75 transition xl:py-0">
             FAQ
           </Link>
+          <Link onClick={() => setMobileMenuOpen(false)} href="/register" className="landing-nav-cta mt-2 flex items-center justify-center gap-2 py-3 text-sm font-semibold md:hidden">
+            {isFrench ? "S’inscrire" : "Join"}
+            <ArrowRight size={14} aria-hidden="true" />
+          </Link>
           <Link onClick={() => setMobileMenuOpen(false)} href="/login" className="landing-nav-link py-3 text-sm text-white/75 transition xl:hidden">
             {isFrench ? "Connexion" : "Sign in"}
           </Link>
@@ -98,7 +102,7 @@ export function LandingTopNav() {
           <Link href="/login" className="landing-nav-login hidden px-3 py-2 text-sm font-medium text-white/85 transition xl:inline-flex">
             {isFrench ? "Connexion" : "Sign in"}
           </Link>
-          <Link href="/register" className="landing-nav-cta inline-flex items-center gap-1 px-2 py-2.5 text-[11px] font-semibold sm:gap-2 sm:px-3 sm:text-xs xl:px-4 xl:text-sm">
+          <Link href="/register" className="landing-nav-cta hidden items-center gap-1 px-2 py-2.5 text-[11px] font-semibold sm:gap-2 sm:px-3 sm:text-xs md:inline-flex xl:px-4 xl:text-sm">
             <span className="xl:hidden">{isFrench ? "S’inscrire" : "Join"}</span>
             <span className="hidden xl:inline">{isFrench ? "Rejoindre LynoraLink" : "Join LynoraLink"}</span>
             <ArrowRight size={14} aria-hidden="true" />

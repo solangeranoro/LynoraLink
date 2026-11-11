@@ -994,6 +994,12 @@ body {
   color: rgb(var(--gold-soft));
 }
 
+@media (max-width: 479px) {
+  .auth-header-wordmark {
+    display: none;
+  }
+}
+
 .application-theme .btn-gold {
   color: rgb(var(--button-label));
 }
@@ -1969,6 +1975,11 @@ pre code {
 }
 
 @media (max-width: 639px) {
+  .landing-page .landing-community-glow {
+    left: 1rem;
+    width: calc(100% - 2rem);
+  }
+
   .landing-page .landing-hero-layout {
     padding-top: 7rem;
   }

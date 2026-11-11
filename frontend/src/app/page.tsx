@@ -277,25 +277,25 @@ export default function Home() {
 
       <section id="community" className="landing-community scroll-mt-20 text-white">
         <div className="landing-community-glow" aria-hidden="true" />
-        <div className="relative mx-auto max-w-7xl px-5 py-20 sm:px-8 sm:py-24 lg:px-12 lg:py-28">
-          <div data-landing-reveal="left" className="mb-10 max-w-3xl">
-            <p className="mb-5 text-xs font-semibold uppercase tracking-[0.18em] text-[#8cff00]">{text.communityEyebrow}</p>
-            <h2 className="max-w-xl font-display text-4xl font-semibold leading-[1.08] tracking-[-0.04em] sm:text-5xl">{text.communityTitle}</h2>
-            <p className="mt-6 max-w-xl text-base leading-7 text-white/70 sm:text-lg sm:leading-8">{text.communityCopy}</p>
+        <div className="relative mx-auto max-w-7xl px-4 py-14 sm:px-8 sm:py-24 lg:px-12 lg:py-28">
+          <div data-landing-reveal="left" className="mb-8 max-w-3xl sm:mb-10">
+            <p className="mb-4 text-[10px] font-semibold uppercase tracking-[0.16em] text-[#8cff00] sm:mb-5 sm:text-xs sm:tracking-[0.18em]">{text.communityEyebrow}</p>
+            <h2 className="max-w-xl font-display text-3xl font-semibold leading-[1.08] tracking-[-0.04em] sm:text-5xl">{text.communityTitle}</h2>
+            <p className="mt-4 max-w-xl text-sm leading-6 text-white/70 sm:mt-6 sm:text-lg sm:leading-8">{text.communityCopy}</p>
           </div>
           <div className="grid gap-4 md:grid-cols-2">
             {text.communityAudiences.map(({ title, text: description, action, href, icon: Icon }, index) => (
-              <Link key={title} href={href} data-landing-reveal="up" className="landing-community-card group rounded-3xl border border-white/10 bg-white/[0.045] p-6 transition hover:-translate-y-1 hover:border-[#8cff00]/40 hover:bg-white/[0.075] sm:p-8">
+              <Link key={title} href={href} data-landing-reveal="up" className="landing-community-card group rounded-2xl border border-white/10 bg-white/[0.045] p-5 transition hover:-translate-y-1 hover:border-[#8cff00]/40 hover:bg-white/[0.075] sm:rounded-3xl sm:p-8">
                 <div className="flex items-center justify-between">
-                  <span className="grid h-12 w-12 place-items-center rounded-2xl bg-[#35b5ff]/10 text-[#8cff00]">
+                  <span className="grid h-10 w-10 place-items-center rounded-xl bg-[#35b5ff]/10 text-[#8cff00] sm:h-12 sm:w-12 sm:rounded-2xl">
                     <Icon size={20} aria-hidden="true" />
                   </span>
                   <span className="text-[10px] font-semibold tracking-[0.16em] text-white/40">0{index + 1}</span>
                 </div>
-                <p className="mt-8 text-[10px] font-semibold tracking-[0.16em] text-[#8cff00]">{text.path}</p>
-                <h3 className="mt-2 font-display text-2xl font-semibold text-white sm:text-3xl">{title}</h3>
+                <p className="mt-6 text-[10px] font-semibold tracking-[0.14em] text-[#8cff00] sm:mt-8 sm:tracking-[0.16em]">{text.path}</p>
+                <h3 className="mt-2 font-display text-xl font-semibold text-white sm:text-3xl">{title}</h3>
                 <p className="mt-3 max-w-lg text-sm leading-6 text-white/70 sm:text-base">{description}</p>
-                <span className="mt-7 inline-flex items-center gap-2 text-sm font-semibold text-[#adff62] transition group-hover:gap-3">
+                <span className="mt-5 inline-flex items-center gap-2 text-sm font-semibold text-[#adff62] transition group-hover:gap-3 sm:mt-7">
                   {action}<ArrowRight size={15} aria-hidden="true" />
                 </span>
               </Link>

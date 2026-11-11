@@ -40,8 +40,8 @@ export default function ProjectCoBuildingPage() {
 
   if (projectQuery.isLoading) {
     return (
-      <div className="grid min-h-[640px] gap-4 lg:grid-cols-[230px_minmax(0,1fr)]" aria-label={isFrench ? "Chargement de l’espace de co-building" : "Loading co-building workspace"} aria-busy="true">
-        <aside className="flex flex-col gap-5 rounded-xl border border-midnight-border bg-midnight-deep p-4">
+      <div className="grid h-full min-h-0 gap-4 lg:grid-cols-[260px_minmax(0,1fr)]" aria-label={isFrench ? "Chargement de l’espace de co-building" : "Loading co-building workspace"} aria-busy="true">
+        <aside className="hidden flex-col gap-5 rounded-xl border border-midnight-border bg-midnight-deep p-4 lg:flex">
           <div className="flex h-12 items-center border-b border-midnight-border pb-3">
             <div className="skeleton h-8 w-36" />
           </div>
@@ -63,7 +63,7 @@ export default function ProjectCoBuildingPage() {
             </div>
           </div>
         </aside>
-        <div className="flex min-h-[520px] flex-col gap-3 rounded-xl border border-midnight-border bg-midnight-deep p-4">
+        <div className="flex min-h-0 min-w-0 flex-col gap-3 overflow-hidden rounded-xl border border-midnight-border bg-midnight-deep p-3 sm:p-4">
           <div className="flex flex-wrap items-center justify-between gap-3 border-b border-midnight-border pb-3">
             <div className="flex items-center gap-3">
               <div className="skeleton h-6 w-40" />
@@ -136,8 +136,8 @@ export default function ProjectCoBuildingPage() {
   }
 
   return (
-    <section className="flex h-dvh w-full overflow-hidden bg-midnight-deep text-ink" aria-label={isFrench ? "Espace de co-building" : "Co-building workspace"}>
-      <aside className="flex h-full w-[260px] shrink-0 flex-col overflow-hidden border-r border-midnight-border bg-midnight-deep/80 backdrop-blur-md">
+    <section className="flex h-full min-h-0 w-full flex-col overflow-hidden bg-midnight-deep text-ink lg:flex-row" aria-label={isFrench ? "Espace de co-building" : "Co-building workspace"}>
+      <aside className="hidden h-full w-[260px] shrink-0 flex-col overflow-hidden border-r border-midnight-border bg-midnight-deep/80 backdrop-blur-md lg:flex">
         <div className="flex h-16 shrink-0 items-center border-b border-midnight-border bg-midnight-deep/95 px-5">
           <Link href={`/projects/${project.id}`} className="inline-flex items-center">
             <Logo size={34} withWordmark priority />
@@ -179,7 +179,14 @@ export default function ProjectCoBuildingPage() {
         </div>
       </aside>
 
-      <div className="min-h-0 flex-1 overflow-hidden">
+      <div className="flex h-12 shrink-0 items-center border-b border-midnight-border bg-midnight-deep/95 px-3 lg:hidden">
+        <Link href={`/projects/${project.id}`} className="inline-flex min-h-10 items-center gap-2 text-sm font-medium text-ink-muted transition hover:text-ink">
+          <ArrowLeft size={16} aria-hidden="true" />
+          {isFrench ? "Retour au projet" : "Back to project"}
+        </Link>
+      </div>
+
+      <div className="min-h-0 min-w-0 flex-1 overflow-hidden">
         <ProjectCoBuilding
           projectId={project.id}
           isOwner={isOwner}
