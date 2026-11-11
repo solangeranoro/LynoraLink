@@ -4,11 +4,10 @@ import { useEffect, useRef, useState, type ChangeEvent, type FormEvent } from "r
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
-import { ArrowRight, Camera, Check, Compass, FolderPlus, Image, Link2, LogOut, Save, Sparkles, UserRound, Wrench, X } from "@/components/FontAwesomeIcons";
+import { ArrowRight, Camera, Check, Compass, FolderPlus, Image, Link2, Loader2, LogOut, Save, Sparkles, UserRound, Wrench, X } from "@/components/FontAwesomeIcons";
 import { Avatar } from "@/components/Avatar";
-import { HeroImageSlider } from "@/components/HeroImageSlider";
 import { useLogoutTransition } from "@/components/auth/LogoutTransition";
-import { uploadAvatarImage } from "@/lib/cloudinary";
+import { getUploadErrorCode, getUploadErrorDetails, uploadAvatarImage } from "@/lib/cloudinary";
 import { useTranslation } from "@/lib/i18n";
 import { getNetworkErrorMessage } from "@/lib/error-messages";
 
@@ -44,12 +43,38 @@ export function WelcomePage() {
   const [savingProfile, setSavingProfile] = useState(false);
   const [profileMessage, setProfileMessage] = useState("");
   const [avatarError, setAvatarError] = useState("");
+  const [avatarModalOpen, setAvatarModalOpen] = useState(false);
+  const [avatarFile, setAvatarFile] = useState<File | null>(null);
+  const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
+  const [avatarUploading, setAvatarUploading] = useState(false);
+  const [avatarProgress, setAvatarProgress] = useState(0);
+  const [avatarStage, setAvatarStage] = useState<"preparing" | "uploading" | "processing">("preparing");
+  const [avatarSuccessMessage, setAvatarSuccessMessage] = useState("");
   const editorDialog = useRef<HTMLDialogElement>(null);
+  const avatarDialog = useRef<HTMLDialogElement>(null);
+  const avatarInput = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     const dialog = editorDialog.current;
     if (editingProfile && dialog && !dialog.open) dialog.showModal();
   }, [editingProfile]);
+
+  useEffect(() => {
+    const dialog = avatarDialog.current;
+    if (!dialog) return;
+    if (avatarModalOpen && !dialog.open) dialog.showModal();
+    if (!avatarModalOpen && dialog.open) dialog.close();
+  }, [avatarModalOpen]);
+
+  useEffect(() => {
+    if (!avatarModalOpen || !avatarFile) {
+      setAvatarPreview(null);
+      return;
+    }
+    const previewUrl = URL.createObjectURL(avatarFile);
+    setAvatarPreview(previewUrl);
+    return () => URL.revokeObjectURL(previewUrl);
+  }, [avatarFile, avatarModalOpen]);
 
   useEffect(() => {
     try {
@@ -108,35 +133,86 @@ export function WelcomePage() {
     setProfileMessage("");
   }
 
-  async function changeProfileImage(event: ChangeEvent<HTMLInputElement>) {
+  function openAvatarModal() {
+    setAvatarFile(null);
+    setAvatarError("");
+    setAvatarProgress(0);
+    setAvatarSuccessMessage("");
+    setAvatarModalOpen(true);
+  }
+
+  function closeAvatarModal() {
+    if (avatarUploading) return;
+    setAvatarModalOpen(false);
+    setAvatarFile(null);
+    setAvatarError("");
+  }
+
+  function selectAvatar(event: ChangeEvent<HTMLInputElement>) {
     const file = event.currentTarget.files?.[0];
     event.currentTarget.value = "";
-    if (!file || !profileDraft) return;
-    if (!file.type.startsWith("image/") || file.size > 8 * 1024 * 1024) {
+    if (!file) return;
+    if (!["image/avif", "image/gif", "image/jpeg", "image/png", "image/webp"].includes(file.type) || file.size === 0 || file.size > 8 * 1024 * 1024) {
+      setAvatarFile(null);
       setAvatarError(t("welcome.profileEditor.invalidImage"));
       return;
     }
+    setAvatarFile(file);
+    setAvatarError("");
+  }
 
+  async function uploadSelectedAvatar() {
+    if (!avatarFile || !profile) return;
+    setAvatarUploading(true);
+    setAvatarProgress(0);
+    setAvatarStage("preparing");
+    setAvatarError("");
     try {
-      const image = await uploadAvatarImage(file);
+      const image = await uploadAvatarImage(
+        avatarFile,
+        (progress) => {
+          setAvatarProgress(progress);
+          setAvatarStage("uploading");
+        },
+        () => setAvatarStage("processing"),
+      );
+      const updatedProfile = { ...profile, image };
+      setProfile(updatedProfile);
       setProfileDraft((current) => current ? { ...current, image } : current);
-      setAvatarError("");
+      setAvatarFile(null);
+      setAvatarModalOpen(false);
+      setProfileMessage(t("welcome.profileEditor.avatarUpdated"));
+      setAvatarSuccessMessage(t("welcome.profileEditor.avatarUpdated"));
+      try {
+        await updateSession();
+      } catch (error) {
+        console.error("Profile avatar was saved, but the session refresh failed:", error);
+        setProfileMessage(t("welcome.profileEditor.avatarUpdatedRefresh"));
+      }
     } catch (error) {
       if (getNetworkErrorMessage(error)) {
         setAvatarError(t("auth.errors.networkUnavailable"));
-        return;
+      } else {
+        const code = getUploadErrorCode(error);
+        const details = getUploadErrorDetails(error);
+        setAvatarError(code === "cloudinary_not_configured"
+          ? t("welcome.profileEditor.configurationError")
+          : code === "cloudinary_temporarily_unavailable"
+            ? t("welcome.profileEditor.serviceError")
+          : code === "profile_update_unavailable"
+            ? t("welcome.profileEditor.avatarSaveError")
+          : code === "upload_session_unavailable" || code === "upload_server_error" || code === "avatar_upload_failed"
+            ? t("welcome.profileEditor.serverError")
+          : code === "cloudinary_unreachable"
+            ? t("auth.errors.networkUnavailable")
+          : code === "cloudinary_upload_failed" && details
+            ? t("welcome.profileEditor.avatarUploadErrorDetail", { details })
+            : code === "invalid_avatar_file"
+              ? t("welcome.profileEditor.invalidImage")
+              : t("welcome.profileEditor.uploadError"));
       }
-      const failure = error instanceof Error ? error.message : "";
-      const uploadDetail = failure.match(/^cloudinary_upload_failed:\s*(.+)$/)?.[1];
-      setAvatarError(failure === "cloudinary_not_configured"
-        ? t("welcome.profileEditor.configurationError")
-        : failure === "cloudinary_temporarily_unavailable" || failure === "cloudinary_unreachable"
-          ? t("welcome.profileEditor.serviceError")
-        : failure.startsWith("upload_server_error") || failure === "upload_session_unavailable" || failure === "avatar_upload_failed"
-          ? t("welcome.profileEditor.serverError")
-        : failure === "invalid_avatar_file"
-          ? t("welcome.profileEditor.invalidImage")
-          : uploadDetail?.slice(0, 180) || t("welcome.profileEditor.uploadError"));
+    } finally {
+      setAvatarUploading(false);
     }
   }
 
@@ -244,93 +320,100 @@ export function WelcomePage() {
   const recommendedStep = checklist.find((item) => !item.done);
 
   return (
-    <div className="relative left-1/2 w-screen -translate-x-1/2">
-      <section className="relative isolate overflow-hidden bg-[#041238] text-white">
-        <HeroImageSlider variant="welcome" />
-        <div aria-hidden="true" className="absolute inset-0 -z-10 bg-[#041238]/80" />
-        <div className="mx-auto flex min-h-[31rem] max-w-7xl flex-col justify-between px-5 pb-6 pt-10 sm:min-h-[34rem] sm:px-8 sm:pb-8 lg:px-12">
-          <div className="grid flex-1 items-center gap-10 py-10 lg:grid-cols-[minmax(0,1.25fr)_minmax(17rem,0.75fr)]">
+    <div className="mx-auto w-full max-w-5xl space-y-5">
+      {avatarSuccessMessage && <p role="status" className="rounded-xl border border-emerald-400/30 bg-emerald-400/10 px-4 py-3 text-sm text-emerald-200">{avatarSuccessMessage}</p>}
+      <section className="card overflow-hidden p-5 sm:p-8 lg:p-10">
+          <div className="grid items-center gap-8 lg:grid-cols-[minmax(0,1.25fr)_minmax(17rem,0.75fr)]">
             <div className="max-w-3xl">
-              <p className="mb-5 flex items-center gap-3 text-[11px] font-semibold uppercase tracking-[0.14em] text-[#8cff00] sm:text-xs">
-                <span className="h-px w-8 bg-[#8cff00]" />{t("welcome.eyebrow")}
+              <p className="mb-5 flex items-center gap-3 text-[11px] font-semibold uppercase tracking-[0.14em] text-gold-soft sm:text-xs">
+                <span className="h-px w-8 bg-gold" />{t("welcome.eyebrow")}
               </p>
-              <h1 className="font-display text-4xl font-semibold leading-[1.05] text-white sm:text-5xl lg:text-6xl">{title}</h1>
-              <p className="mt-5 max-w-2xl text-base leading-7 text-white/85 sm:text-lg sm:leading-8">
+              <h1 className="font-display text-4xl font-semibold leading-[1.05] text-ink sm:text-5xl">{title}</h1>
+              <p className="mt-5 max-w-2xl text-base leading-7 text-ink-muted sm:text-lg sm:leading-8">
                 {profile.headline?.trim() || t("welcome.subtitle")}
               </p>
               <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:items-center">
                 {completion < 100 ? (
-                  <button type="button" onClick={openProfileEditor} className="inline-flex min-h-12 items-center justify-center gap-2 rounded-md bg-[#8cff00] px-5 text-sm font-semibold text-[#041238] transition hover:bg-[#a4ff42]">
+                  <button type="button" onClick={openProfileEditor} className="btn-gold min-h-12">
                     {t("welcome.profileAction")}<ArrowRight size={16} aria-hidden="true" />
                   </button>
                 ) : (
-                  <Link href="/profile" onClick={clearRegistrationMarker} className="inline-flex min-h-12 items-center justify-center gap-2 rounded-md bg-[#8cff00] px-5 text-sm font-semibold text-[#041238] transition hover:bg-[#a4ff42]">
+                  <Link href="/profile" onClick={clearRegistrationMarker} className="btn-gold min-h-12">
                     {t("welcome.viewProfileAction")}<ArrowRight size={16} aria-hidden="true" />
                   </Link>
                 )}
-                <Link href="/dashboard" onClick={clearRegistrationMarker} className="inline-flex min-h-12 items-center justify-center gap-2 rounded-md border border-white/40 px-5 text-sm font-semibold text-white transition hover:border-white hover:bg-white/10">
+                <Link href="/dashboard" onClick={clearRegistrationMarker} className="btn-outline min-h-12">
                   {t("welcome.dashboardAction")}
                 </Link>
               </div>
             </div>
 
-            <div className="flex items-center gap-5 text-white lg:justify-self-end">
-              <Avatar src={profile.image} name={displayName} size={64} />
+            <div className="flex items-center gap-5 text-ink lg:justify-self-end">
+              <div className="relative">
+                <Avatar src={profile.image} name={displayName} size={64} />
+                <button
+                  type="button"
+                  onClick={openAvatarModal}
+                  aria-label={t("welcome.profileEditor.changePhoto")}
+                  title={t("welcome.profileEditor.changePhoto")}
+                  className="absolute -bottom-1 -right-1 grid h-8 w-8 place-items-center rounded-full border-2 border-midnight-card bg-gold text-midnight-deep shadow transition hover:brightness-110 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold-soft focus-visible:ring-offset-2 focus-visible:ring-offset-midnight-card"
+                >
+                  <Camera size={14} aria-hidden="true" />
+                </button>
+              </div>
               <div
                 className="grid h-28 w-28 shrink-0 place-items-center rounded-full p-1 sm:h-32 sm:w-32"
-                style={{ background: `conic-gradient(from -90deg, #8cff00 ${completion}%, rgb(255 255 255 / 0.24) ${completion}% 100%)` }}
+                style={{ background: `conic-gradient(from -90deg, rgb(var(--gold-soft)) ${completion}%, rgb(var(--midnight-border)) ${completion}% 100%)` }}
                 role="img"
                 aria-label={`${completion}% ${t("welcome.completeLabel")}`}
               >
-                <span className="grid h-full w-full place-items-center rounded-full bg-[#041238]/90 text-center">
-                  <span><span className="block font-display text-3xl font-semibold">{completion}%</span><span className="mt-1 block text-[11px] text-white/70">{t("welcome.completeLabel")}</span></span>
+                <span className="grid h-full w-full place-items-center rounded-full bg-midnight-deep text-center">
+                  <span><span className="block font-display text-3xl font-semibold">{completion}%</span><span className="mt-1 block text-[11px] text-ink-muted">{t("welcome.completeLabel")}</span></span>
                 </span>
               </div>
               <div className="min-w-0">
                 <p className="truncate text-sm font-semibold">{displayName}</p>
-                <p className="mt-1 truncate text-xs text-white/70">{profile.handle ? `@${profile.handle}` : session.user.email}</p>
-                <p className="mt-3 text-xs text-[#8cff00]">{t("welcome.stepsCount", { done: completedSteps, total: checklist.length })}</p>
+                <p className="mt-1 truncate text-xs text-ink-muted">{profile.handle ? `@${profile.handle}` : session.user.email}</p>
+                <p className="mt-3 text-xs text-gold-soft">{t("welcome.stepsCount", { done: completedSteps, total: checklist.length })}</p>
               </div>
             </div>
           </div>
-          <div className="flex flex-wrap items-center justify-between gap-3 border-t border-white/25 pt-4 text-xs text-white/75 sm:text-sm">
+          <div className="mt-8 flex flex-wrap items-center justify-between gap-3 border-t border-midnight-border pt-4 text-xs text-ink-muted sm:text-sm">
             <p>{session.user.email}</p>
             <p>{t("welcome.profileProgress")}</p>
           </div>
-        </div>
       </section>
 
-      <section className="bg-[#f3f6ff] text-[#10224c]">
-        <div className="mx-auto max-w-7xl px-5 py-12 sm:px-8 sm:py-16 lg:px-12">
-          <div className="grid gap-10 lg:grid-cols-[minmax(0,1.55fr)_minmax(16rem,0.75fr)] lg:gap-12">
+      <section className="card p-5 sm:p-8">
+          <div className="grid gap-8 lg:grid-cols-[minmax(0,1.55fr)_minmax(16rem,0.75fr)] lg:gap-10">
         <section aria-labelledby="welcome-progress-title" className="min-w-0">
           <div className="flex flex-wrap items-end justify-between gap-4">
             <div>
-              <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#4b7f00]">{t("welcome.nextActionEyebrow")}</p>
-              <h2 id="welcome-progress-title" className="mt-2 font-display text-2xl font-semibold text-[#10224c] sm:text-3xl">{t("welcome.profileProgress")}</h2>
+              <p className="text-xs font-semibold uppercase tracking-[0.14em] text-gold-soft">{t("welcome.nextActionEyebrow")}</p>
+              <h2 id="welcome-progress-title" className="mt-2 font-display text-2xl font-semibold text-ink sm:text-3xl">{t("welcome.profileProgress")}</h2>
             </div>
           </div>
-          <div className="mt-6 h-2 overflow-hidden rounded-full bg-[#d8e2f2]" role="progressbar" aria-label={t("welcome.profileProgress")} aria-valuemin={0} aria-valuemax={100} aria-valuenow={completion}>
-            <div className="h-full rounded-full bg-[#4b7f00] transition-[width] duration-500" style={{ width: `${completion}%` }} />
+          <div className="mt-6 h-2 overflow-hidden rounded-full bg-midnight-border" role="progressbar" aria-label={t("welcome.profileProgress")} aria-valuemin={0} aria-valuemax={100} aria-valuenow={completion}>
+            <div className="h-full rounded-full bg-gold transition-[width] duration-500" style={{ width: `${completion}%` }} />
           </div>
           <div className="mt-1 flex justify-end">
-            <span className="text-xs font-semibold text-[#4b7f00]">{completion}% {t("welcome.completeLabel")}</span>
+            <span className="text-xs font-semibold text-gold-soft">{completion}% {t("welcome.completeLabel")}</span>
           </div>
 
           <ol className="mt-5 grid gap-x-8 sm:grid-cols-2">
             {checklist.map((item) => {
               const Icon = item.icon;
               return (
-                <li key={item.key} className="border-t border-[#d8e2f2]">
+                <li key={item.key} className="border-t border-midnight-border">
                   <button type="button" onClick={openProfileEditor} className="group flex min-h-[5.5rem] w-full items-center gap-3 py-3 text-left">
-                    <span className={`grid h-9 w-9 shrink-0 place-items-center rounded-full ${item.done ? "bg-[#edffd9] text-[#4b7f00]" : "bg-white text-[#586b8c]"}`}>
+                    <span className={`grid h-9 w-9 shrink-0 place-items-center rounded-full ${item.done ? "bg-gold/10 text-gold-soft" : "bg-midnight-card text-ink-muted"}`}>
                       {item.done ? <Check size={17} aria-hidden="true" /> : <Icon size={16} aria-hidden="true" />}
                     </span>
                     <span className="min-w-0 flex-1">
-                      <span className="block text-sm font-semibold text-[#10224c]">{t(`welcome.checklist.${item.key}.title`)}</span>
-                      <span className="mt-0.5 block text-xs leading-relaxed text-[#586b8c]">{t(`welcome.checklist.${item.key}.description`)}</span>
+                      <span className="block text-sm font-semibold text-ink">{t(`welcome.checklist.${item.key}.title`)}</span>
+                      <span className="mt-0.5 block text-xs leading-relaxed text-ink-muted">{t(`welcome.checklist.${item.key}.description`)}</span>
                     </span>
-                    <span className={`shrink-0 text-xs font-semibold ${item.done ? "text-[#4b7f00]" : "text-[#586b8c] group-hover:text-[#3d6800]"}`}>
+                    <span className={`shrink-0 text-xs font-semibold ${item.done ? "text-gold-soft" : "text-ink-muted group-hover:text-gold-soft"}`}>
                       {item.done ? t("welcome.doneLabel") : t("welcome.completeAction")}
                     </span>
                   </button>
@@ -338,55 +421,54 @@ export function WelcomePage() {
               );
             })}
           </ol>
-          <button type="button" onClick={openProfileEditor} className="mt-5 inline-flex min-h-11 items-center gap-2 rounded-md border border-[#4b7f00] px-4 text-sm font-semibold text-[#4b7f00] transition hover:bg-[#edffd9]">
+          <button type="button" onClick={openProfileEditor} className="btn-outline mt-5 min-h-11">
             {t("welcome.editProfileAction")}<ArrowRight size={16} aria-hidden="true" />
           </button>
         </section>
 
-        <aside className="border-t border-[#d8e2f2] pt-6 lg:border-l lg:border-t-0 lg:pl-8 lg:pt-0">
-          <div className="border-l-2 border-[#4b7f00] pl-4">
-            <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#4b7f00]">{t("welcome.nextStepsTitle")}</p>
+        <aside className="border-t border-midnight-border pt-6 lg:border-l lg:border-t-0 lg:pl-8 lg:pt-0">
+          <div className="border-l-2 border-gold pl-4">
+            <p className="text-xs font-semibold uppercase tracking-[0.14em] text-gold-soft">{t("welcome.nextStepsTitle")}</p>
             {recommendedStep ? (
               <>
-                <h3 className="mt-2 text-base font-semibold text-[#10224c]">{t(`welcome.checklist.${recommendedStep.key}.title`)}</h3>
-                <p className="mt-1 text-sm leading-5 text-[#586b8c]">{t(`welcome.checklist.${recommendedStep.key}.description`)}</p>
-                <button type="button" onClick={openProfileEditor} className="mt-4 inline-flex items-center gap-2 text-sm font-semibold text-[#4b7f00] transition hover:text-[#3d6800]">
+                <h3 className="mt-2 text-base font-semibold text-ink">{t(`welcome.checklist.${recommendedStep.key}.title`)}</h3>
+                <p className="mt-1 text-sm leading-5 text-ink-muted">{t(`welcome.checklist.${recommendedStep.key}.description`)}</p>
+                <button type="button" onClick={openProfileEditor} className="mt-4 inline-flex items-center gap-2 text-sm font-semibold text-gold-soft transition hover:text-gold">
                   {t("welcome.profileAction")}<ArrowRight size={15} aria-hidden="true" />
                 </button>
               </>
             ) : (
               <>
-                <h3 className="mt-2 text-base font-semibold text-[#10224c]">{t("welcome.profileCompleteTitle")}</h3>
-                <p className="mt-1 text-sm leading-5 text-[#586b8c]">{t("welcome.profileCompleteDescription")}</p>
+                <h3 className="mt-2 text-base font-semibold text-ink">{t("welcome.profileCompleteTitle")}</h3>
+                <p className="mt-1 text-sm leading-5 text-ink-muted">{t("welcome.profileCompleteDescription")}</p>
               </>
             )}
           </div>
 
-          <div className="mt-7 border-t border-[#d8e2f2] pt-5">
-            <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#586b8c]">{t("welcome.nextStepsTitle")}</p>
-            <Link href="/discover" onClick={clearRegistrationMarker} className="group flex items-start gap-3 border-b border-[#d8e2f2] py-4">
-              <Compass size={18} className="mt-0.5 shrink-0 text-[#4b7f00]" aria-hidden="true" />
+          <div className="mt-7 border-t border-midnight-border pt-5">
+            <p className="text-xs font-semibold uppercase tracking-[0.14em] text-ink-muted">{t("welcome.nextStepsTitle")}</p>
+            <Link href="/discover" onClick={clearRegistrationMarker} className="group flex items-start gap-3 border-b border-midnight-border py-4">
+              <Compass size={18} className="mt-0.5 shrink-0 text-gold-soft" aria-hidden="true" />
               <span className="min-w-0 flex-1">
-                <span className="block text-sm font-semibold text-[#10224c]">{t("welcome.discoverAction")}</span>
-                <span className="mt-1 block text-xs leading-relaxed text-[#586b8c]">{t("welcome.discoverNextStep")}</span>
+                <span className="block text-sm font-semibold text-ink">{t("welcome.discoverAction")}</span>
+                <span className="mt-1 block text-xs leading-relaxed text-ink-muted">{t("welcome.discoverNextStep")}</span>
               </span>
-              <ArrowRight size={15} className="mt-1 shrink-0 text-[#586b8c] transition group-hover:translate-x-0.5" aria-hidden="true" />
+              <ArrowRight size={15} className="mt-1 shrink-0 text-ink-muted transition group-hover:translate-x-0.5" aria-hidden="true" />
             </Link>
-            <Link href="/projects/new" onClick={clearRegistrationMarker} className="group flex items-start gap-3 border-b border-[#d8e2f2] py-4">
-              <FolderPlus size={18} className="mt-0.5 shrink-0 text-[#4b7f00]" aria-hidden="true" />
+            <Link href="/projects/new" onClick={clearRegistrationMarker} className="group flex items-start gap-3 border-b border-midnight-border py-4">
+              <FolderPlus size={18} className="mt-0.5 shrink-0 text-gold-soft" aria-hidden="true" />
               <span className="min-w-0 flex-1">
-                <span className="block text-sm font-semibold text-[#10224c]">{t("welcome.createProjectAction")}</span>
-                <span className="mt-1 block text-xs leading-relaxed text-[#586b8c]">{t("welcome.createProjectDescription")}</span>
+                <span className="block text-sm font-semibold text-ink">{t("welcome.createProjectAction")}</span>
+                <span className="mt-1 block text-xs leading-relaxed text-ink-muted">{t("welcome.createProjectDescription")}</span>
               </span>
-              <ArrowRight size={15} className="mt-1 shrink-0 text-[#586b8c] transition group-hover:translate-x-0.5" aria-hidden="true" />
+              <ArrowRight size={15} className="mt-1 shrink-0 text-ink-muted transition group-hover:translate-x-0.5" aria-hidden="true" />
             </Link>
           </div>
-          <button type="button" onClick={() => { clearRegistrationMarker(); void logout(); }} className="mt-5 inline-flex min-h-10 items-center gap-2 text-sm font-medium text-[#586b8c] transition hover:text-[#4b7f00]">
+          <button type="button" onClick={() => { clearRegistrationMarker(); void logout(); }} className="mt-5 inline-flex min-h-10 items-center gap-2 text-sm font-medium text-ink-muted transition hover:text-gold-soft">
             <LogOut size={16} aria-hidden="true" />{t("welcome.logoutAction")}
           </button>
         </aside>
           </div>
-        </div>
       </section>
 
       {editingProfile && profileDraft && (
@@ -412,11 +494,9 @@ export function WelcomePage() {
               <Avatar src={profileDraft.image} name={profileDraft.name ?? t("welcome.maker")} size={64} />
               <div className="min-w-0 flex-1">
                 <p className="text-sm font-medium text-ink">{t("welcome.profileEditor.photo")}</p>
-                <input type="file" accept="image/*" onChange={changeProfileImage} className="sr-only" id="welcome-profile-photo" />
-                <label htmlFor="welcome-profile-photo" className="btn-ghost mt-2 inline-flex cursor-pointer !rounded-lg !px-3 !py-2 text-xs">
+                <button type="button" onClick={openAvatarModal} className="btn-ghost mt-2 !rounded-lg !px-3 !py-2 text-xs">
                   <Camera size={15} aria-hidden="true" />{t("welcome.profileEditor.choosePhoto")}
-                </label>
-                {avatarError && <p role="alert" className="mt-2 text-xs text-rose-300">{avatarError}</p>}
+                </button>
               </div>
             </div>
 
@@ -472,6 +552,98 @@ export function WelcomePage() {
           </form>
         </dialog>
       )}
+      <dialog
+        ref={avatarDialog}
+        aria-labelledby="welcome-avatar-upload-title"
+        onCancel={(event) => {
+          event.preventDefault();
+          closeAvatarModal();
+        }}
+        onClose={() => setAvatarModalOpen(false)}
+        onClick={(event) => {
+          if (event.target === event.currentTarget) closeAvatarModal();
+        }}
+        className="fixed inset-0 m-auto max-h-[calc(100dvh-2rem)] w-[calc(100%-2rem)] max-w-lg overflow-y-auto rounded-2xl border border-midnight-border bg-midnight-card p-0 text-ink shadow-2xl backdrop:bg-black/60 backdrop:backdrop-blur-md"
+      >
+        <section>
+          <header className="flex items-start justify-between gap-4 border-b border-midnight-border bg-midnight-deep/35 px-5 py-5 sm:px-7">
+            <div>
+              <h2 id="welcome-avatar-upload-title" className="text-xl font-semibold tracking-tight text-ink">{t("welcome.profileEditor.avatarModalTitle")}</h2>
+              <p className="mt-1 text-sm text-ink-muted">{t("welcome.profileEditor.avatarModalHint")}</p>
+            </div>
+            <button type="button" onClick={closeAvatarModal} disabled={avatarUploading} aria-label={t("common.close")} className="grid h-9 w-9 shrink-0 place-items-center rounded-lg border border-midnight-border text-ink-muted transition hover:border-gold/30 hover:bg-midnight-card hover:text-ink disabled:opacity-50">
+              <X size={17} aria-hidden="true" />
+            </button>
+          </header>
+
+          <div className="space-y-5 p-5 sm:p-7">
+            <div className="flex items-center gap-4 rounded-xl border border-midnight-border bg-midnight-deep/35 p-4">
+              <Avatar src={avatarPreview ?? profile?.image} name={profile?.name} size={76} />
+              <div className="min-w-0">
+                <p className="truncate text-base font-semibold text-ink">{profile?.name ?? t("welcome.maker")}</p>
+                <p className="mt-1 text-sm text-ink-muted">{avatarFile?.name ?? t("welcome.profileEditor.avatarPreviewHint")}</p>
+              </div>
+            </div>
+
+            <input
+              ref={avatarInput}
+              type="file"
+              accept="image/avif,image/gif,image/jpeg,image/png,image/webp"
+              onChange={selectAvatar}
+              className="sr-only"
+              aria-label={t("welcome.profileEditor.choosePhoto")}
+            />
+            <button
+              type="button"
+              onClick={() => avatarInput.current?.click()}
+              disabled={avatarUploading}
+              className="group w-full rounded-xl border border-dashed border-midnight-border bg-midnight-deep/35 px-4 py-4 text-left transition hover:border-gold/50 hover:bg-midnight-deep/70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold/60 disabled:cursor-wait disabled:opacity-60"
+            >
+              <span className="flex items-center gap-3">
+                <Camera size={18} className="shrink-0 text-gold-soft" aria-hidden="true" />
+                <span className="min-w-0 flex-1">
+                  <span className="block truncate text-sm font-semibold text-ink">{avatarFile?.name ?? t("welcome.profileEditor.choosePhoto")}</span>
+                  <span className="mt-1 block text-xs text-ink-muted">{t("welcome.profileEditor.avatarFileHint")}</span>
+                </span>
+                <span className="shrink-0 text-xs font-semibold text-gold-soft">{avatarFile ? t("welcome.profileEditor.chooseAnotherPhoto") : t("welcome.profileEditor.browsePhotos")}</span>
+              </span>
+            </button>
+
+            {avatarUploading && (
+              <div className="rounded-xl border border-midnight-border bg-midnight-deep/50 p-4" aria-live="polite">
+                <div className="mb-2 flex items-center justify-between gap-3 text-xs">
+                  <span className="font-medium text-ink">
+                    {t(`welcome.profileEditor.avatar${avatarStage[0].toUpperCase()}${avatarStage.slice(1)}`)}
+                  </span>
+                  {avatarStage !== "uploading" && <Loader2 size={14} className="animate-spin text-gold-soft" aria-hidden="true" />}
+                  <span className="tabular-nums text-gold-soft">{avatarProgress}%</span>
+                </div>
+                <div
+                  role="progressbar"
+                  aria-label={t("welcome.profileEditor.avatarUploading")}
+                  aria-valuemin={0}
+                  aria-valuemax={100}
+                  aria-valuenow={avatarProgress}
+                  className="h-2 overflow-hidden rounded-full bg-midnight-border/70"
+                >
+                  <div className="h-full rounded-full bg-gradient-to-r from-emerald-400 via-cyan-400 to-gold transition-[width] duration-200 ease-out motion-reduce:transition-none" style={{ width: `${avatarProgress}%` }} />
+                </div>
+              </div>
+            )}
+
+            {avatarError && <p role="alert" className="rounded-lg border border-rose-400/30 bg-rose-400/10 px-3 py-2 text-sm text-rose-200">{avatarError}</p>}
+
+            <footer className="flex flex-wrap items-center justify-end gap-2 border-t border-midnight-border pt-4">
+              <button type="button" onClick={closeAvatarModal} disabled={avatarUploading} className="btn-ghost !rounded-lg">
+                {t("welcome.profileEditor.cancel")}
+              </button>
+              <button type="button" onClick={() => void uploadSelectedAvatar()} disabled={!avatarFile || avatarUploading} className="btn-gold min-w-36 !rounded-lg disabled:cursor-not-allowed disabled:opacity-50">
+                {avatarUploading ? <><Loader2 size={15} className="animate-spin" aria-hidden="true" />{avatarProgress}%</> : <><Camera size={15} aria-hidden="true" />{t("welcome.profileEditor.uploadAvatar")}</>}
+              </button>
+            </footer>
+          </div>
+        </section>
+      </dialog>
       {logoutOverlay}
     </div>
   );

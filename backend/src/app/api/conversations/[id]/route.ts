@@ -6,6 +6,7 @@ import {
   decryptMessageContent,
   MessageEncryptionError,
 } from "@/lib/message-encryption";
+import { findPlatformWelcomeConversations, isWelcomeMessageContent } from "@/lib/welcome-message";
 
 export const dynamic = "force-dynamic";
 
@@ -54,6 +55,7 @@ export async function GET(_request: Request, props: { params: Promise<{ id: stri
       attachments: { select: { id: true, name: true, mimeType: true, size: true, position: true }, orderBy: { position: "asc" } },
     },
   });
+  const platformWelcome = await findPlatformWelcomeConversations([params.id]);
 
   let visibleMessages;
   try {
@@ -68,7 +70,11 @@ export async function GET(_request: Request, props: { params: Promise<{ id: stri
             : message.replyTo.content,
           encryptionVersion: message.replyTo.encryptionVersion,
           keyEnvelopes: message.replyTo.keyEnvelopes,
-          sender: message.replyTo.sender,
+          sender: {
+            ...message.replyTo.sender,
+            isPlatformAccount: message.replyTo.sender.id === platformWelcome.adminId
+              && isWelcomeMessageContent(message.replyTo.content),
+          },
         }
         : null;
       return {
@@ -82,6 +88,11 @@ export async function GET(_request: Request, props: { params: Promise<{ id: stri
             ...decryptMessageAttachmentMetadata(attachment.name, attachment.id),
           }))
           : message.attachments,
+        sender: {
+          ...message.sender,
+          isPlatformAccount: message.sender.id === platformWelcome.adminId
+            && isWelcomeMessageContent(message.content),
+        },
         replyTo,
         reactionCounts,
         reactionByMe: reactions.find((item) => item.userId === userId)?.reaction ?? null,
@@ -116,7 +127,11 @@ export async function GET(_request: Request, props: { params: Promise<{ id: stri
       id: conversation.id,
       title: conversation.title,
       isGroup: conversation.isGroup,
-      participants: conversation.members.filter((member) => member.userId !== userId).map((member) => member.user),
+      participants: conversation.members.filter((member) => member.userId !== userId).map((member) => ({
+        ...member.user,
+        isPlatformAccount: platformWelcome.conversationIds.has(conversation.id)
+          && member.userId === platformWelcome.adminId,
+      })),
       readBy: conversation.members
         .filter((member) => member.userId !== userId)
         .map((member) => ({

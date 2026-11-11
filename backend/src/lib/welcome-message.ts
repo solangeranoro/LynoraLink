@@ -1,6 +1,37 @@
 import { prisma } from "@/lib/prisma";
 import { ADMIN_EMAIL } from "@/lib/admin-config";
 
+const WELCOME_MESSAGE_PREFIXES = [
+  "Bienvenue sur LynoraLink,",
+  "Welcome to LynoraLink,",
+];
+
+export function isWelcomeMessageContent(content: string) {
+  return WELCOME_MESSAGE_PREFIXES.some((prefix) => content.startsWith(prefix));
+}
+
+export async function findPlatformWelcomeConversations(conversationIds: string[]) {
+  if (conversationIds.length === 0) return { adminId: null, conversationIds: new Set<string>() };
+
+  const admin = await prisma.user.findUnique({
+    where: { email: ADMIN_EMAIL },
+    select: { id: true },
+  });
+  if (!admin) return { adminId: null, conversationIds: new Set<string>() };
+
+  const messages = await prisma.message.findMany({
+    where: {
+      conversationId: { in: conversationIds },
+      senderId: admin.id,
+      OR: WELCOME_MESSAGE_PREFIXES.map((prefix) => ({ content: { startsWith: prefix } })),
+    },
+    select: { conversationId: true },
+    distinct: ["conversationId"],
+  });
+
+  return { adminId: admin.id, conversationIds: new Set(messages.map((message) => message.conversationId)) };
+}
+
 function welcomeContent(name: string | null, preferredLang: "EN" | "FR") {
   const greetingName = name?.trim() || (preferredLang === "FR" ? "maker" : "maker");
   if (preferredLang === "FR") {
@@ -73,8 +104,7 @@ export async function createWelcomeMessage(userId: string) {
         conversationId: conversation.id,
         senderId: admin.id,
         OR: [
-          { content: { startsWith: "Bienvenue sur LynoraLink," } },
-          { content: { startsWith: "Welcome to LynoraLink," } },
+          ...WELCOME_MESSAGE_PREFIXES.map((prefix) => ({ content: { startsWith: prefix } })),
         ],
       },
       select: { id: true },

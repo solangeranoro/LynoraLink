@@ -21,7 +21,28 @@ export async function POST(request: Request) {
     select: { id: true, emailVerified: true },
   });
   if (!user) return NextResponse.json({ error: "invalid_code" }, { status: 400 });
-  if (user.emailVerified) return NextResponse.json({ verified: true });
+  if (user.emailVerified) {
+    const loginChallenge = await prisma.twoFactorChallenge.findUnique({
+      where: { userId_purpose: { userId: user.id, purpose: "LOGIN" } },
+    });
+    if (
+      !loginChallenge ||
+      loginChallenge.expiresAt <= new Date() ||
+      loginChallenge.attempts >= 5
+    ) return NextResponse.json({ error: "invalid_code" }, { status: 400 });
+
+    const expected = Buffer.from(loginChallenge.codeHash, "hex");
+    const received = Buffer.from(hashTwoFactorCode(user.id, "LOGIN", parsed.data.code), "hex");
+    if (expected.length !== received.length || !timingSafeEqual(expected, received)) {
+      await prisma.twoFactorChallenge.updateMany({
+        where: { id: loginChallenge.id, attempts: { lt: 5 }, expiresAt: { gt: new Date() } },
+        data: { attempts: { increment: 1 } },
+      });
+      return NextResponse.json({ error: "invalid_code" }, { status: 400 });
+    }
+
+    return NextResponse.json({ verified: true });
+  }
 
   const challenge = await prisma.twoFactorChallenge.findUnique({
     where: { userId_purpose: { userId: user.id, purpose: "REGISTER" } },
@@ -55,7 +76,25 @@ export async function POST(request: Request) {
       where: { id: user.id, emailVerified: null },
       data: { emailVerified: new Date() },
     });
-    return updated.count === 1;
+    if (updated.count !== 1) return false;
+
+    await transaction.twoFactorChallenge.upsert({
+      where: { userId_purpose: { userId: user.id, purpose: "LOGIN" } },
+      create: {
+        userId: user.id,
+        purpose: "LOGIN",
+        codeHash: hashTwoFactorCode(user.id, "LOGIN", parsed.data.code),
+        expiresAt: challenge.expiresAt,
+        attempts: 0,
+      },
+      update: {
+        codeHash: hashTwoFactorCode(user.id, "LOGIN", parsed.data.code),
+        expiresAt: challenge.expiresAt,
+        attempts: 0,
+        createdAt: new Date(),
+      },
+    });
+    return true;
   });
 
   if (!verified) return NextResponse.json({ error: "invalid_code" }, { status: 400 });

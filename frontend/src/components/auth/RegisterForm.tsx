@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { signIn } from "next-auth/react";
 import { getCountries } from "libphonenumber-js";
 import * as CountryFlags from "country-flag-icons/react/3x2";
 import { Eye, EyeOff, Loader2, Mail, Lock, User, AtSign, Github, Twitter, X, MapPin, Phone, CalendarRange, ShieldCheck, ChevronDown, Globe2, Search } from "@/components/FontAwesomeIcons";
@@ -149,6 +150,18 @@ export function RegisterForm() {
     setCurrentStep((step) => Math.max(step - 1, 1));
   }
 
+  function preventImplicitSubmit(event: React.KeyboardEvent<HTMLFormElement>) {
+    if (
+      event.key !== "Enter" ||
+      event.defaultPrevented ||
+      verificationPending ||
+      currentStep !== TOTAL_STEPS ||
+      event.target instanceof HTMLTextAreaElement ||
+      event.target instanceof HTMLButtonElement
+    ) return;
+    event.preventDefault();
+  }
+
   function addSkill() {
     const value = skillInput.trim();
     if (!value || skills.includes(value) || skills.length >= 20) return;
@@ -164,6 +177,13 @@ export function RegisterForm() {
     e.preventDefault();
     setError(null);
     setNotice(null);
+
+    if (!verificationPending && currentStep < TOTAL_STEPS) {
+      if (validateStep(currentStep)) {
+        setCurrentStep((step) => Math.min(step + 1, TOTAL_STEPS));
+      }
+      return;
+    }
 
     if (verificationPending && !/^\d{6}$/.test(verificationCode)) {
       setError(t("auth.errors.invalidRegistrationCode"));
@@ -237,6 +257,17 @@ export function RegisterForm() {
         setError(verificationError);
         return;
       }
+      const signInResult = await signIn("credentials", {
+        email: form.email,
+        password: form.password,
+        code: verificationCode,
+        redirect: false,
+      });
+      if (signInResult?.error) {
+        setLoading(false);
+        setError(t("auth.errors.serviceUnavailable"));
+        return;
+      }
     } catch (error) {
       setLoading(false);
       setError(getNetworkErrorMessage(error) ?? t("auth.errors.serviceUnavailable"));
@@ -248,7 +279,9 @@ export function RegisterForm() {
       // Continue to sign-in even if session storage is unavailable.
     }
     setLoading(false);
-    router.replace("/login?verified=1");
+    window.dispatchEvent(new Event("lynora:navigation-start"));
+    router.replace("/welcome");
+    router.refresh();
   }
 
   async function resendVerificationCode() {
@@ -306,7 +339,7 @@ export function RegisterForm() {
         </ol>
       </div>}
 
-      <form onSubmit={onSubmit} className="mt-5 space-y-4">
+      <form onSubmit={onSubmit} onKeyDown={preventImplicitSubmit} className="mt-5 space-y-4">
         {verificationPending && (
           <fieldset className="space-y-4">
             <legend className="sr-only">{t("auth.registrationCodeTitle")}</legend>

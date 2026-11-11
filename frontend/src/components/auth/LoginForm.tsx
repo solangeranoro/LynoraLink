@@ -209,7 +209,7 @@ export function LoginForm() {
       </form>
 
       {!requiresCode && (
-        <OAuthButtons callbackUrl={callbackUrl ?? "/dashboard"} />
+        <OAuthButtons callbackUrl="/welcome" />
       )}
 
       {!requiresCode && <p className="mt-5 text-center text-sm text-ink-muted">

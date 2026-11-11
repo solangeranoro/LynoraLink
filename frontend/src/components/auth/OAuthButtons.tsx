@@ -22,7 +22,7 @@ function FacebookIcon() {
   );
 }
 
-export function OAuthButtons({ callbackUrl = "/dashboard" }: { callbackUrl?: string }) {
+export function OAuthButtons({ callbackUrl = "/welcome" }: { callbackUrl?: string }) {
   const { t } = useTranslation();
 
   return (

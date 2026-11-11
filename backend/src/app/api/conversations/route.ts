@@ -7,6 +7,7 @@ import {
   decryptMessageContent,
   MessageEncryptionError,
 } from "@/lib/message-encryption";
+import { findPlatformWelcomeConversations, isWelcomeMessageContent } from "@/lib/welcome-message";
 
 export const dynamic = "force-dynamic";
 
@@ -42,18 +43,23 @@ export async function GET() {
     include: conversationInclude(userId),
     orderBy: { updatedAt: "desc" },
   });
+  const platformWelcome = await findPlatformWelcomeConversations(conversations.map((conversation) => conversation.id));
 
   try {
     return NextResponse.json({
       conversations: conversations.map((conversation) => {
         const ownMembership = conversation.members.find((member) => member.userId === userId);
         const lastMessage = conversation.messages[0];
+        const isPlatformWelcome = platformWelcome.conversationIds.has(conversation.id);
         return {
           id: conversation.id,
           title: conversation.title,
           isGroup: conversation.isGroup,
           updatedAt: conversation.updatedAt,
-          participants: conversation.members.filter((member) => member.userId !== userId).map((member) => member.user),
+          participants: conversation.members.filter((member) => member.userId !== userId).map((member) => ({
+            ...member.user,
+            isPlatformAccount: isPlatformWelcome && member.userId === platformWelcome.adminId,
+          })),
           lastMessage: lastMessage ? {
             id: lastMessage.id,
             content: lastMessage.encryptionVersion === 2
@@ -62,7 +68,11 @@ export async function GET() {
             encryptionVersion: lastMessage.encryptionVersion,
             senderId: lastMessage.senderId,
             createdAt: lastMessage.createdAt,
-            sender: lastMessage.sender,
+            sender: {
+              ...lastMessage.sender,
+              isPlatformAccount: lastMessage.senderId === platformWelcome.adminId
+                && isWelcomeMessageContent(lastMessage.content),
+            },
             ...(lastMessage.encryptionVersion === 2
               ? {
                 attachments: lastMessage.attachments.map((attachment) => ({
