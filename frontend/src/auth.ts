@@ -2,6 +2,7 @@ import NextAuth from "next-auth";
 import { NextResponse } from "next/server";
 
 const { auth } = NextAuth({
+  secret: process.env.NEXTAUTH_SECRET,
   providers: [],
   pages: { signIn: "/login" },
   session: { strategy: "jwt" },
