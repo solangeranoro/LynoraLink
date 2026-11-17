@@ -44,6 +44,8 @@ export default function MakersDirectoryPage() {
   const [incomingPage, setIncomingPage] = useState(0);
   const [outgoingPage, setOutgoingPage] = useState(0);
   const [suggestionsPage, setSuggestionsPage] = useState(0);
+  const [pendingAssociationMakerIds, setPendingAssociationMakerIds] = useState<Set<string>>(() => new Set());
+  const [pendingDisassociationIds, setPendingDisassociationIds] = useState<Set<string>>(() => new Set());
 
   const makersQuery = useQuery({
     queryKey: ["makers", "directory", suggestionsPage],
@@ -81,11 +83,21 @@ export default function MakersDirectoryPage() {
       if (!response.ok) throw new Error("association_failed");
       return { incoming, status: status ?? "PENDING", cancelled: Boolean(cancel) };
     },
-    onSuccess: async ({ incoming, status, cancelled }) => {
+    onMutate: ({ maker }) => {
+      setPendingAssociationMakerIds((current) => new Set(current).add(maker.id));
+    },
+    onSuccess: ({ incoming, status, cancelled }) => {
       if (cancelled) showToast(t("makers.associationCancelled"));
       else if (!incoming && status === "PENDING") showToast(t("makers.associationSent"));
-      await queryClient.invalidateQueries({ queryKey: ["associations", userId] });
-      await queryClient.invalidateQueries({ queryKey: ["navigation-counts", userId] });
+      void queryClient.invalidateQueries({ queryKey: ["associations", userId] });
+      void queryClient.invalidateQueries({ queryKey: ["navigation-counts", userId] });
+    },
+    onSettled: (_data, _error, { maker }) => {
+      setPendingAssociationMakerIds((current) => {
+        const next = new Set(current);
+        next.delete(maker.id);
+        return next;
+      });
     },
   });
   const disassociateMutation = useMutation({
@@ -93,10 +105,20 @@ export default function MakersDirectoryPage() {
       const response = await fetch(`/api/associations/${associationId}`, { method: "DELETE" });
       if (!response.ok) throw new Error("association_remove_failed");
     },
-    onSuccess: async () => {
+    onMutate: (associationId) => {
+      setPendingDisassociationIds((current) => new Set(current).add(associationId));
+    },
+    onSuccess: () => {
       showToast(t("makers.disassociated"));
-      await queryClient.invalidateQueries({ queryKey: ["associations", userId] });
-      await queryClient.invalidateQueries({ queryKey: ["navigation-counts", userId] });
+      void queryClient.invalidateQueries({ queryKey: ["associations", userId] });
+      void queryClient.invalidateQueries({ queryKey: ["navigation-counts", userId] });
+    },
+    onSettled: (_data, _error, associationId) => {
+      setPendingDisassociationIds((current) => {
+        const next = new Set(current);
+        next.delete(associationId);
+        return next;
+      });
     },
   });
   const messageMutation = useMutation({
@@ -162,6 +184,7 @@ export default function MakersDirectoryPage() {
   }
 
   function renderPerson(maker: Maker | AssociationPerson, associated: boolean) {
+    const associationPending = pendingAssociationMakerIds.has(maker.id);
     const association = associations.find((item) => (
       (item.requesterId === userId && item.addresseeId === maker.id)
       || (item.requesterId === maker.id && item.addresseeId === userId)
@@ -205,7 +228,7 @@ export default function MakersDirectoryPage() {
                   disassociateMutation.mutate(association.id);
                 }
               }}
-              disabled={disassociateMutation.isPending}
+              disabled={pendingDisassociationIds.has(association.id)}
               className="maker-action-button maker-action-danger"
             >
               <X size={14} aria-hidden="true" /><span>{t("makers.disassociate")}</span>
@@ -214,17 +237,17 @@ export default function MakersDirectoryPage() {
           {!associated && (
             incoming ? (
               <>
-                <button type="button" onClick={() => associationMutation.mutate({ maker, association, status: "ACCEPTED" })} disabled={associationMutation.isPending} className="maker-action-button maker-action-positive">
+                <button type="button" onClick={() => associationMutation.mutate({ maker, association, status: "ACCEPTED" })} disabled={associationPending} className="maker-action-button maker-action-positive">
                   <Check size={14} aria-hidden="true" /><span>{t("notifications.accept")}</span>
                 </button>
-                <button type="button" onClick={() => associationMutation.mutate({ maker, association, status: "REJECTED" })} disabled={associationMutation.isPending} className="maker-action-button maker-action-danger">
+                <button type="button" onClick={() => associationMutation.mutate({ maker, association, status: "REJECTED" })} disabled={associationPending} className="maker-action-button maker-action-danger">
                   <X size={14} aria-hidden="true" /><span>{t("notifications.decline")}</span>
                 </button>
               </>
             ) : (
               <button
                 type="button"
-                disabled={associationMutation.isPending}
+                disabled={associationPending}
                 className="maker-action-button maker-action-positive"
                 onClick={() => association?.status === "PENDING"
                   ? associationMutation.mutate({ maker, association, cancel: true })

@@ -6,7 +6,7 @@ export const metadata: Metadata = { title: "Sign in" };
 
 export default function LoginPage() {
   return (
-    <Suspense fallback={<div className="skeleton h-96 w-full rounded-xl" />}>
+    <Suspense fallback={null}>
       <LoginForm />
     </Suspense>
   );

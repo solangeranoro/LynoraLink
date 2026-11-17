@@ -252,11 +252,11 @@ export function PostCard({
       });
       return previous;
     },
-    onSuccess: async (data) => {
+    onSuccess: (data) => {
       setReaction(data.reaction);
       setLikeCount(data.count);
       setReactionCounts(data.reactionCounts);
-      await queryClient.invalidateQueries({ queryKey: ["feed"] });
+      void queryClient.invalidateQueries({ queryKey: ["feed"] });
     },
     onError: (_error, _nextReaction, previous) => {
       if (!previous) return;
@@ -300,11 +300,11 @@ export function PostCard({
       if (!response.ok) throw new Error("association_failed");
       return { result: await response.json() as { association?: { status?: string } }, cancelled: Boolean(cancel) };
     },
-    onSuccess: async ({ result, cancelled }) => {
+    onSuccess: ({ result, cancelled }) => {
       const status = result.association?.status ?? "PENDING";
       setAssociationStatus(cancelled ? null : status);
       showToast(t(cancelled ? "makers.associationCancelled" : "feed.associationSent"));
-      await queryClient.invalidateQueries({ queryKey: ["associations", session?.user?.id] });
+      void queryClient.invalidateQueries({ queryKey: ["associations", session?.user?.id] });
     },
     onError: () => setAssociationStatus(null),
   });
@@ -332,10 +332,10 @@ export function PostCard({
       if (!response.ok) throw new Error("post_preference_failed");
       return response.json() as Promise<{ saved: boolean; hidden: boolean }>;
     },
-    onSuccess: async ({ saved: nextSaved, hidden: nextHidden }) => {
+    onSuccess: ({ saved: nextSaved, hidden: nextHidden }) => {
       setSaved(nextSaved);
       setHidden(nextHidden);
-      await queryClient.invalidateQueries({ queryKey: ["feed"] });
+      void queryClient.invalidateQueries({ queryKey: ["feed"] });
     },
     onError: () => setOptionMessage(t("feed.preferenceError")),
   });
@@ -350,9 +350,9 @@ export function PostCard({
       if (!response.ok) throw new Error("post_visibility_failed");
       return response.json() as Promise<{ isHidden: boolean }>;
     },
-    onSuccess: async ({ isHidden: nextHidden }) => {
+    onSuccess: ({ isHidden: nextHidden }) => {
       setHidden(nextHidden);
-      await queryClient.invalidateQueries();
+      void queryClient.invalidateQueries();
     },
     onError: () => setOptionMessage(t("feed.preferenceError")),
   });
@@ -367,9 +367,9 @@ export function PostCard({
       if (!response.ok) throw new Error("post_edit_failed");
       return response.json();
     },
-    onSuccess: async () => {
+    onSuccess: () => {
       setDialogMode(null);
-      await queryClient.invalidateQueries();
+      void queryClient.invalidateQueries();
     },
     onError: () => setDialogError(t("feed.editError")),
   });
@@ -381,10 +381,10 @@ export function PostCard({
       return response.json();
     },
     onMutate: () => setRemoved(true),
-    onSuccess: async () => {
+    onSuccess: () => {
       queryClient.setQueriesData<FeedPost[]>({ queryKey: ["feed"] }, (posts) => posts?.filter(({ id }) => id !== post.id));
       setDialogMode(null);
-      await queryClient.invalidateQueries({ queryKey: ["feed"] });
+      void queryClient.invalidateQueries({ queryKey: ["feed"] });
     },
     onError: () => {
       setRemoved(false);

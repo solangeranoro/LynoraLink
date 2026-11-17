@@ -94,13 +94,13 @@ export default function MakerProfilePage() {
       if (!response.ok) throw new Error("association_failed");
       return { result: await response.json(), cancelled: Boolean(cancel), incoming };
     },
-    onSuccess: async ({ cancelled, incoming }, variables) => {
+    onSuccess: ({ cancelled, incoming }, variables) => {
       const messageKey = cancelled ? "makers.associationCancelled" : variables.status === "REJECTED" ? "makers.associationDeclined" : incoming ? "makers.associated" : "makers.associationSent";
       if ((!incoming && variables.status !== "REJECTED") || cancelled) showToast(t(messageKey));
       else setNotice(t(messageKey));
-      await queryClient.invalidateQueries({ queryKey: ["maker-profile", params.handle] });
-      await queryClient.invalidateQueries({ queryKey: ["associations", session?.user?.id] });
-      await queryClient.invalidateQueries({ queryKey: ["navigation-counts", session?.user?.id] });
+      void queryClient.invalidateQueries({ queryKey: ["maker-profile", params.handle] });
+      void queryClient.invalidateQueries({ queryKey: ["associations", session?.user?.id] });
+      void queryClient.invalidateQueries({ queryKey: ["navigation-counts", session?.user?.id] });
     },
   });
   const messageMutation = useMutation({

@@ -140,6 +140,7 @@ export default function TeamsPage() {
 
   const [query, setQuery] = useState("");
   const [roleFilter, setRoleFilter] = useState<string | null>(null);
+  const [joiningTeamIds, setJoiningTeamIds] = useState<Set<string>>(() => new Set());
 
   const { data: teams, isLoading, isError, error: teamsError } = useQuery({
     queryKey: ["teams", "mine"],
@@ -185,12 +186,22 @@ export default function TeamsPage() {
       };
       return { teamId, collaborator: data.collaborator };
     },
-    onSuccess: async ({ teamId, collaborator }) => {
+    onMutate: (teamId) => {
+      setJoiningTeamIds((current) => new Set(current).add(teamId));
+    },
+    onSuccess: ({ teamId, collaborator }) => {
       queryClient.setQueryData<TeamProject[]>(["teams", "discover"], (current) =>
         current?.map((team) => (team.id === teamId ? { ...team, collaborators: [...team.collaborators, collaborator] } : team)),
       );
       if (collaborator.status === "PENDING") showToast(t("teams.requestSubmitted"));
-      await queryClient.invalidateQueries({ queryKey: ["teams", "mine"] });
+      void queryClient.invalidateQueries({ queryKey: ["teams", "mine"] });
+    },
+    onSettled: (_data, _error, teamId) => {
+      setJoiningTeamIds((current) => {
+        const next = new Set(current);
+        next.delete(teamId);
+        return next;
+      });
     },
   });
 
@@ -441,7 +452,7 @@ export default function TeamsPage() {
           <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
             {discoverable.map((team) => {
               const membership = team.collaborators.find((item) => item.userId === session?.user?.id);
-              const isJoining = joinMutation.isPending && joinMutation.variables === team.id;
+              const isJoining = joiningTeamIds.has(team.id);
               return (
                 <article key={team.id} className="card space-y-4 overflow-hidden p-4 transition hover:border-gold/30">
                   <div className="flex items-start justify-between gap-3">
@@ -489,7 +500,7 @@ export default function TeamsPage() {
                       </Link>
                       <button
                         type="button"
-                        disabled={Boolean(membership) || joinMutation.isPending || sessionStatus !== "authenticated"}
+                        disabled={Boolean(membership) || isJoining || sessionStatus !== "authenticated"}
                         onClick={() => joinMutation.mutate(team.id)}
                         className={`${membership ? "btn-ghost" : "btn-gold"} !min-h-9 !justify-center !gap-1.5 !rounded-lg !px-2 !py-2 text-xs sm:!px-3`}
                       >

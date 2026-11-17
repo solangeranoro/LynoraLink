@@ -8,6 +8,7 @@ import { LandingImageCarousel } from "@/components/LandingImageCarousel";
 import { LandingScrollEffects } from "@/components/LandingScrollEffects";
 import { Logo } from "@/components/Logo";
 import { useTranslation } from "@/lib/i18n";
+import { useSession } from "next-auth/react";
 
 const copy = {
   en: {
@@ -126,6 +127,7 @@ const copy = {
 
 export default function Home() {
   const { locale } = useTranslation();
+  const { status } = useSession();
   const text = locale === "fr" ? copy.fr : copy.en;
 
   return (
@@ -255,7 +257,7 @@ export default function Home() {
           </div>
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
             {text.features.map(({ title, text: description, icon: Icon, href }, index) => (
-              <Link key={title} href={href} data-landing-reveal="up" className="landing-feature-card group block rounded-3xl border border-[#d8e2f2] bg-[#fbfdfd] p-6 transition duration-300 hover:-translate-y-1 hover:border-[#a8c6ff] hover:shadow-[0_20px_55px_rgba(20,55,67,0.08)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0878ff] focus-visible:ring-offset-2 sm:p-7">
+              <Link key={title} href={status === "unauthenticated" ? "/login" : href} data-landing-reveal="up" className="landing-feature-card group block rounded-3xl border border-[#d8e2f2] bg-[#fbfdfd] p-6 transition duration-300 hover:-translate-y-1 hover:border-[#a8c6ff] hover:shadow-[0_20px_55px_rgba(20,55,67,0.08)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0878ff] focus-visible:ring-offset-2 sm:p-7">
                 <div className="mb-10 flex items-center justify-between">
                   <span className="grid h-12 w-12 place-items-center rounded-2xl bg-[#eaf2ff] text-[#0878ff] transition duration-300 group-hover:bg-[#d4eee7]">
                     <Icon size={18} aria-hidden="true" />
@@ -285,7 +287,7 @@ export default function Home() {
           </div>
           <div className="grid gap-4 md:grid-cols-2">
             {text.communityAudiences.map(({ title, text: description, action, href, icon: Icon }, index) => (
-              <Link key={title} href={href} data-landing-reveal="up" className="landing-community-card group rounded-2xl border border-white/10 bg-white/[0.045] p-5 transition hover:-translate-y-1 hover:border-[#8cff00]/40 hover:bg-white/[0.075] sm:rounded-3xl sm:p-8">
+              <Link key={title} href={status === "unauthenticated" && href.startsWith("/discover") ? "/register" : href} data-landing-reveal="up" className="landing-community-card group rounded-2xl border border-white/10 bg-white/[0.045] p-5 transition hover:-translate-y-1 hover:border-[#8cff00]/40 hover:bg-white/[0.075] sm:rounded-3xl sm:p-8">
                 <div className="flex items-center justify-between">
                   <span className="grid h-10 w-10 place-items-center rounded-xl bg-[#35b5ff]/10 text-[#8cff00] sm:h-12 sm:w-12 sm:rounded-2xl">
                     <Icon size={20} aria-hidden="true" />

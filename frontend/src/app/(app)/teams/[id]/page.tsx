@@ -124,7 +124,7 @@ export default function TeamDetailPage() {
       const data = await response.json() as { collaborator: NonNullable<TeamDetails["currentMembership"]> };
       return data.collaborator;
     },
-    onSuccess: async (membership) => {
+    onSuccess: (membership) => {
       setJoinError("");
       setApplicationMessage("");
       setApplicationAnswers([]);
@@ -134,7 +134,7 @@ export default function TeamDetailPage() {
       queryClient.setQueryData<TeamDetails>(["team", params.id], (current) => current
         ? { ...current, currentMembership: membership }
         : current);
-      await queryClient.invalidateQueries({ queryKey: ["teams"] });
+      void queryClient.invalidateQueries({ queryKey: ["teams"] });
     },
     onError: () => setJoinError(t("teams.joinError")),
   });
@@ -157,9 +157,9 @@ export default function TeamDetailPage() {
       if (!response.ok) throw new Error("invitation_response_failed");
       return status;
     },
-    onSuccess: async (status) => {
+    onSuccess: (status) => {
       setNotice(t(status === "APPROVED" ? "teams.invitationAccepted" : "teams.invitationDeclined"));
-      await queryClient.invalidateQueries({ queryKey: ["team", params.id] });
+      void queryClient.invalidateQueries({ queryKey: ["team", params.id] });
       if (status === "APPROVED") router.push(`/projects/${params.id}/co-building`);
     },
   });
@@ -173,7 +173,7 @@ export default function TeamDetailPage() {
       if (!response.ok) throw new Error("membership_action_failed");
       return currentMembership.status;
     },
-    onSuccess: async (status) => {
+    onSuccess: (status) => {
       setJoinError("");
       setNotice(t(status === "PENDING" ? "teams.joinRequestCancelled" : "teams.teamLeft"));
       queryClient.setQueryData<TeamDetails>(["team", params.id], (current) => current
@@ -183,7 +183,7 @@ export default function TeamDetailPage() {
           collaborators: current.collaborators.filter((member) => member.user.id !== session?.user?.id),
         }
         : current);
-      await queryClient.invalidateQueries({ queryKey: ["teams"] });
+      void queryClient.invalidateQueries({ queryKey: ["teams"] });
     },
     onError: () => setJoinError(t("teams.membershipActionError")),
   });
