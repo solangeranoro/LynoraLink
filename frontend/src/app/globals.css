@@ -86,6 +86,71 @@
   50% { transform: translate3d(-18px, 14px, 0) scale(1.06); }
 }
 
+@keyframes auth-hero-orbit-drift {
+  0%, 100% { opacity: 0.62; transform: rotate(-12deg) translateY(0); }
+  50% { opacity: 0.95; transform: rotate(-8deg) translateY(-7px); }
+}
+
+@keyframes auth-title-type {
+  from { opacity: 0; transform: translateY(0.35em); filter: blur(3px); }
+  to { opacity: 1; transform: translateY(0); filter: blur(0); }
+}
+
+@keyframes auth-title-color {
+  0%, 100% { color: rgb(var(--ink)); text-shadow: none; }
+  50% { color: rgb(var(--button-primary)); text-shadow: 0 0 16px rgb(var(--button-primary) / 0.35); }
+}
+
+.auth-hero-decoration {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  overflow: hidden;
+  pointer-events: none;
+  background:
+    radial-gradient(ellipse at 77% 48%, rgb(34 184 160 / 0.13), transparent 38%),
+    linear-gradient(115deg, transparent 48%, rgb(3 35 27 / 0.12) 100%);
+}
+
+.auth-hero-decoration-register {
+  background:
+    radial-gradient(ellipse at 70% 42%, rgb(0 134 255 / 0.16), transparent 42%),
+    radial-gradient(ellipse at 35% 82%, rgb(140 255 0 / 0.08), transparent 45%);
+}
+
+.auth-hero-glow {
+  position: absolute;
+  inset: 12% 2% 2% 8%;
+  border-radius: 50%;
+  background: radial-gradient(ellipse, rgb(0 134 255 / 0.34), rgb(0 87 255 / 0.12) 42%, transparent 72%);
+  filter: blur(28px);
+  animation: landing-hero-drift 12s ease-in-out infinite;
+}
+
+.auth-hero-orbit {
+  position: absolute;
+  right: -7%;
+  bottom: 10%;
+  width: 116%;
+  height: 34%;
+  border: 2px solid transparent;
+  border-top-color: rgb(0 167 255 / 0.75);
+  border-bottom-color: rgb(140 255 0 / 0.78);
+  border-radius: 50%;
+  box-shadow: 0 0 18px rgb(0 167 255 / 0.24), inset 0 -4px 14px rgb(140 255 0 / 0.1);
+  filter: drop-shadow(0 0 10px rgb(0 167 255 / 0.36));
+  transform: rotate(-12deg);
+  animation: auth-hero-orbit-drift 8s ease-in-out infinite;
+}
+
+.auth-title-letter {
+  display: inline-block;
+  opacity: 0;
+  animation:
+    auth-title-type 420ms cubic-bezier(0.22, 1, 0.36, 1) var(--auth-letter-delay) both,
+    auth-title-color 3.6s ease-in-out var(--auth-color-delay) infinite;
+}
+
 .landing-hero-shell::before,
 .landing-hero-shell::after {
   position: absolute;
@@ -690,6 +755,8 @@
   .animate-slide-left, .animate-dashboard-slide, .animate-badge-pulse, .animate-analytics-enter,
   .analytics-chart-line, .analytics-chart-area, .analytics-chart-bar, .analytics-reaction-bar { animation: none; }
   .logout-screen, .logout-orb, .logout-orbit, .logout-status-dot, .logout-progress { animation: none; }
+  .auth-hero-glow, .auth-hero-orbit, .auth-title-letter { animation: none; }
+  .auth-title-letter { opacity: 1; transform: none; filter: none; color: inherit; text-shadow: none; }
   .landing-hero-shell::after, .landing-hero-kicker, .landing-hero-title,
   .landing-hero-description, .landing-hero-actions, .landing-hero-copy + div {
     animation: none;

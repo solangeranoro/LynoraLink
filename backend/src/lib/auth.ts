@@ -16,6 +16,8 @@ import { issueTwoFactorCode } from "@/lib/two-factor";
 import { createOAuthTwoFactorToken, hashTwoFactorCode, normalizeTwoFactorCode, verifyOAuthTwoFactorToken } from "@/lib/two-factor-crypto";
 import {
   createUniqueUserIdentity,
+  isGeneratedPublicName,
+  isGeneratedUserHandle,
   isPersonalizedPublicName,
   needsGeneratedPublicName,
 } from "@/lib/user-handle";
@@ -176,7 +178,7 @@ export const authOptions: NextAuthConfig = {
         : null);
       if (isOAuthSignIn && !dbUser && normalizedEmail) {
         try {
-          const identity = await createUniqueUserIdentity(null);
+          const identity = await createUniqueUserIdentity(publicProviderName);
           dbUser = await prisma.user.upsert({
             where: { email: normalizedEmail },
             update: {},
@@ -194,39 +196,28 @@ export const authOptions: NextAuthConfig = {
           return "/login?error=OAuthTwoFactorUnavailable";
         }
       }
-      if (
-        isOAuthSignIn &&
-        dbUser &&
-        (
-          !dbUser.handle ||
-          needsGeneratedPublicName(dbUser.name, dbUser.email) ||
-          Boolean(publicProviderName && dbUser.name?.trim() === publicProviderName)
-        )
-      ) {
-        try {
-          const shouldGenerateDefaultName =
-            needsGeneratedPublicName(dbUser.name, dbUser.email) ||
-            Boolean(publicProviderName && dbUser.name?.trim() === publicProviderName);
-          const existingPublicName = isPersonalizedPublicName(dbUser.name, dbUser.email)
-            ? dbUser.name
-            : null;
-          const identity = await createUniqueUserIdentity(shouldGenerateDefaultName
-            ? null
-            : publicProviderName ?? existingPublicName);
-          await prisma.user.updateMany({
-            where: { id: dbUser.id, handle: null },
-            data: { handle: identity.handle },
-          });
-          if (shouldGenerateDefaultName) {
+      if (isOAuthSignIn && dbUser) {
+        const shouldUpdateName = needsGeneratedPublicName(dbUser.name, dbUser.email) ||
+          isGeneratedPublicName(dbUser.name);
+        const shouldUpdateHandle = !dbUser.handle || isGeneratedUserHandle(dbUser.handle);
+        if (shouldUpdateName || shouldUpdateHandle) {
+          try {
+            const existingPublicName = isPersonalizedPublicName(dbUser.name, dbUser.email)
+              ? dbUser.name
+              : null;
+            const identity = await createUniqueUserIdentity(publicProviderName ?? existingPublicName);
             await prisma.user.updateMany({
-              where: { id: dbUser.id, name: dbUser.name },
-              data: { name: identity.name },
+              where: { id: dbUser.id, name: dbUser.name, handle: dbUser.handle },
+              data: {
+                ...(shouldUpdateHandle ? { handle: identity.handle } : {}),
+                ...(shouldUpdateName ? { name: identity.name } : {}),
+              },
             });
+            dbUser = await prisma.user.findUnique({ where: { id: dbUser.id }, select: userSelect });
+          } catch (error) {
+            console.error("OAuth public username initialization failed", error);
+            return "/login?error=OAuthTwoFactorUnavailable";
           }
-          dbUser = await prisma.user.findUnique({ where: { id: dbUser.id }, select: userSelect });
-        } catch (error) {
-          console.error("OAuth public username initialization failed", error);
-          return "/login?error=OAuthTwoFactorUnavailable";
         }
       }
       if (isOAuthSignIn && !dbUser) return false;

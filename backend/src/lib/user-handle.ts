@@ -16,6 +16,10 @@ export function isGeneratedPublicName(name: string | null | undefined) {
   return /^user#\d{6}$/i.test(name?.trim() ?? "");
 }
 
+export function isGeneratedUserHandle(handle: string | null | undefined) {
+  return /^user\d{6}$/i.test(handle?.trim() ?? "");
+}
+
 export function needsGeneratedPublicName(name: string | null | undefined, email?: string | null) {
   const normalizedName = name?.trim();
   return !normalizedName ||

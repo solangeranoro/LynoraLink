@@ -6,6 +6,8 @@ import Image from "next/image";
 import { useQuery } from "@tanstack/react-query";
 import { useSession } from "next-auth/react";
 import { ArrowRight, ArrowUpRight, Plus } from "@/components/FontAwesomeIcons";
+import { TesterPlatformIcon } from "@/components/TesterPlatformIcon";
+import type { ApprovedTesterApplication } from "@/components/TesterApplicationFeedCard";
 import { useTranslation } from "@/lib/i18n";
 
 type ProjectStatus = "IDEA" | "DEVELOPMENT" | "LAUNCHED";
@@ -31,6 +33,13 @@ async function fetchProjects(url: string): Promise<WorkspaceProject[]> {
   if (!response.ok) throw new Error("projects_load_failed");
   const result = await response.json() as { projects: WorkspaceProject[] };
   return result.projects;
+}
+
+async function fetchApprovedApplications(): Promise<ApprovedTesterApplication[]> {
+  const response = await fetch("/api/tester-applications?take=10&feed=1");
+  if (!response.ok) throw new Error("approved_applications_load_failed");
+  const result = await response.json() as { applications: ApprovedTesterApplication[] };
+  return result.applications;
 }
 
 async function fetchDiscoverableProjects(userId: string): Promise<WorkspaceProject[]> {
@@ -140,21 +149,40 @@ export function WorkspaceQuickActions() {
     refetchInterval: 60_000,
     refetchIntervalInBackground: false,
   });
+  const {
+    data: approvedApplications = [],
+    isLoading: applicationsLoading,
+    isError: applicationsError,
+  } = useQuery({
+    queryKey: ["tester-applications", "sidebar"],
+    queryFn: fetchApprovedApplications,
+    enabled: Boolean(userId),
+    staleTime: 60_000,
+    refetchInterval: 60_000,
+    refetchIntervalInBackground: false,
+  });
   const projectList = [...(projects ?? [])].sort((first, second) => Date.parse(second.createdAt) - Date.parse(first.createdAt));
-  const [recentProjectOffset, setRecentProjectOffset] = useState(0);
-  const normalizedOffset = projectList.length ? recentProjectOffset % projectList.length : 0;
-  const recentProjects = projectList.length ? [projectList[normalizedOffset]] : [];
+  const discoveryItems = [
+    ...projectList.map((project) => ({ type: "project" as const, item: project })),
+    ...approvedApplications.map((application) => ({ type: "application" as const, item: application })),
+  ].sort((first, second) => {
+    const firstDate = first.type === "project" ? first.item.createdAt : first.item.reviewedAt ?? first.item.createdAt;
+    const secondDate = second.type === "project" ? second.item.createdAt : second.item.reviewedAt ?? second.item.createdAt;
+    return Date.parse(secondDate) - Date.parse(firstDate);
+  });
+  const [recentItemOffset, setRecentItemOffset] = useState(0);
+  const recentItem = discoveryItems.length ? discoveryItems[recentItemOffset % discoveryItems.length] : null;
 
   useEffect(() => {
-    if (projectList.length <= 1) {
-      setRecentProjectOffset(0);
+    if (discoveryItems.length <= 1) {
+      setRecentItemOffset(0);
       return;
     }
     const timer = window.setInterval(() => {
-      setRecentProjectOffset((offset) => ((offset % projectList.length) + 1) % projectList.length);
+      setRecentItemOffset((offset) => (offset + 1) % discoveryItems.length);
     }, 60_000);
     return () => window.clearInterval(timer);
-  }, [projectList.length]);
+  }, [discoveryItems.length]);
 
   return (
     <section className="card overflow-hidden rounded-2xl shadow-card">
@@ -165,66 +193,108 @@ export function WorkspaceQuickActions() {
             {isFrench ? "Voir tout" : "View all"}
           </Link>
         </div>
-        {isLoading ? (
+        {isLoading || applicationsLoading ? (
           <div className="skeleton h-40 rounded-xl" aria-label={isFrench ? "Chargement des projets" : "Loading projects"} />
-        ) : isError ? (
-          <p role="alert" className="py-2 text-xs text-rose-300">{isFrench ? "Impossible de charger les projets." : "Projects couldn't be loaded."}</p>
-        ) : recentProjects.length > 0 ? (
-          <ul aria-live="polite">
-            {recentProjects.map((project) => {
-              const statusLabel = project.status === "LAUNCHED" ? (isFrench ? "Lancé" : "Launched") : project.status === "DEVELOPMENT" ? (isFrench ? "En développement" : "In development") : (isFrench ? "En réflexion" : "In planning");
-              const projectTags = project.tags.length ? project.tags : project.techStack;
-              const teamName = project.teamName?.trim() || project.parentTeam?.teamName?.trim() || project.parentTeam?.title;
-              const authorName = project.creator.name || (project.creator.handle ? `@${project.creator.handle}` : null);
-              return (
-                <li key={project.id} className="animate-dashboard-slide">
-                  <Link href={`/projects/${project.id}`} className="group relative block h-48 overflow-hidden rounded-xl border border-midnight-border bg-midnight-deep transition hover:border-gold/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold/60">
-                    {project.coverUrl ? (
-                      <Image src={project.coverUrl} alt="" fill sizes="320px" unoptimized className="object-cover transition duration-700 group-hover:scale-105" />
-                    ) : (
-                      <div aria-hidden="true" className="absolute inset-0 bg-gradient-to-br from-gold/20 via-midnight-card to-emerald-500/10" />
-                    )}
-                    <div aria-hidden="true" className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/25 to-black/5" />
-                    <span className="relative flex h-full flex-col p-3.5">
-                      <span className="flex items-start justify-between gap-2">
-                        {project.logoUrl ? (
-                          <span className="grid size-9 shrink-0 place-items-center overflow-hidden rounded-lg border border-white/30 bg-midnight-card/90 p-1 shadow-lg">
-                            <Image src={project.logoUrl} alt="" width={36} height={36} unoptimized className="h-full w-full rounded object-contain" />
+        ) : (
+          <>
+            {(isError || applicationsError) && (
+              <p role="alert" className="mb-2 py-2 text-xs text-rose-300">
+                {isError
+                  ? isFrench ? "Impossible de charger les projets." : "Projects couldn't be loaded."
+                  : t("feed.approvedApplicationsLoadError")}
+              </p>
+            )}
+            {recentItem ? (
+              <ul aria-live="polite">
+                {recentItem.type === "project" ? (() => {
+                  const project = recentItem.item;
+                  const statusLabel = project.status === "LAUNCHED" ? (isFrench ? "Lancé" : "Launched") : project.status === "DEVELOPMENT" ? (isFrench ? "En développement" : "In development") : (isFrench ? "En réflexion" : "In planning");
+                  const projectTags = project.tags.length ? project.tags : project.techStack;
+                  const teamName = project.teamName?.trim() || project.parentTeam?.teamName?.trim() || project.parentTeam?.title;
+                  const authorName = project.creator.name || (project.creator.handle ? `@${project.creator.handle}` : null);
+                  return (
+                    <li key={project.id} className="animate-dashboard-slide">
+                      <Link href={`/projects/${project.id}`} className="group relative block h-48 overflow-hidden rounded-xl border border-midnight-border bg-midnight-deep transition hover:border-gold/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold/60">
+                        {project.coverUrl ? (
+                          <Image src={project.coverUrl} alt="" fill sizes="320px" unoptimized className="object-cover transition duration-700 group-hover:scale-105" />
+                        ) : (
+                          <div aria-hidden="true" className="absolute inset-0 bg-gradient-to-br from-gold/20 via-midnight-card to-emerald-500/10" />
+                        )}
+                        <div aria-hidden="true" className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/25 to-black/5" />
+                        <span className="relative flex h-full flex-col p-3.5">
+                          <span className="flex items-start justify-between gap-2">
+                            {project.logoUrl ? (
+                              <span className="grid size-9 shrink-0 place-items-center overflow-hidden rounded-lg border border-white/30 bg-midnight-card/90 p-1 shadow-lg">
+                                <Image src={project.logoUrl} alt="" width={36} height={36} unoptimized className="h-full w-full rounded object-contain" />
+                              </span>
+                            ) : null}
+                            <span className="ml-auto rounded-full border border-white/15 bg-black/40 px-2 py-1 text-[9px] font-medium text-white backdrop-blur-sm">
+                              {statusLabel}
+                            </span>
                           </span>
-                        ) : null}
-                        <span className="ml-auto rounded-full border border-white/15 bg-black/40 px-2 py-1 text-[9px] font-medium text-white backdrop-blur-sm">
-                          {statusLabel}
+                          <span className="mt-auto pt-4">
+                            <span className="block truncate text-sm font-semibold text-white">{project.title}</span>
+                            {project.tagline && <span className="mt-1 block line-clamp-2 text-[10px] leading-relaxed text-white/75">{project.tagline}</span>}
+                            {(teamName || authorName) && (
+                              <span className="mt-1.5 block truncate text-[9px] text-white/65">
+                                {teamName ? `${isFrench ? "Équipe" : "Team"} · ${teamName}` : `${isFrench ? "Par" : "By"} ${authorName}`}
+                              </span>
+                            )}
+                            {projectTags.length > 0 && (
+                              <span className="mt-2 flex flex-nowrap gap-1.5 overflow-hidden">
+                                {projectTags.slice(0, 3).map((tag) => (
+                                  <span key={tag} className="max-w-20 shrink truncate rounded-full border border-white/15 bg-black/25 px-2 py-0.5 text-[9px] text-white/85">{tag}</span>
+                                ))}
+                              </span>
+                            )}
+                          </span>
+                        </span>
+                      </Link>
+                    </li>
+                  );
+                })() : (
+                  <li key={`application-${recentItem.item.id}`} className="animate-dashboard-slide">
+                    <Link href={`/tester-applications/${recentItem.item.id}`} className="group relative block h-48 overflow-hidden rounded-xl border border-emerald-300/20 bg-midnight-deep transition hover:border-emerald-300/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-300/50">
+                      {recentItem.item.screenshotUrls[0] ? (
+                        <Image src={recentItem.item.screenshotUrls[0]} alt="" fill sizes="320px" unoptimized className="object-cover transition duration-700 group-hover:scale-105" />
+                      ) : (
+                        <div aria-hidden="true" className="absolute inset-0 bg-gradient-to-br from-emerald-300/20 via-midnight-card to-sky-500/10" />
+                      )}
+                      <div aria-hidden="true" className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/25 to-black/5" />
+                      <span className="relative flex h-full flex-col p-3.5">
+                        <span className="flex items-start justify-between gap-2">
+                          <span className="rounded-full border border-emerald-200/30 bg-emerald-950/60 px-2 py-1 text-[9px] font-medium text-emerald-100 backdrop-blur-sm">
+                            {t("feed.approvedApplication")}
+                          </span>
+                          <span className="rounded-full border border-white/15 bg-black/40 px-2 py-1 text-[9px] font-medium text-white backdrop-blur-sm">
+                            <TesterPlatformIcon platform={recentItem.item.platform} className="mr-1 inline-block align-[-2px]" />
+                            {t(`testerApplications.list.platform.${recentItem.item.platform}`)}
+                          </span>
+                        </span>
+                        <span className="mt-auto pt-4">
+                          <span className="block truncate text-sm font-semibold text-white">{recentItem.item.name}</span>
+                          <span className="mt-1 block line-clamp-2 text-[10px] leading-relaxed text-white/75">{recentItem.item.description}</span>
+                          <span className="mt-1.5 block truncate text-[9px] text-white/65">
+                            {t("testerApplications.list.by", { name: recentItem.item.ownerName })}
+                          </span>
                         </span>
                       </span>
-                      <span className="mt-auto pt-4">
-                        <span className="block truncate text-sm font-semibold text-white">{project.title}</span>
-                        {project.tagline && <span className="mt-1 block line-clamp-2 text-[10px] leading-relaxed text-white/75">{project.tagline}</span>}
-                        {(teamName || authorName) && (
-                          <span className="mt-1.5 block truncate text-[9px] text-white/65">
-                            {teamName ? `${isFrench ? "Équipe" : "Team"} · ${teamName}` : `${isFrench ? "Par" : "By"} ${authorName}`}
-                          </span>
-                        )}
-                        {projectTags.length > 0 && (
-                          <span className="mt-2 flex flex-nowrap gap-1.5 overflow-hidden">
-                            {projectTags.slice(0, 3).map((tag) => (
-                              <span key={tag} className="max-w-20 shrink truncate rounded-full border border-white/15 bg-black/25 px-2 py-0.5 text-[9px] text-white/85">{tag}</span>
-                            ))}
-                          </span>
-                        )}
-                      </span>
-                    </span>
-                  </Link>
-                </li>
-              );
-            })}
-          </ul>
-        ) : (
-          <div className="rounded-xl border border-dashed border-midnight-border px-3 py-5 text-center">
-            <p className="text-xs text-ink-muted">{isFrench ? "Aucun projet public à découvrir pour le moment." : "No public projects to discover yet."}</p>
-            <Link href="/discover" className="mt-2 inline-flex items-center gap-1 text-xs font-semibold text-gold-soft hover:text-gold-bright">
-              {isFrench ? "Explorer les projets" : "Explore projects"} <ArrowRight size={12} aria-hidden="true" />
-            </Link>
-          </div>
+                    </Link>
+                    <a href={recentItem.item.downloadUrl} target="_blank" rel="noopener noreferrer" className="mt-2 inline-flex items-center gap-1 text-xs font-medium text-emerald-200 hover:text-emerald-100">
+                      {t("feed.applicationTestAction")} <ArrowUpRight size={12} aria-hidden="true" />
+                    </a>
+                  </li>
+                )}
+              </ul>
+            ) : (
+              <div className="rounded-xl border border-dashed border-midnight-border px-3 py-5 text-center">
+                <p className="text-xs text-ink-muted">{isFrench ? "Aucun projet ni application à découvrir pour le moment." : "No projects or apps to discover yet."}</p>
+                <Link href="/discover" className="mt-2 inline-flex items-center gap-1 text-xs font-semibold text-gold-soft hover:text-gold-bright">
+                  {isFrench ? "Explorer les projets" : "Explore projects"} <ArrowRight size={12} aria-hidden="true" />
+                </Link>
+              </div>
+            )}
+          </>
         )}
       </div>
       <Link href="/discover" className="group flex items-center justify-between border-t border-midnight-border px-4 py-3 text-xs font-medium text-ink-muted transition hover:bg-midnight-deep/40 hover:text-gold-soft">

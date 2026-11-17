@@ -7,6 +7,7 @@ import { signIn } from "next-auth/react";
 import { getCountries } from "libphonenumber-js";
 import * as CountryFlags from "country-flag-icons/react/3x2";
 import { Eye, EyeOff, Loader2, Mail, Lock, User, AtSign, Github, Twitter, X, MapPin, Phone, CalendarRange, ShieldCheck, ChevronDown, Globe2, Search } from "@/components/FontAwesomeIcons";
+import { AuthSplitLayout } from "@/components/auth/AuthSplitLayout";
 import { OAuthButtons } from "@/components/auth/OAuthButtons";
 import { useTranslation } from "@/lib/i18n";
 import { getNetworkErrorMessage } from "@/lib/error-messages";
@@ -315,7 +316,7 @@ export function RegisterForm() {
 
   return (
     <>
-      <div className="card animate-fade-in mx-auto w-full max-w-lg p-5 sm:p-7">
+      <AuthSplitLayout variant="register">
       <div>
         {!verificationPending && <p className="text-[11px] font-semibold uppercase tracking-wider text-gold-soft">{t("auth.stepCounter", { current: currentStep, total: TOTAL_STEPS })}</p>}
         <h1 className="mt-1 font-display text-2xl font-semibold text-ink">{verificationPending ? t("auth.registrationCodeTitle") : t("auth.registerTitle")}</h1>
@@ -341,7 +342,7 @@ export function RegisterForm() {
         </ol>
       </div>}
 
-      <form ref={registrationFormRef} onSubmit={onSubmit} className="mt-5 space-y-4">
+      <form ref={registrationFormRef} onSubmit={onSubmit} className="mt-4 space-y-3">
         {verificationPending && (
           <fieldset className="space-y-4">
             <legend className="sr-only">{t("auth.registrationCodeTitle")}</legend>
@@ -362,26 +363,23 @@ export function RegisterForm() {
         )}
 
         {!verificationPending && currentStep === 1 && (
-          <fieldset className="space-y-4">
+          <fieldset className="space-y-3">
             <legend className="sr-only">{t("auth.accountSection")}</legend>
-            <div className="space-y-1">
-              <h2 className="text-base font-semibold text-ink">{t("auth.loginDetails")}</h2>
-              <p className="text-xs text-ink-muted">{t("auth.accountDetails")}</p>
-            </div>
-
-            <div className="space-y-1.5">
-              <label htmlFor="name" className="label !normal-case !tracking-normal !text-ink">{t("auth.name")}</label>
-              <div className="relative">
-                <User className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-ink-muted" />
-                <input id="name" name="name" autoComplete="name" required minLength={2} value={form.name} onChange={update("name")} className="input pl-10" placeholder="Ada Nkemi" />
+            <div className="grid gap-3 sm:grid-cols-2">
+              <div className="space-y-1.5">
+                <label htmlFor="name" className="label !normal-case !tracking-normal !text-ink">{t("auth.name")}</label>
+                <div className="relative">
+                  <User className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-ink-muted" />
+                  <input id="name" name="name" autoComplete="name" required minLength={2} value={form.name} onChange={update("name")} className="input pl-10" placeholder="Ada Nkemi" />
+                </div>
               </div>
-            </div>
 
-            <div className="space-y-1.5">
-              <label htmlFor="email" className="label !normal-case !tracking-normal !text-ink">{t("auth.email")}</label>
-              <div className="relative">
-                <Mail className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-ink-muted" />
-                <input id="email" name="email" type="email" autoComplete="email" required value={form.email} onChange={update("email")} className="input pl-10" placeholder="you@example.com" />
+              <div className="space-y-1.5">
+                <label htmlFor="email" className="label !normal-case !tracking-normal !text-ink">{t("auth.email")}</label>
+                <div className="relative">
+                  <Mail className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-ink-muted" />
+                  <input id="email" name="email" type="email" autoComplete="email" required value={form.email} onChange={update("email")} className="input pl-10" placeholder="you@example.com" />
+                </div>
               </div>
             </div>
 
@@ -410,14 +408,6 @@ export function RegisterForm() {
         {!verificationPending && currentStep === 2 && (
           <fieldset className="space-y-4">
             <legend className="sr-only">{t("auth.registerSteps.profile")}</legend>
-            <div className="space-y-1">
-              <div className="flex items-center gap-2">
-                <h2 className="text-base font-semibold text-ink">{t("auth.profileSection")}</h2>
-                <span className="rounded-full border border-midnight-border px-2 py-0.5 text-[10px] font-medium text-ink-muted">{t("auth.profileOptionalShort")}</span>
-              </div>
-              <p className="text-xs text-ink-muted">{t("auth.profileDetails")}</p>
-            </div>
-
             <div className="space-y-1.5">
               <label htmlFor="handle" className="label !normal-case !tracking-normal !text-ink">{t("auth.handle")}</label>
               <div className="relative">
@@ -532,11 +522,6 @@ export function RegisterForm() {
         {!verificationPending && currentStep === 3 && (
           <fieldset className="space-y-4">
             <legend className="sr-only">{t("auth.registerSteps.presence")}</legend>
-            <div className="space-y-1">
-              <h2 className="text-base font-semibold text-ink">{t("auth.presenceTitle")}</h2>
-              <p className="text-xs text-ink-muted">{t("auth.presenceDetails")}</p>
-            </div>
-
             <div className="space-y-1.5">
               <label htmlFor="bio" className="label !normal-case !tracking-normal !text-ink">{t("auth.bio")}</label>
               <textarea id="bio" name="bio" rows={4} value={form.bio} onChange={update("bio")} className="input resize-y" placeholder={t("auth.bioPlaceholder")} />
@@ -631,10 +616,6 @@ export function RegisterForm() {
         <Link href="/terms" className="font-medium text-gold-soft underline decoration-gold/40 underline-offset-4 transition hover:text-gold-bright">
           {t("auth.registrationTermsLink")}
         </Link>{" "}{t("auth.registrationTermsSuffix")}
-        {" "}{locale === "fr" ? "Voir aussi la" : "Also see the"}{" "}
-        <Link href="/privacy" className="font-medium text-gold-soft underline decoration-gold/40 underline-offset-4 transition hover:text-gold-bright">
-          {locale === "fr" ? "politique de confidentialité" : "privacy policy"}
-        </Link>.
       </p>}
 
       {!verificationPending && <p className="mt-5 text-center text-sm text-ink-muted">
@@ -643,7 +624,7 @@ export function RegisterForm() {
           {t("auth.login")}
         </Link>
       </p>}
-      </div>
+      </AuthSplitLayout>
       {toastMessage && (
         <p role="status" aria-live="polite" className="pointer-events-none fixed bottom-4 left-4 right-4 z-[70] animate-slide-up rounded-xl border border-gold/30 bg-midnight-card px-4 py-3 text-sm text-gold-soft shadow-glow sm:left-auto sm:right-6 sm:w-fit">
           {toastMessage}

@@ -789,7 +789,7 @@
     "approvedApplication": "Sélection bêta",
     "approvedApplicationsTitle": "Sélection bêta",
     "approvedApplicationsSubtitle": "Des produits validés par LynoraLink pour être testés en avant-première.",
-    "approvedApplicationsLoadError": "Impossible de charger les applications approuvées dans le fil.",
+    "approvedApplicationsLoadError": "Impossible de charger les applications approuvées.",
     "applicationTechnologies": "Technologies",
     "applicationWebsite": "Site officiel",
     "applicationTestAction": "Commencer le test",

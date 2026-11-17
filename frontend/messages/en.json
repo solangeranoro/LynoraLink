@@ -789,7 +789,7 @@
     "approvedApplication": "Selected for beta",
     "approvedApplicationsTitle": "Beta testing picks",
     "approvedApplicationsSubtitle": "Community products approved for hands-on testing.",
-    "approvedApplicationsLoadError": "Couldn't load approved apps for the feed.",
+    "approvedApplicationsLoadError": "Couldn't load approved apps.",
     "applicationTechnologies": "Technology",
     "applicationWebsite": "Official site",
     "applicationTestAction": "Start testing",

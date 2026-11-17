@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { signIn } from "next-auth/react";
 import { ArrowLeft, Eye, EyeOff, Loader2, Mail, Lock, ShieldCheck } from "@/components/FontAwesomeIcons";
+import { AuthSplitLayout } from "@/components/auth/AuthSplitLayout";
 import { OAuthButtons } from "@/components/auth/OAuthButtons";
 import { useTranslation } from "@/lib/i18n";
 import { getNetworkErrorMessage } from "@/lib/error-messages";
@@ -148,7 +149,7 @@ export function LoginForm() {
   }
 
   return (
-    <div className="card animate-fade-in mx-auto w-full max-w-sm p-5 sm:p-6">
+    <AuthSplitLayout variant="login">
       <div className="text-center">
         {requiresCode && <div className="mx-auto mb-3 grid h-11 w-11 place-items-center rounded-full border border-gold/30 bg-gold/10 text-gold-soft"><ShieldCheck size={20} aria-hidden="true" /></div>}
         <h1 className="font-display text-xl font-semibold text-ink">{requiresCode ? t("auth.twoFactorTitle") : t("auth.loginTitle")}</h1>
@@ -218,7 +219,7 @@ export function LoginForm() {
           {t("auth.register")}
         </Link>
       </p>}
-    </div>
+    </AuthSplitLayout>
   );
 }
 

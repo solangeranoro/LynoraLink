@@ -1,6 +1,6 @@
 "use client";
 
-import { Fragment, useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { ChevronLeft, ChevronRight } from "@/components/FontAwesomeIcons";
@@ -8,7 +8,6 @@ import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faChartColumn, faComment, faEye, faFileCode, faFolderOpen, faImage, faListUl, faPaperclip, faPaperPlane, faPen, faPlus, faRocket, faSpinner, faTrash, faUsers, faXmark } from "@fortawesome/free-solid-svg-icons";
 import { Activity, ReviewIcon, UsersRound } from "@/components/FontAwesomeIcons";
 import { PostCard, type FeedPost, type PostIntent } from "@/components/PostCard";
-import { TesterApplicationFeedCard, type ApprovedTesterApplication } from "@/components/TesterApplicationFeedCard";
 import { PostMarkdown } from "@/components/PostMarkdown";
 import { CodeBlock } from "@/components/CodeBlock";
 import { FeedSkeleton } from "@/components/skeletons";
@@ -40,7 +39,6 @@ const MAX_ATTACHMENT_BYTES = 50 * 1024 * 1024;
 
 type FeedPagination = { page: number; pageSize: number; total: number; totalPages: number };
 type FeedResponse = { posts: FeedPost[]; pagination?: FeedPagination };
-type TesterApplicationsResponse = { applications: ApprovedTesterApplication[] };
 
 async function fetchFeed(projectId?: string, teamId?: string, page?: number): Promise<FeedResponse> {
   const params = new URLSearchParams(page ? { take: "10", page: String(page), feed: "1" } : { take: "20", feed: "1" });
@@ -142,20 +140,6 @@ export function Feed({ projectId, teamId, projectLabel, teamLogoUrl, canCompose 
     queryFn: () => fetchFeed(projectId, teamId, projectId ? feedPage : undefined),
     refetchInterval: 3_000,
   });
-  const approvedApplicationsQuery = useQuery({
-    queryKey: ["tester-applications", "feed"],
-    enabled: Boolean(session?.user) && !projectId && !teamId,
-    queryFn: async () => {
-      const response = await fetch("/api/tester-applications?take=10&feed=1");
-      if (!response.ok) throw new Error("approved_applications_load_failed");
-      return response.json() as Promise<TesterApplicationsResponse>;
-    },
-    staleTime: 60_000,
-    refetchInterval: 60_000,
-    refetchIntervalInBackground: false,
-  });
-  const applicationsRailRef = useRef<HTMLDivElement>(null);
-
   const createPost = useMutation({
     mutationFn: async () => {
       const res = await fetch("/api/posts", {
@@ -318,56 +302,6 @@ export function Feed({ projectId, teamId, projectLabel, teamLogoUrl, canCompose 
     const unit = isMegabytes ? t("feed.megabytes") : t("feed.kilobytes");
     return `${value.toLocaleString(locale, { maximumFractionDigits: 1 })} ${unit}`;
   }
-
-  const approvedApplications = approvedApplicationsQuery.data?.applications.slice(0, 10) ?? [];
-  const approvedApplicationsRail = approvedApplications.length ? (
-    <section aria-labelledby="approved-applications-heading" className="space-y-3">
-      <header>
-          <h3 id="approved-applications-heading" className="font-display text-lg font-semibold text-ink">
-            {t("feed.approvedApplicationsTitle")}
-          </h3>
-          <p className="mt-0.5 text-xs text-ink-muted">{t("feed.approvedApplicationsSubtitle")}</p>
-      </header>
-      <div className="flex min-w-0 items-center gap-2">
-        <nav aria-label={t("feed.approvedApplicationsTitle")} className="shrink-0">
-          <button
-            type="button"
-            aria-label={t("feed.previousApplications")}
-            onClick={() => applicationsRailRef.current?.scrollBy({
-              left: -(applicationsRailRef.current.clientWidth * 0.85),
-              behavior: "smooth",
-            })}
-            className="grid h-8 w-8 place-items-center rounded-full border border-midnight-border bg-midnight-card text-ink-muted transition hover:border-emerald-300/40 hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-300/50"
-          >
-            <ChevronLeft className="h-4 w-4" aria-hidden="true" />
-          </button>
-        </nav>
-        <div
-          ref={applicationsRailRef}
-          role="list"
-          aria-label={t("feed.approvedApplicationsTitle")}
-          className="flex min-w-0 flex-1 snap-x snap-mandatory gap-3 overflow-x-auto overscroll-x-contain pb-3 [scrollbar-width:thin] sm:gap-4"
-        >
-          {approvedApplications.map((application) => (
-            <div key={application.id} role="listitem" className="w-[min(72vw,320px)] shrink-0 snap-start">
-              <TesterApplicationFeedCard application={application} />
-            </div>
-          ))}
-        </div>
-        <button
-          type="button"
-          aria-label={t("feed.nextApplications")}
-          onClick={() => applicationsRailRef.current?.scrollBy({
-            left: applicationsRailRef.current.clientWidth * 0.85,
-            behavior: "smooth",
-          })}
-          className="grid h-8 w-8 shrink-0 place-items-center rounded-full border border-midnight-border bg-midnight-card text-ink-muted transition hover:border-emerald-300/40 hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-300/50"
-        >
-          <ChevronRight className="h-4 w-4" aria-hidden="true" />
-        </button>
-      </div>
-    </section>
-  ) : null;
 
   return (
     <section className="mx-auto w-full max-w-3xl min-w-0 space-y-4">
@@ -747,20 +681,7 @@ export function Feed({ projectId, teamId, projectLabel, teamLogoUrl, canCompose 
         </>
       )}
 
-      {approvedApplicationsQuery.isError && !projectId && !teamId && (
-        <div role="alert" className="rounded-xl border border-rose-400/20 bg-rose-400/5 px-4 py-3 text-xs text-rose-200">
-          <span>{t("feed.approvedApplicationsLoadError")}</span>{" "}
-          <button
-            type="button"
-            onClick={() => void approvedApplicationsQuery.refetch()}
-            className="font-semibold underline underline-offset-2"
-          >
-            {t("feed.retry")}
-          </button>
-        </div>
-      )}
-
-      {isLoading || (!data?.posts.length && approvedApplicationsQuery.isLoading) ? (
+      {isLoading ? (
         <FeedSkeleton count={3} />
       ) : isError || !data ? (
         <div role="alert" className="card -mx-4 w-[calc(100%+2rem)] max-w-none rounded-none border-x-0 p-6 text-center text-sm text-rose-300 sm:mx-auto sm:w-full sm:max-w-3xl sm:rounded-xl sm:border-x sm:p-8">
@@ -769,32 +690,29 @@ export function Feed({ projectId, teamId, projectLabel, teamLogoUrl, canCompose 
             {t("feed.retry")}
           </button>
         </div>
-      ) : data.posts.length === 0 && !approvedApplicationsQuery.data?.applications.length ? (
+      ) : data.posts.length === 0 ? (
         <div className="card -mx-4 w-[calc(100%+2rem)] max-w-none rounded-none border-x-0 p-6 text-center text-sm text-ink-muted sm:mx-auto sm:w-full sm:max-w-3xl sm:rounded-xl sm:border-x sm:p-8">{t("feed.empty")}</div>
       ) : (
         <div className="min-w-0 space-y-4">
-          {data.posts.length === 0 && approvedApplicationsRail}
-          {data.posts.map((post, index) => (
-            <Fragment key={post.id}>
-              <PostCard
-                post={post.type === "TEAM" ? {
-                  ...post,
-                  project: post.project ? {
-                    ...post.project,
-                    title: projectLabel ?? post.project.title,
-                    teamName: projectLabel ?? post.project.teamName,
-                    logoUrl: teamLogoUrl ?? post.project.logoUrl,
-                  } : post.project,
-                  team: post.team ? {
-                    ...post.team,
-                    title: projectLabel ?? post.team.title,
-                    teamName: projectLabel ?? post.team.teamName,
-                    logoUrl: teamLogoUrl ?? post.team.logoUrl,
-                  } : post.team,
-                } : post}
-              />
-              {approvedApplicationsRail && index === Math.min(2, data.posts.length - 1) && approvedApplicationsRail}
-            </Fragment>
+          {data.posts.map((post) => (
+            <PostCard
+              key={post.id}
+              post={post.type === "TEAM" ? {
+                ...post,
+                project: post.project ? {
+                  ...post.project,
+                  title: projectLabel ?? post.project.title,
+                  teamName: projectLabel ?? post.project.teamName,
+                  logoUrl: teamLogoUrl ?? post.project.logoUrl,
+                } : post.project,
+                team: post.team ? {
+                  ...post.team,
+                  title: projectLabel ?? post.team.title,
+                  teamName: projectLabel ?? post.team.teamName,
+                  logoUrl: teamLogoUrl ?? post.team.logoUrl,
+                } : post.team,
+              } : post}
+            />
           ))}
           {projectId && data.pagination && data.pagination.totalPages > 1 && (
             <nav aria-label={t("projects.projectFeedPagination")} className="flex items-center justify-between gap-3 border-t border-midnight-border pt-3">
