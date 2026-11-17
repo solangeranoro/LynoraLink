@@ -5,7 +5,7 @@ import { useEffect, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
-import { Handshake, MessageCircle, X } from "@/components/FontAwesomeIcons";
+import { Check, Handshake, MessageCircle, X } from "@/components/FontAwesomeIcons";
 import { useTranslation } from "@/lib/i18n";
 import { Avatar } from "@/components/Avatar";
 import { useActionToast } from "@/components/ActionToast";
@@ -196,24 +196,22 @@ export function ActiveMakers() {
                   </div>
                   {userId && (
                     <div className="flex shrink-0 items-center gap-1.5">
-                      {association?.status !== "ACCEPTED" && (
-                        <button
-                          type="button"
-                          title={associationLabel}
-                          aria-label={`${associationLabel}: ${maker.name ?? maker.handle ?? "Maker"}`}
-                          onClick={() => associationMutation.mutate({ makerId: maker.id, association, cancel: isOutgoing })}
-                          disabled={associationMutation.isPending}
-                          className="grid h-8 w-8 place-items-center rounded-lg border border-midnight-border/70 bg-midnight-card/50 text-ink-muted transition hover:border-gold/40 hover:text-gold-soft disabled:cursor-default disabled:opacity-60"
-                        >
-                          {isOutgoing ? <X size={15} aria-hidden="true" /> : <Handshake size={15} aria-hidden="true" />}
-                        </button>
-                      )}
+                      <button
+                        type="button"
+                        title={associationLabel}
+                        aria-label={`${associationLabel}: ${maker.name ?? maker.handle ?? "Maker"}`}
+                        onClick={() => associationMutation.mutate({ makerId: maker.id, association, cancel: isOutgoing })}
+                        disabled={association?.status === "ACCEPTED" || (associationMutation.isPending && associationMutation.variables?.makerId === maker.id)}
+                        className="grid h-8 w-8 place-items-center rounded-lg border border-midnight-border/70 bg-midnight-card/50 text-ink-muted transition hover:border-gold/40 hover:text-gold-soft disabled:cursor-default disabled:opacity-60"
+                      >
+                        {association?.status === "ACCEPTED" ? <Check size={15} aria-hidden="true" /> : isOutgoing ? <X size={15} aria-hidden="true" /> : <Handshake size={15} aria-hidden="true" />}
+                      </button>
                       <button
                         type="button"
                         title={t("makers.startConversation")}
                         aria-label={`${t("makers.startConversation")}: ${maker.name ?? maker.handle ?? "Maker"}`}
                         onClick={() => messageMutation.mutate(maker.id)}
-                        disabled={messageMutation.isPending}
+                        disabled={messageMutation.isPending && messageMutation.variables === maker.id}
                         className="grid h-8 w-8 place-items-center rounded-lg border border-midnight-border/70 bg-midnight-card/50 text-ink-muted transition hover:border-gold/40 hover:text-gold-soft disabled:opacity-60"
                       >
                         <MessageCircle size={15} aria-hidden="true" />

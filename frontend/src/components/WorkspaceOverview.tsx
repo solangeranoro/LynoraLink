@@ -254,35 +254,36 @@ export function WorkspaceQuickActions() {
                   );
                 })() : (
                   <li key={`application-${recentItem.item.id}`} className="animate-dashboard-slide">
-                    <Link href={`/tester-applications/${recentItem.item.id}`} className="group relative block h-48 overflow-hidden rounded-xl border border-emerald-300/20 bg-midnight-deep transition hover:border-emerald-300/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-300/50">
-                      {recentItem.item.screenshotUrls[0] ? (
-                        <Image src={recentItem.item.screenshotUrls[0]} alt="" fill sizes="320px" unoptimized className="object-cover transition duration-700 group-hover:scale-105" />
-                      ) : (
-                        <div aria-hidden="true" className="absolute inset-0 bg-gradient-to-br from-emerald-300/20 via-midnight-card to-sky-500/10" />
-                      )}
-                      <div aria-hidden="true" className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/25 to-black/5" />
-                      <span className="relative flex h-full flex-col p-3.5">
-                        <span className="flex items-start justify-between gap-2">
-                          <span className="rounded-full border border-emerald-200/30 bg-emerald-950/60 px-2 py-1 text-[9px] font-medium text-emerald-100 backdrop-blur-sm">
-                            {t("feed.approvedApplication")}
-                          </span>
-                          <span className="rounded-full border border-white/15 bg-black/40 px-2 py-1 text-[9px] font-medium text-white backdrop-blur-sm">
-                            <TesterPlatformIcon platform={recentItem.item.platform} className="mr-1 inline-block align-[-2px]" />
+                    <article className="overflow-hidden rounded-xl border border-emerald-300/20 bg-midnight-deep">
+                      <Link href={`/tester-applications/${recentItem.item.id}`} aria-label={t("testerApplications.list.details")} className="group relative block h-28 overflow-hidden focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-emerald-300/60">
+                        {recentItem.item.screenshotUrls[0] ? (
+                          <Image src={recentItem.item.screenshotUrls[0]} alt="" fill sizes="320px" unoptimized className="object-cover transition duration-500 group-hover:scale-[1.03]" />
+                        ) : (
+                          <div aria-hidden="true" className="absolute inset-0 bg-gradient-to-br from-emerald-300/20 via-midnight-card to-sky-500/10" />
+                        )}
+                        <div aria-hidden="true" className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
+                        <span className="absolute left-3 top-3 rounded-full border border-emerald-200/30 bg-emerald-950/80 px-2 py-1 text-[9px] font-medium text-emerald-100">
+                          {t("feed.approvedApplication")}
+                        </span>
+                      </Link>
+                      <div className="space-y-2.5 p-3">
+                        <div className="flex items-center justify-between gap-2">
+                          <h3 className="min-w-0 truncate text-sm font-semibold text-ink">{recentItem.item.name}</h3>
+                          <span className="inline-flex shrink-0 items-center gap-1 text-[10px] text-ink-muted">
+                            <TesterPlatformIcon platform={recentItem.item.platform} />
                             {t(`testerApplications.list.platform.${recentItem.item.platform}`)}
                           </span>
-                        </span>
-                        <span className="mt-auto pt-4">
-                          <span className="block truncate text-sm font-semibold text-white">{recentItem.item.name}</span>
-                          <span className="mt-1 block line-clamp-2 text-[10px] leading-relaxed text-white/75">{recentItem.item.description}</span>
-                          <span className="mt-1.5 block truncate text-[9px] text-white/65">
-                            {t("testerApplications.list.by", { name: recentItem.item.ownerName })}
-                          </span>
-                        </span>
-                      </span>
-                    </Link>
-                    <a href={recentItem.item.downloadUrl} target="_blank" rel="noopener noreferrer" className="mt-2 inline-flex items-center gap-1 text-xs font-medium text-emerald-200 hover:text-emerald-100">
-                      {t("feed.applicationTestAction")} <ArrowUpRight size={12} aria-hidden="true" />
-                    </a>
+                        </div>
+                        <p className="line-clamp-2 min-h-8 text-[10px] leading-4 text-ink-muted">{recentItem.item.description}</p>
+                        <p className="truncate text-[10px] text-ink-muted">
+                          {t("testerApplications.list.by", { name: recentItem.item.ownerName })}
+                        </p>
+                        <a href={recentItem.item.downloadUrl} target="_blank" rel="noopener noreferrer" className="btn-gold min-h-9 w-full justify-center !rounded-lg !px-2 !py-2 text-xs">
+                          {t("feed.applicationTestAction")}
+                          <ArrowUpRight size={12} aria-hidden="true" />
+                        </a>
+                      </div>
+                    </article>
                   </li>
                 )}
               </ul>
