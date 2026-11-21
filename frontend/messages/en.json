@@ -788,6 +788,8 @@
     "subtitle": "Fresh updates from makers shipping every day.",
     "approvedApplication": "Selected for beta",
     "approvedApplicationsTitle": "Beta testing picks",
+    "discoverApplications": "Discover apps to test",
+    "suggestionsLoadError": "Some suggestions couldn't be loaded right now.",
     "approvedApplicationsSubtitle": "Community products approved for hands-on testing.",
     "approvedApplicationsLoadError": "Couldn't load approved apps.",
     "applicationTechnologies": "Technology",

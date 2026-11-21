@@ -1,6 +1,7 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { Fragment, useCallback, useEffect, useRef, useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { ChevronLeft, ChevronRight } from "@/components/FontAwesomeIcons";
@@ -39,6 +40,71 @@ const MAX_ATTACHMENT_BYTES = 50 * 1024 * 1024;
 
 type FeedPagination = { page: number; pageSize: number; total: number; totalPages: number };
 type FeedResponse = { posts: FeedPost[]; pagination?: FeedPagination };
+type FeedSuggestionCollaborator = {
+  id: string;
+  userId: string;
+  role: string;
+  status: "PENDING" | "APPROVED" | "REJECTED";
+  invitedById: string | null;
+  message: string | null;
+  user: { id: string; name: string | null; image: string | null };
+};
+type FeedSuggestionProject = {
+  id: string;
+  creatorId: string;
+  title: string;
+  teamName: string | null;
+  tagline: string;
+  logoUrl: string | null;
+  lookingFor: string[];
+  collaborators: FeedSuggestionCollaborator[];
+  creator: { id: string; name: string | null; handle: string | null };
+};
+type FeedSuggestionMaker = {
+  id: string;
+  name: string | null;
+  image: string | null;
+  handle: string | null;
+  headline: string | null;
+  skills: string[];
+  isOnline: boolean;
+  openToCoBuild: boolean;
+};
+type FeedSuggestionAssociation = { requesterId: string; addresseeId: string };
+type FeedSuggestionTeam = FeedSuggestionProject & { creator: { id: string; name: string | null; handle: string | null } };
+type FeedCollaborationItem = {
+  project: FeedSuggestionProject;
+  collaborator: FeedSuggestionCollaborator;
+  invitation: boolean;
+};
+
+async function fetchFeedSuggestionProjects(): Promise<FeedSuggestionProject[]> {
+  const response = await fetch("/api/projects?projects=1");
+  if (!response.ok) throw new Error("feed_suggestion_projects_load_failed");
+  const data = await response.json() as { projects: FeedSuggestionProject[] };
+  return data.projects;
+}
+
+async function fetchFeedSuggestionMakers(): Promise<FeedSuggestionMaker[]> {
+  const response = await fetch("/api/makers?all=1&take=50");
+  if (!response.ok) throw new Error("feed_suggestion_makers_load_failed");
+  const data = await response.json() as { makers: FeedSuggestionMaker[] };
+  return data.makers;
+}
+
+async function fetchFeedSuggestionAssociations(): Promise<FeedSuggestionAssociation[]> {
+  const response = await fetch("/api/associations");
+  if (!response.ok) throw new Error("feed_suggestion_associations_load_failed");
+  const data = await response.json() as { associations: FeedSuggestionAssociation[] };
+  return data.associations;
+}
+
+async function fetchFeedSuggestionTeams(): Promise<FeedSuggestionTeam[]> {
+  const response = await fetch("/api/projects?teams=discover");
+  if (!response.ok) throw new Error("feed_suggestion_teams_load_failed");
+  const data = await response.json() as { projects: FeedSuggestionTeam[] };
+  return data.projects;
+}
 
 async function fetchFeed(projectId?: string, teamId?: string, page?: number): Promise<FeedResponse> {
   const params = new URLSearchParams(page ? { take: "10", page: String(page), feed: "1" } : { take: "20", feed: "1" });
@@ -140,6 +206,97 @@ export function Feed({ projectId, teamId, projectLabel, teamLogoUrl, canCompose 
     queryFn: () => fetchFeed(projectId, teamId, projectId ? feedPage : undefined),
     refetchInterval: 3_000,
   });
+  const canShowSuggestions = Boolean(session?.user?.id) && !projectId && !teamId;
+  const userId = session?.user?.id;
+  const suggestionProjectsQuery = useQuery({
+    queryKey: ["feed-suggestions", "projects", userId],
+    queryFn: fetchFeedSuggestionProjects,
+    enabled: canShowSuggestions,
+    staleTime: 60_000,
+  });
+  const suggestionMakersQuery = useQuery({
+    queryKey: ["feed-suggestions", "makers", userId],
+    queryFn: fetchFeedSuggestionMakers,
+    enabled: canShowSuggestions,
+    staleTime: 60_000,
+  });
+  const suggestionAssociationsQuery = useQuery({
+    queryKey: ["associations", userId],
+    queryFn: fetchFeedSuggestionAssociations,
+    enabled: canShowSuggestions,
+    staleTime: 60_000,
+  });
+  const suggestionTeamsQuery = useQuery({
+    queryKey: ["teams", "discover"],
+    queryFn: fetchFeedSuggestionTeams,
+    enabled: canShowSuggestions,
+    staleTime: 60_000,
+  });
+  const reviewCollaborationMutation = useMutation({
+    mutationFn: async ({ projectId: targetProjectId, collaboratorId, status, invitation }: {
+      projectId: string;
+      collaboratorId: string;
+      status: "APPROVED" | "REJECTED";
+      invitation: boolean;
+    }) => {
+      const response = await fetch(invitation
+        ? `/api/projects/${targetProjectId}/collaborators/${collaboratorId}/respond`
+        : `/api/projects/${targetProjectId}/collaborators/${collaboratorId}`, {
+        method: invitation ? "POST" : "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status }),
+      });
+      if (!response.ok) throw new Error("collaboration_review_failed");
+      return { projectId: targetProjectId, collaboratorId, status };
+    },
+    onSuccess: async () => {
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ["feed-suggestions", "projects", userId] }),
+        queryClient.invalidateQueries({ queryKey: ["projects"] }),
+        queryClient.invalidateQueries({ queryKey: ["navigation-counts", userId] }),
+      ]);
+    },
+  });
+  const connectSuggestionMutation = useMutation({
+    mutationFn: async (addresseeId: string) => {
+      const response = await fetch("/api/associations", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ addresseeId }),
+      });
+      if (!response.ok) throw new Error("connection_request_failed");
+      return response.json();
+    },
+    onSuccess: async () => {
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ["associations", userId] }),
+        queryClient.invalidateQueries({ queryKey: ["feed-suggestions", "makers", userId] }),
+        queryClient.invalidateQueries({ queryKey: ["navigation-counts", userId] }),
+      ]);
+    },
+  });
+  const suggestionProjects = suggestionProjectsQuery.data ?? [];
+  const collaborationItems = suggestionProjects.reduce<FeedCollaborationItem[]>((items, project) => {
+    for (const collaborator of project.collaborators) {
+      if (collaborator.status !== "PENDING") continue;
+      if (project.creatorId === userId && collaborator.userId !== userId && !collaborator.invitedById) {
+        items.push({ project, collaborator, invitation: false });
+      } else if (collaborator.userId === userId && collaborator.invitedById) {
+        items.push({ project, collaborator, invitation: true });
+      }
+    }
+    return items;
+  }, []);
+  const associations = suggestionAssociationsQuery.data ?? [];
+  const suggestedMaker = suggestionAssociationsQuery.isSuccess
+    ? (suggestionMakersQuery.data ?? []).find((maker) => maker.id !== userId && !associations.some((association) => (
+      (association.requesterId === userId && association.addresseeId === maker.id)
+      || (association.requesterId === maker.id && association.addresseeId === userId)
+    )))
+    : undefined;
+  const suggestedTeam = (suggestionTeamsQuery.data ?? []).find((team) => (
+    team.creatorId !== userId && !team.collaborators.some((collaborator) => collaborator.userId === userId)
+  ));
   const createPost = useMutation({
     mutationFn: async () => {
       const res = await fetch("/api/posts", {
@@ -230,6 +387,125 @@ export function Feed({ projectId, teamId, projectLabel, teamLogoUrl, canCompose 
     { id: "TEAM", label: t("feed.postTypeTeam"), description: t("feed.postTypeTeamHint"), icon: faUsers },
     { id: "PROJECT", label: t("feed.postTypeProject"), description: t("feed.postTypeProjectHint"), icon: faFolderOpen },
   ];
+  const insertionIndexes = data?.posts.length
+    ? [Math.floor(data.posts.length / 4), Math.floor(data.posts.length / 2), Math.floor(data.posts.length * 3 / 4)]
+    : [];
+  const suggestionsLoadError = suggestionProjectsQuery.isError
+    || suggestionMakersQuery.isError
+    || suggestionAssociationsQuery.isError
+    || suggestionTeamsQuery.isError;
+
+  function renderCollaborationCard(item: FeedCollaborationItem) {
+    const makerName = item.collaborator.user.name ?? t("notifications.someone");
+    const projectName = item.project.teamName ?? item.project.title;
+    const projectHref = item.project.teamName ? `/teams/${item.project.id}` : `/projects/${item.project.id}`;
+    return (
+      <article className="card space-y-3 border-sky-400/20 p-4">
+        <div className="flex items-start gap-3">
+          <Avatar src={item.collaborator.user.image} name={makerName} size={40} />
+          <div className="min-w-0 flex-1">
+            <p className="text-sm font-semibold text-ink">
+              {t(item.invitation ? "notifications.projectInvite" : "notifications.projectRequest", { actor: makerName })}
+            </p>
+            <Link href={projectHref} className="mt-1 inline-block truncate text-xs font-medium text-gold-soft hover:text-gold-bright">
+              {projectName}
+            </Link>
+            <p className="mt-1 text-[11px] text-ink-muted">{t(`projects.roles.${item.collaborator.role}`)}</p>
+          </div>
+        </div>
+        {item.collaborator.message && (
+          <p className="line-clamp-2 whitespace-pre-wrap rounded-lg bg-midnight-deep/60 px-3 py-2 text-xs leading-relaxed text-ink-muted">
+            {item.collaborator.message}
+          </p>
+        )}
+        <div className="grid grid-cols-2 gap-2 border-t border-midnight-border/70 pt-3">
+          <button
+            type="button"
+            disabled={reviewCollaborationMutation.isPending}
+            onClick={() => reviewCollaborationMutation.mutate({
+              projectId: item.project.id,
+              collaboratorId: item.collaborator.id,
+              status: "APPROVED",
+              invitation: item.invitation,
+            })}
+            className="btn-gold min-h-9 justify-center !rounded-lg !px-3 !py-2 text-xs"
+          >
+            {t("notifications.accept")}
+          </button>
+          <button
+            type="button"
+            disabled={reviewCollaborationMutation.isPending}
+            onClick={() => reviewCollaborationMutation.mutate({
+              projectId: item.project.id,
+              collaboratorId: item.collaborator.id,
+              status: "REJECTED",
+              invitation: item.invitation,
+            })}
+            className="btn-ghost min-h-9 justify-center !rounded-lg !px-3 !py-2 text-xs"
+          >
+            {t("notifications.decline")}
+          </button>
+        </div>
+      </article>
+    );
+  }
+
+  function renderConnectionCard(maker: FeedSuggestionMaker) {
+    const makerName = maker.name ?? maker.handle ?? t("notifications.someone");
+    return (
+      <article className="card space-y-3 border-gold/20 p-4">
+        <p className="text-[10px] font-semibold uppercase tracking-wide text-gold-soft">{t("makers.suggestionsTitle")}</p>
+        <div className="flex items-center gap-3">
+          <Link href={`/makers/${encodeURIComponent(maker.handle ?? maker.id)}`} aria-label={t("feed.viewProfile", { name: makerName })}>
+            <Avatar src={maker.image} name={maker.name} online={maker.isOnline} size={42} />
+          </Link>
+          <div className="min-w-0 flex-1">
+            <Link href={`/makers/${encodeURIComponent(maker.handle ?? maker.id)}`} className="block truncate text-sm font-semibold text-ink hover:text-gold-soft">
+              {makerName}
+            </Link>
+            <p className="mt-0.5 truncate text-xs text-ink-muted">{maker.headline ?? (maker.openToCoBuild ? t("makers.openForCoBuilding") : maker.skills.slice(0, 3).join(" · "))}</p>
+          </div>
+          {maker.openToCoBuild && <span className="badge shrink-0">{t("makers.openForCoBuilding")}</span>}
+        </div>
+        <button
+          type="button"
+          disabled={connectSuggestionMutation.isPending}
+          onClick={() => connectSuggestionMutation.mutate(maker.id)}
+          className="btn-gold min-h-9 w-full justify-center !rounded-lg !px-3 !py-2 text-xs"
+        >
+          <FontAwesomeIcon icon={faUsers} className="h-3.5 w-3.5" aria-hidden="true" />
+          {t("makers.associate")}
+        </button>
+      </article>
+    );
+  }
+
+  function renderTeamCard(team: FeedSuggestionTeam) {
+    const teamName = team.teamName ?? team.title;
+    return (
+      <article className="card space-y-3 border-emerald-400/20 p-4">
+        <p className="text-[10px] font-semibold uppercase tracking-wide text-emerald-300">{t("teams.discoverTitle")}</p>
+        <div className="flex items-center gap-3">
+          <Avatar src={team.logoUrl} name={teamName} size={42} />
+          <div className="min-w-0 flex-1">
+            <Link href={`/teams/${team.id}`} className="block truncate text-sm font-semibold text-ink hover:text-gold-soft">{teamName}</Link>
+            <p className="mt-0.5 truncate text-xs text-ink-muted">
+              {t("teams.createdBy", { name: team.creator.handle ? `@${team.creator.handle}` : team.creator.name ?? t("teams.unknownMember") })}
+            </p>
+          </div>
+        </div>
+        {team.tagline && <p className="line-clamp-2 text-xs leading-relaxed text-ink-muted">{team.tagline}</p>}
+        {team.lookingFor.length > 0 && (
+          <div className="flex flex-wrap gap-1.5">
+            {team.lookingFor.slice(0, 3).map((role) => <span key={role} className="badge">{t(`projects.roles.${role}`)}</span>)}
+          </div>
+        )}
+        <Link href={`/teams/${team.id}`} className="btn-gold flex min-h-9 justify-center !rounded-lg !px-3 !py-2 text-xs">
+          {t("teams.joinAction")}
+        </Link>
+      </article>
+    );
+  }
 
   function insertFormatting(before: string, after = before) {
     const input = contentInputRef.current;
@@ -694,25 +970,32 @@ export function Feed({ projectId, teamId, projectLabel, teamLogoUrl, canCompose 
         <div className="card -mx-4 w-[calc(100%+2rem)] max-w-none rounded-none border-x-0 p-6 text-center text-sm text-ink-muted sm:mx-auto sm:w-full sm:max-w-3xl sm:rounded-xl sm:border-x sm:p-8">{t("feed.empty")}</div>
       ) : (
         <div className="min-w-0 space-y-4">
-          {data.posts.map((post) => (
-            <PostCard
-              key={post.id}
-              post={post.type === "TEAM" ? {
-                ...post,
-                project: post.project ? {
-                  ...post.project,
-                  title: projectLabel ?? post.project.title,
-                  teamName: projectLabel ?? post.project.teamName,
-                  logoUrl: teamLogoUrl ?? post.project.logoUrl,
-                } : post.project,
-                team: post.team ? {
-                  ...post.team,
-                  title: projectLabel ?? post.team.title,
-                  teamName: projectLabel ?? post.team.teamName,
-                  logoUrl: teamLogoUrl ?? post.team.logoUrl,
-                } : post.team,
-              } : post}
-            />
+          {suggestionsLoadError && canShowSuggestions && (
+            <p role="alert" className="card p-3 text-xs text-rose-300">{t("feed.suggestionsLoadError")}</p>
+          )}
+          {data.posts.map((post, index) => (
+            <Fragment key={post.id}>
+              <PostCard
+                post={post.type === "TEAM" ? {
+                  ...post,
+                  project: post.project ? {
+                    ...post.project,
+                    title: projectLabel ?? post.project.title,
+                    teamName: projectLabel ?? post.project.teamName,
+                    logoUrl: teamLogoUrl ?? post.project.logoUrl,
+                  } : post.project,
+                  team: post.team ? {
+                    ...post.team,
+                    title: projectLabel ?? post.team.title,
+                    teamName: projectLabel ?? post.team.teamName,
+                    logoUrl: teamLogoUrl ?? post.team.logoUrl,
+                  } : post.team,
+                } : post}
+              />
+              {canShowSuggestions && index === insertionIndexes[0] && collaborationItems[0] && renderCollaborationCard(collaborationItems[0])}
+              {canShowSuggestions && index === insertionIndexes[1] && suggestedMaker && renderConnectionCard(suggestedMaker)}
+              {canShowSuggestions && index === insertionIndexes[2] && suggestedTeam && renderTeamCard(suggestedTeam)}
+            </Fragment>
           ))}
           {projectId && data.pagination && data.pagination.totalPages > 1 && (
             <nav aria-label={t("projects.projectFeedPagination")} className="flex items-center justify-between gap-3 border-t border-midnight-border pt-3">

@@ -172,6 +172,10 @@ export function WorkspaceQuickActions() {
   });
   const [recentItemOffset, setRecentItemOffset] = useState(0);
   const recentItem = discoveryItems.length ? discoveryItems[recentItemOffset % discoveryItems.length] : null;
+  const discoveryHref = recentItem?.type === "application" ? "/tester-applications" : "/discover";
+  const discoveryLabel = recentItem?.type === "application"
+    ? t("feed.discoverApplications")
+    : isFrench ? "Découvrir des projets" : "Discover projects";
 
   useEffect(() => {
     if (discoveryItems.length <= 1) {
@@ -253,9 +257,9 @@ export function WorkspaceQuickActions() {
                     </li>
                   );
                 })() : (
-                  <li key={`application-${recentItem.item.id}`} className="animate-dashboard-slide">
-                    <article className="overflow-hidden rounded-xl border border-emerald-300/20 bg-midnight-deep">
-                      <Link href={`/tester-applications/${recentItem.item.id}`} aria-label={t("testerApplications.list.details")} className="group relative block h-28 overflow-hidden focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-emerald-300/60">
+                  <li key={`application-${recentItem.item.id}`} className="min-w-0 animate-dashboard-slide">
+                    <article className="w-full min-w-0 overflow-hidden rounded-xl border border-emerald-300/20 bg-midnight-deep">
+                      <Link href={`/tester-applications/${recentItem.item.id}`} aria-label={t("testerApplications.list.details")} className="group relative block aspect-[16/9] w-full overflow-hidden bg-midnight-card focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-emerald-300/60">
                         {recentItem.item.screenshotUrls[0] ? (
                           <Image src={recentItem.item.screenshotUrls[0]} alt="" fill sizes="320px" unoptimized className="object-cover transition duration-500 group-hover:scale-[1.03]" />
                         ) : (
@@ -266,7 +270,7 @@ export function WorkspaceQuickActions() {
                           {t("feed.approvedApplication")}
                         </span>
                       </Link>
-                      <div className="space-y-2.5 p-3">
+                      <div className="min-w-0 space-y-2.5 p-3">
                         <div className="flex items-center justify-between gap-2">
                           <h3 className="min-w-0 truncate text-sm font-semibold text-ink">{recentItem.item.name}</h3>
                           <span className="inline-flex shrink-0 items-center gap-1 text-[10px] text-ink-muted">
@@ -298,8 +302,8 @@ export function WorkspaceQuickActions() {
           </>
         )}
       </div>
-      <Link href="/discover" className="group flex items-center justify-between border-t border-midnight-border px-4 py-3 text-xs font-medium text-ink-muted transition hover:bg-midnight-deep/40 hover:text-gold-soft">
-        {isFrench ? "Découvrir des projets" : "Discover projects"}
+      <Link href={discoveryHref} className="group flex items-center justify-between border-t border-midnight-border px-4 py-3 text-xs font-medium text-ink-muted transition hover:bg-midnight-deep/40 hover:text-gold-soft">
+        {discoveryLabel}
         <ArrowUpRight size={13} className="transition group-hover:-translate-y-0.5 group-hover:translate-x-0.5" aria-hidden="true" />
       </Link>
     </section>

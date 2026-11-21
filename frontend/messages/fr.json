@@ -788,6 +788,8 @@
     "subtitle": "Les dernières avancées des makers qui shippent chaque jour.",
     "approvedApplication": "Sélection bêta",
     "approvedApplicationsTitle": "Sélection bêta",
+    "discoverApplications": "Découvrir les applications à tester",
+    "suggestionsLoadError": "Certaines suggestions ne peuvent pas être chargées pour le moment.",
     "approvedApplicationsSubtitle": "Des produits validés par LynoraLink pour être testés en avant-première.",
     "approvedApplicationsLoadError": "Impossible de charger les applications approuvées.",
     "applicationTechnologies": "Technologies",
