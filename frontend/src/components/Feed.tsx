@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { ChevronLeft, ChevronRight } from "@/components/FontAwesomeIcons";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faChartColumn, faComment, faEye, faFileCode, faFolderOpen, faImage, faListUl, faPaperclip, faPaperPlane, faPen, faPlus, faRocket, faSpinner, faTrash, faUserPlus, faUsers, faXmark } from "@fortawesome/free-solid-svg-icons";
+import { faChartColumn, faComment, faEye, faFileCode, faFolderOpen, faHandshake, faImage, faListUl, faPaperclip, faPaperPlane, faPen, faPlus, faRocket, faSpinner, faTrash, faUsers, faXmark } from "@fortawesome/free-solid-svg-icons";
 import { Activity, ReviewIcon, UsersRound } from "@/components/FontAwesomeIcons";
 import { PostCard, type FeedPost, type PostIntent } from "@/components/PostCard";
 import { PostMarkdown } from "@/components/PostMarkdown";
@@ -71,7 +71,12 @@ type FeedSuggestionMaker = {
   isOnline: boolean;
   openToCoBuild: boolean;
 };
-type FeedSuggestionAssociation = { requesterId: string; addresseeId: string };
+type FeedSuggestionAssociation = {
+  id: string;
+  requesterId: string;
+  addresseeId: string;
+  status: "PENDING" | "ACCEPTED" | "REJECTED";
+};
 type FeedSuggestionTeam = FeedSuggestionProject & { creator: { id: string; name: string | null; handle: string | null } };
 type FeedCollaborationItem = {
   project: FeedSuggestionProject;
@@ -269,22 +274,29 @@ export function Feed({ projectId, teamId, projectLabel, teamLogoUrl, canCompose 
     },
   });
   const connectSuggestionMutation = useMutation({
-    mutationFn: async (addresseeId: string) => {
-      const response = await fetch("/api/associations", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ addresseeId }),
-      });
+    mutationFn: async ({ makerId, outgoingAssociation }: {
+      makerId: string;
+      outgoingAssociation?: FeedSuggestionAssociation;
+    }) => {
+      const response = outgoingAssociation
+        ? await fetch(`/api/associations/${outgoingAssociation.id}`, { method: "DELETE" })
+        : await fetch("/api/associations", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ addresseeId: makerId }),
+        });
       if (!response.ok) throw new Error("connection_request_failed");
-      return response.json();
+      return { cancelled: Boolean(outgoingAssociation) };
     },
-    onSuccess: async () => {
+    onSuccess: async ({ cancelled }) => {
+      setToastMessage(t(cancelled ? "makers.associationCancelled" : "feed.associationSent"));
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: ["associations", userId] }),
         queryClient.invalidateQueries({ queryKey: ["feed-suggestions", "makers", userId] }),
         queryClient.invalidateQueries({ queryKey: ["navigation-counts", userId] }),
       ]);
     },
+    onError: () => setToastMessage(t("feed.associationError")),
   });
   const suggestionProjects = suggestionProjectsQuery.data ?? [];
   const hasInvalidProjectSuggestions = suggestionProjects.some((project) => !Array.isArray(project.collaborators));
@@ -301,15 +313,18 @@ export function Feed({ projectId, teamId, projectLabel, teamLogoUrl, canCompose 
     return items;
   }, []);
   const associations = suggestionAssociationsQuery.data?.associations ?? [];
+  const getMakerAssociation = (makerId: string) => associations.find((association) => (
+    (association.requesterId === userId && association.addresseeId === makerId)
+    || (association.requesterId === makerId && association.addresseeId === userId)
+  ));
   const suggestedMakers = suggestionAssociationsQuery.isSuccess
-    ? (suggestionMakersQuery.data ?? []).filter((maker) => (
-      maker.id !== userId
-      && !dismissedSuggestions.has(`maker:${maker.id}`)
-      && !associations.some((association) => (
-      (association.requesterId === userId && association.addresseeId === maker.id)
-      || (association.requesterId === maker.id && association.addresseeId === userId)
-      ))
-    )).slice(0, MAX_FEED_SUGGESTIONS)
+    ? (suggestionMakersQuery.data ?? []).filter((maker) => {
+      if (maker.id === userId || dismissedSuggestions.has(`maker:${maker.id}`)) return false;
+      const association = getMakerAssociation(maker.id);
+      return !association
+        || association.status === "REJECTED"
+        || (association.status === "PENDING" && association.requesterId === userId);
+    }).slice(0, MAX_FEED_SUGGESTIONS)
     : [];
   const suggestionTeams = suggestionTeamsQuery.data ?? [];
   const hasInvalidTeamSuggestions = suggestionTeams.some((team) => !Array.isArray(team.collaborators));
@@ -476,6 +491,10 @@ export function Feed({ projectId, teamId, projectLabel, teamLogoUrl, canCompose 
 
   function renderConnectionCard(maker: FeedSuggestionMaker) {
     const makerName = maker.name ?? maker.handle ?? t("notifications.someone");
+    const association = getMakerAssociation(maker.id);
+    const outgoingAssociation = association?.status === "PENDING" && association.requesterId === userId
+      ? association
+      : undefined;
     return (
       <article className="card relative flex h-full min-h-36 flex-col gap-2 border-gold/20 p-3">
         <button
@@ -501,11 +520,11 @@ export function Feed({ projectId, teamId, projectLabel, teamLogoUrl, canCompose 
         <button
           type="button"
           disabled={connectSuggestionMutation.isPending}
-          onClick={() => connectSuggestionMutation.mutate(maker.id)}
+          onClick={() => connectSuggestionMutation.mutate({ makerId: maker.id, outgoingAssociation })}
           className="btn-gold mt-auto min-h-8 w-full justify-center !rounded-lg !px-2 !py-1.5 text-[11px]"
         >
-          <FontAwesomeIcon icon={faUserPlus} className="h-3.5 w-3.5" aria-hidden="true" />
-          {t("makers.associate")}
+          <FontAwesomeIcon icon={outgoingAssociation ? faXmark : faHandshake} className="h-3.5 w-3.5" aria-hidden="true" />
+          {t(outgoingAssociation ? "makers.cancelAssociation" : "makers.associate")}
         </button>
       </article>
     );
