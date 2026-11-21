@@ -34,6 +34,22 @@ interface TeamProject {
   _count: { collaborators: number; teamPosts: number };
 }
 
+function hasValidCollaboratorLists(projects: unknown): projects is TeamProject[] {
+  return Array.isArray(projects) && projects.every((team) => (
+    typeof team === "object"
+    && team !== null
+    && "collaborators" in team
+    && Array.isArray(team.collaborators)
+  ));
+}
+
+function isTeamProjectsResponse(data: unknown): data is { projects: TeamProject[] } {
+  return typeof data === "object"
+    && data !== null
+    && "projects" in data
+    && hasValidCollaboratorLists(data.projects);
+}
+
 function displayName(team: Pick<TeamProject, "teamName" | "title">) {
   return team.teamName?.trim() || team.title;
 }
@@ -149,7 +165,8 @@ export default function TeamsPage() {
       if (!response.ok) {
         throw new Error(response.status === 401 ? "UNAUTHORIZED" : response.status === 403 ? "FORBIDDEN" : response.status >= 500 ? "SERVICE_UNAVAILABLE" : "TEAMS_LOAD_FAILED");
       }
-      const data = (await response.json()) as { projects: TeamProject[] };
+      const data: unknown = await response.json();
+      if (!isTeamProjectsResponse(data)) throw new Error("TEAMS_INVALID_RESPONSE");
       return data.projects;
     },
   });
@@ -161,7 +178,8 @@ export default function TeamsPage() {
       if (!response.ok) {
         throw new Error(response.status === 401 ? "UNAUTHORIZED" : response.status === 403 ? "FORBIDDEN" : response.status >= 500 ? "SERVICE_UNAVAILABLE" : "TEAMS_LOAD_FAILED");
       }
-      const data = (await response.json()) as { projects: TeamProject[] };
+      const data: unknown = await response.json();
+      if (!isTeamProjectsResponse(data)) throw new Error("TEAMS_INVALID_RESPONSE");
       return data.projects;
     },
   });
@@ -206,18 +224,24 @@ export default function TeamsPage() {
   });
 
   const currentUserId = session?.user?.id;
+  const teamsDataValid = teams === undefined || hasValidCollaboratorLists(teams);
+  const discoverableDataValid = discoverableTeams === undefined || hasValidCollaboratorLists(discoverableTeams);
 
-  const yourTeams = (teams ?? []).filter(
-    (team) =>
-      team.creatorId === currentUserId ||
-      team.collaborators.some((item) => item.userId === currentUserId && item.status === "APPROVED"),
-  );
+  const yourTeams = teamsDataValid
+    ? (teams ?? []).filter((team) =>
+      team.creatorId === currentUserId
+      || (Array.isArray(team.collaborators) && team.collaborators.some((item) => item.userId === currentUserId && item.status === "APPROVED")),
+    )
+    : [];
 
-  const discoverableAll = (discoverableTeams ?? []).filter(
-    (team) =>
-      team.creatorId !== currentUserId &&
-      !team.collaborators.some((item) => item.userId === currentUserId && item.status === "APPROVED"),
-  );
+  const discoverableAll = useMemo(() => {
+    if (!discoverableDataValid) return [];
+    return (discoverableTeams ?? []).filter((team) =>
+      team.creatorId !== currentUserId
+      && Array.isArray(team.collaborators)
+      && !team.collaborators.some((item) => item.userId === currentUserId && item.status === "APPROVED"),
+    );
+  }, [currentUserId, discoverableDataValid, discoverableTeams]);
 
   const availableRoles = useMemo(() => {
     const roles = new Set<string>();
@@ -286,7 +310,7 @@ export default function TeamsPage() {
             <CardSkeleton />
             <CardSkeleton />
           </div>
-        ) : isError ? (
+        ) : isError || !teamsDataValid ? (
           <p role="alert" className="text-sm text-rose-300">
             {loadErrorMessage(teamsError)}
           </p>
@@ -431,7 +455,7 @@ export default function TeamsPage() {
             <CardSkeleton />
             <CardSkeleton />
           </div>
-        ) : discoverError ? (
+        ) : discoverError || !discoverableDataValid ? (
           <p role="alert" className="text-sm text-rose-300">
             {loadErrorMessage(discoverTeamsError)}
           </p>
