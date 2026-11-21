@@ -259,7 +259,7 @@ export function WorkspaceQuickActions() {
                 })() : (
                   <li key={`application-${recentItem.item.id}`} className="min-w-0 animate-dashboard-slide">
                     <article className="w-full min-w-0 overflow-hidden rounded-xl border border-emerald-300/20 bg-midnight-deep">
-                      <Link href={`/tester-applications/${recentItem.item.id}`} aria-label={t("testerApplications.list.details")} className="group relative block aspect-[16/9] w-full overflow-hidden bg-midnight-card focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-emerald-300/60">
+                      <Link href={`/tester-applications/${recentItem.item.id}`} aria-label={t("testerApplications.list.details")} className="group relative block h-24 w-full overflow-hidden bg-midnight-card focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-emerald-300/60">
                         {recentItem.item.screenshotUrls[0] ? (
                           <Image src={recentItem.item.screenshotUrls[0]} alt="" fill sizes="320px" unoptimized className="object-cover transition duration-500 group-hover:scale-[1.03]" />
                         ) : (
@@ -270,19 +270,19 @@ export function WorkspaceQuickActions() {
                           {t("feed.approvedApplication")}
                         </span>
                       </Link>
-                      <div className="min-w-0 space-y-2.5 p-3">
+                      <div className="min-w-0 space-y-2 p-3">
                         <div className="flex items-center justify-between gap-2">
-                          <h3 className="min-w-0 truncate text-sm font-semibold text-ink">{recentItem.item.name}</h3>
-                          <span className="inline-flex shrink-0 items-center gap-1 text-[10px] text-ink-muted">
+                          <h3 className="min-w-0 truncate text-xs font-semibold text-ink">{recentItem.item.name}</h3>
+                          <span className="inline-flex shrink-0 items-center gap-1 text-[9px] text-ink-muted">
                             <TesterPlatformIcon platform={recentItem.item.platform} />
                             {t(`testerApplications.list.platform.${recentItem.item.platform}`)}
                           </span>
                         </div>
-                        <p className="line-clamp-2 min-h-8 text-[10px] leading-4 text-ink-muted">{recentItem.item.description}</p>
-                        <p className="truncate text-[10px] text-ink-muted">
+                        <p className="line-clamp-2 text-[10px] leading-4 text-ink-muted">{recentItem.item.description}</p>
+                        <p className="truncate text-[9px] text-ink-muted">
                           {t("testerApplications.list.by", { name: recentItem.item.ownerName })}
                         </p>
-                        <a href={recentItem.item.downloadUrl} target="_blank" rel="noopener noreferrer" className="btn-gold min-h-9 w-full justify-center !rounded-lg !px-2 !py-2 text-xs">
+                        <a href={recentItem.item.downloadUrl} target="_blank" rel="noopener noreferrer" className="btn-gold min-h-8 w-full justify-center !rounded-lg !px-2 !py-1.5 text-[11px]">
                           {t("feed.applicationTestAction")}
                           <ArrowUpRight size={12} aria-hidden="true" />
                         </a>

@@ -37,6 +37,7 @@ type PendingAttachment = {
 
 const MAX_ATTACHMENT_COUNT = 5;
 const MAX_ATTACHMENT_BYTES = 50 * 1024 * 1024;
+const MAX_FEED_SUGGESTIONS = 10;
 
 type FeedPagination = { page: number; pageSize: number; total: number; totalPages: number };
 type FeedResponse = { posts: FeedPost[]; pagination?: FeedPagination };
@@ -299,19 +300,19 @@ export function Feed({ projectId, teamId, projectLabel, teamLogoUrl, canCompose 
     return items;
   }, []);
   const associations = suggestionAssociationsQuery.data?.associations ?? [];
-  const suggestedMaker = suggestionAssociationsQuery.isSuccess
-    ? (suggestionMakersQuery.data ?? []).find((maker) => maker.id !== userId && !associations.some((association) => (
+  const suggestedMakers = suggestionAssociationsQuery.isSuccess
+    ? (suggestionMakersQuery.data ?? []).filter((maker) => maker.id !== userId && !associations.some((association) => (
       (association.requesterId === userId && association.addresseeId === maker.id)
       || (association.requesterId === maker.id && association.addresseeId === userId)
-    )))
-    : undefined;
+    ))).slice(0, MAX_FEED_SUGGESTIONS)
+    : [];
   const suggestionTeams = suggestionTeamsQuery.data ?? [];
   const hasInvalidTeamSuggestions = suggestionTeams.some((team) => !Array.isArray(team.collaborators));
-  const suggestedTeam = suggestionTeams.find((team) => (
+  const suggestedTeams = suggestionTeams.filter((team) => (
     team.creatorId !== userId
     && Array.isArray(team.collaborators)
     && !team.collaborators.some((collaborator) => collaborator.userId === userId)
-  ));
+  )).slice(0, MAX_FEED_SUGGESTIONS);
   const createPost = useMutation({
     mutationFn: async () => {
       const res = await fetch("/api/posts", {
@@ -470,25 +471,23 @@ export function Feed({ projectId, teamId, projectLabel, teamLogoUrl, canCompose 
   function renderConnectionCard(maker: FeedSuggestionMaker) {
     const makerName = maker.name ?? maker.handle ?? t("notifications.someone");
     return (
-      <article className="card space-y-3 border-gold/20 p-4">
-        <p className="text-[10px] font-semibold uppercase tracking-wide text-gold-soft">{t("makers.suggestionsTitle")}</p>
-        <div className="flex items-center gap-3">
+      <article className="card flex h-full min-h-36 flex-col gap-2 border-gold/20 p-3">
+        <div className="flex min-w-0 items-center gap-2">
           <Link href={`/makers/${encodeURIComponent(maker.handle ?? maker.id)}`} aria-label={t("feed.viewProfile", { name: makerName })}>
-            <Avatar src={maker.image} name={maker.name} online={maker.isOnline} size={42} />
+            <Avatar src={maker.image} name={maker.name} online={maker.isOnline} size={34} />
           </Link>
           <div className="min-w-0 flex-1">
-            <Link href={`/makers/${encodeURIComponent(maker.handle ?? maker.id)}`} className="block truncate text-sm font-semibold text-ink hover:text-gold-soft">
+            <Link href={`/makers/${encodeURIComponent(maker.handle ?? maker.id)}`} className="block truncate text-xs font-semibold text-ink hover:text-gold-soft">
               {makerName}
             </Link>
-            <p className="mt-0.5 truncate text-xs text-ink-muted">{maker.headline ?? (maker.openToCoBuild ? t("makers.openForCoBuilding") : maker.skills.slice(0, 3).join(" · "))}</p>
+            <p className="mt-0.5 line-clamp-2 text-[11px] text-ink-muted">{maker.headline ?? (maker.openToCoBuild ? t("makers.openForCoBuilding") : maker.skills.slice(0, 3).join(" · "))}</p>
           </div>
-          {maker.openToCoBuild && <span className="badge shrink-0">{t("makers.openForCoBuilding")}</span>}
         </div>
         <button
           type="button"
           disabled={connectSuggestionMutation.isPending}
           onClick={() => connectSuggestionMutation.mutate(maker.id)}
-          className="btn-gold min-h-9 w-full justify-center !rounded-lg !px-3 !py-2 text-xs"
+          className="btn-gold mt-auto min-h-8 w-full justify-center !rounded-lg !px-2 !py-1.5 text-[11px]"
         >
           <FontAwesomeIcon icon={faUsers} className="h-3.5 w-3.5" aria-hidden="true" />
           {t("makers.associate")}
@@ -500,27 +499,46 @@ export function Feed({ projectId, teamId, projectLabel, teamLogoUrl, canCompose 
   function renderTeamCard(team: FeedSuggestionTeam) {
     const teamName = team.teamName ?? team.title;
     return (
-      <article className="card space-y-3 border-emerald-400/20 p-4">
-        <p className="text-[10px] font-semibold uppercase tracking-wide text-emerald-300">{t("teams.discoverTitle")}</p>
-        <div className="flex items-center gap-3">
-          <Avatar src={team.logoUrl} name={teamName} size={42} />
+      <article className="card flex h-full min-h-40 flex-col gap-2 border-emerald-400/20 p-3">
+        <div className="flex min-w-0 items-center gap-2">
+          <Avatar src={team.logoUrl} name={teamName} size={34} />
           <div className="min-w-0 flex-1">
-            <Link href={`/teams/${team.id}`} className="block truncate text-sm font-semibold text-ink hover:text-gold-soft">{teamName}</Link>
-            <p className="mt-0.5 truncate text-xs text-ink-muted">
+            <Link href={`/teams/${team.id}`} className="block truncate text-xs font-semibold text-ink hover:text-gold-soft">{teamName}</Link>
+            <p className="mt-0.5 truncate text-[11px] text-ink-muted">
               {t("teams.createdBy", { name: team.creator.handle ? `@${team.creator.handle}` : team.creator.name ?? t("teams.unknownMember") })}
             </p>
           </div>
         </div>
-        {team.tagline && <p className="line-clamp-2 text-xs leading-relaxed text-ink-muted">{team.tagline}</p>}
+        {team.tagline && <p className="line-clamp-2 text-[11px] leading-relaxed text-ink-muted">{team.tagline}</p>}
         {team.lookingFor.length > 0 && (
           <div className="flex flex-wrap gap-1.5">
-            {team.lookingFor.slice(0, 3).map((role) => <span key={role} className="badge">{t(`projects.roles.${role}`)}</span>)}
+            {team.lookingFor.slice(0, 2).map((role) => <span key={role} className="badge !px-1.5 !py-0.5 text-[9px]">{t(`projects.roles.${role}`)}</span>)}
           </div>
         )}
-        <Link href={`/teams/${team.id}`} className="btn-gold flex min-h-9 justify-center !rounded-lg !px-3 !py-2 text-xs">
+        <Link href={`/teams/${team.id}`} className="btn-gold mt-auto flex min-h-8 justify-center !rounded-lg !px-2 !py-1.5 text-[11px]">
           {t("teams.joinAction")}
         </Link>
       </article>
+    );
+  }
+
+  function renderSuggestionCarousel<T extends { id: string }>(
+    label: string,
+    items: T[],
+    renderCard: (item: T) => React.ReactNode,
+  ) {
+    if (items.length === 0) return null;
+    return (
+      <section aria-label={label} className="min-w-0 space-y-2">
+        <h3 className="px-1 text-[10px] font-semibold uppercase tracking-wide text-ink-muted">{label}</h3>
+        <div className="flex min-w-0 snap-x snap-proximity gap-3 overflow-x-auto overscroll-x-contain pb-2" role="list">
+          {items.map((item) => (
+            <div key={item.id} className="w-56 shrink-0 snap-start" role="listitem">
+              {renderCard(item)}
+            </div>
+          ))}
+        </div>
+      </section>
     );
   }
 
@@ -1010,8 +1028,8 @@ export function Feed({ projectId, teamId, projectLabel, teamLogoUrl, canCompose 
                 } : post}
               />
               {canShowSuggestions && index === insertionIndexes[0] && collaborationItems[0] && renderCollaborationCard(collaborationItems[0])}
-              {canShowSuggestions && index === insertionIndexes[1] && suggestedMaker && renderConnectionCard(suggestedMaker)}
-              {canShowSuggestions && index === insertionIndexes[2] && suggestedTeam && renderTeamCard(suggestedTeam)}
+              {canShowSuggestions && index === insertionIndexes[1] && renderSuggestionCarousel(t("makers.suggestionsTitle"), suggestedMakers, renderConnectionCard)}
+              {canShowSuggestions && index === insertionIndexes[2] && renderSuggestionCarousel(t("teams.discoverTitle"), suggestedTeams, renderTeamCard)}
             </Fragment>
           ))}
           {projectId && data.pagination && data.pagination.totalPages > 1 && (
