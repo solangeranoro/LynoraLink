@@ -81,7 +81,10 @@ type FeedCollaborationItem = {
 async function fetchFeedSuggestionProjects(): Promise<FeedSuggestionProject[]> {
   const response = await fetch("/api/projects?projects=1");
   if (!response.ok) throw new Error("feed_suggestion_projects_load_failed");
-  const data = await response.json() as { projects: FeedSuggestionProject[] };
+  const data = await response.json() as { projects?: FeedSuggestionProject[] };
+  if (!Array.isArray(data.projects) || data.projects.some((project) => !Array.isArray(project.collaborators))) {
+    throw new Error("feed_suggestion_projects_invalid_response");
+  }
   return data.projects;
 }
 
@@ -102,7 +105,10 @@ async function fetchFeedSuggestionAssociations(): Promise<FeedSuggestionAssociat
 async function fetchFeedSuggestionTeams(): Promise<FeedSuggestionTeam[]> {
   const response = await fetch("/api/projects?teams=discover");
   if (!response.ok) throw new Error("feed_suggestion_teams_load_failed");
-  const data = await response.json() as { projects: FeedSuggestionTeam[] };
+  const data = await response.json() as { projects?: FeedSuggestionTeam[] };
+  if (!Array.isArray(data.projects) || data.projects.some((team) => !Array.isArray(team.collaborators))) {
+    throw new Error("feed_suggestion_teams_invalid_response");
+  }
   return data.projects;
 }
 
@@ -276,7 +282,9 @@ export function Feed({ projectId, teamId, projectLabel, teamLogoUrl, canCompose 
     },
   });
   const suggestionProjects = suggestionProjectsQuery.data ?? [];
+  const hasInvalidProjectSuggestions = suggestionProjects.some((project) => !Array.isArray(project.collaborators));
   const collaborationItems = suggestionProjects.reduce<FeedCollaborationItem[]>((items, project) => {
+    if (!Array.isArray(project.collaborators)) return items;
     for (const collaborator of project.collaborators) {
       if (collaborator.status !== "PENDING") continue;
       if (project.creatorId === userId && collaborator.userId !== userId && !collaborator.invitedById) {
@@ -294,8 +302,12 @@ export function Feed({ projectId, teamId, projectLabel, teamLogoUrl, canCompose 
       || (association.requesterId === maker.id && association.addresseeId === userId)
     )))
     : undefined;
-  const suggestedTeam = (suggestionTeamsQuery.data ?? []).find((team) => (
-    team.creatorId !== userId && !team.collaborators.some((collaborator) => collaborator.userId === userId)
+  const suggestionTeams = suggestionTeamsQuery.data ?? [];
+  const hasInvalidTeamSuggestions = suggestionTeams.some((team) => !Array.isArray(team.collaborators));
+  const suggestedTeam = suggestionTeams.find((team) => (
+    team.creatorId !== userId
+    && Array.isArray(team.collaborators)
+    && !team.collaborators.some((collaborator) => collaborator.userId === userId)
   ));
   const createPost = useMutation({
     mutationFn: async () => {
@@ -393,7 +405,9 @@ export function Feed({ projectId, teamId, projectLabel, teamLogoUrl, canCompose 
   const suggestionsLoadError = suggestionProjectsQuery.isError
     || suggestionMakersQuery.isError
     || suggestionAssociationsQuery.isError
-    || suggestionTeamsQuery.isError;
+    || suggestionTeamsQuery.isError
+    || hasInvalidProjectSuggestions
+    || hasInvalidTeamSuggestions;
 
   function renderCollaborationCard(item: FeedCollaborationItem) {
     const makerName = item.collaborator.user.name ?? t("notifications.someone");
