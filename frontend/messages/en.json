@@ -790,6 +790,7 @@
     "approvedApplicationsTitle": "Beta testing picks",
     "discoverApplications": "Discover apps to test",
     "suggestionsLoadError": "Some suggestions couldn't be loaded right now.",
+    "dismissSuggestion": "Dismiss this suggestion",
     "approvedApplicationsSubtitle": "Community products approved for hands-on testing.",
     "approvedApplicationsLoadError": "Couldn't load approved apps.",
     "applicationTechnologies": "Technology",

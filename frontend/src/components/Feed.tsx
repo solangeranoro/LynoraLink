@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { ChevronLeft, ChevronRight } from "@/components/FontAwesomeIcons";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faChartColumn, faComment, faEye, faFileCode, faFolderOpen, faImage, faListUl, faPaperclip, faPaperPlane, faPen, faPlus, faRocket, faSpinner, faTrash, faUsers, faXmark } from "@fortawesome/free-solid-svg-icons";
+import { faChartColumn, faComment, faEye, faFileCode, faFolderOpen, faImage, faListUl, faPaperclip, faPaperPlane, faPen, faPlus, faRocket, faSpinner, faTrash, faUserPlus, faUsers, faXmark } from "@fortawesome/free-solid-svg-icons";
 import { Activity, ReviewIcon, UsersRound } from "@/components/FontAwesomeIcons";
 import { PostCard, type FeedPost, type PostIntent } from "@/components/PostCard";
 import { PostMarkdown } from "@/components/PostMarkdown";
@@ -162,6 +162,7 @@ export function Feed({ projectId, teamId, projectLabel, teamLogoUrl, canCompose 
   const [pollOptions, setPollOptions] = useState(["", ""]);
   const [composerOpen, setComposerOpen] = useState(false);
   const [feedPage, setFeedPage] = useState(1);
+  const [dismissedSuggestions, setDismissedSuggestions] = useState<Set<string>>(() => new Set());
   const dialogRef = useRef<HTMLDialogElement>(null);
   const [dialogPortalContainer, setDialogPortalContainer] = useState<HTMLDialogElement | null>(null);
   const setDialogRef = useCallback((dialog: HTMLDialogElement | null) => {
@@ -301,15 +302,20 @@ export function Feed({ projectId, teamId, projectLabel, teamLogoUrl, canCompose 
   }, []);
   const associations = suggestionAssociationsQuery.data?.associations ?? [];
   const suggestedMakers = suggestionAssociationsQuery.isSuccess
-    ? (suggestionMakersQuery.data ?? []).filter((maker) => maker.id !== userId && !associations.some((association) => (
+    ? (suggestionMakersQuery.data ?? []).filter((maker) => (
+      maker.id !== userId
+      && !dismissedSuggestions.has(`maker:${maker.id}`)
+      && !associations.some((association) => (
       (association.requesterId === userId && association.addresseeId === maker.id)
       || (association.requesterId === maker.id && association.addresseeId === userId)
-    ))).slice(0, MAX_FEED_SUGGESTIONS)
+      ))
+    )).slice(0, MAX_FEED_SUGGESTIONS)
     : [];
   const suggestionTeams = suggestionTeamsQuery.data ?? [];
   const hasInvalidTeamSuggestions = suggestionTeams.some((team) => !Array.isArray(team.collaborators));
   const suggestedTeams = suggestionTeams.filter((team) => (
     team.creatorId !== userId
+    && !dismissedSuggestions.has(`team:${team.id}`)
     && Array.isArray(team.collaborators)
     && !team.collaborators.some((collaborator) => collaborator.userId === userId)
   )).slice(0, MAX_FEED_SUGGESTIONS);
@@ -471,8 +477,17 @@ export function Feed({ projectId, teamId, projectLabel, teamLogoUrl, canCompose 
   function renderConnectionCard(maker: FeedSuggestionMaker) {
     const makerName = maker.name ?? maker.handle ?? t("notifications.someone");
     return (
-      <article className="card flex h-full min-h-36 flex-col gap-2 border-gold/20 p-3">
-        <div className="flex min-w-0 items-center gap-2">
+      <article className="card relative flex h-full min-h-36 flex-col gap-2 border-gold/20 p-3">
+        <button
+          type="button"
+          onClick={() => setDismissedSuggestions((current) => new Set(current).add(`maker:${maker.id}`))}
+          aria-label={t("feed.dismissSuggestion")}
+          title={t("feed.dismissSuggestion")}
+          className="absolute right-2 top-2 grid size-6 place-items-center rounded-md text-ink-muted transition hover:bg-midnight-deep hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold/60"
+        >
+          <FontAwesomeIcon icon={faXmark} className="h-3 w-3" aria-hidden="true" />
+        </button>
+        <div className="flex min-w-0 items-center gap-2 pr-6">
           <Link href={`/makers/${encodeURIComponent(maker.handle ?? maker.id)}`} aria-label={t("feed.viewProfile", { name: makerName })}>
             <Avatar src={maker.image} name={maker.name} online={maker.isOnline} size={34} />
           </Link>
@@ -489,7 +504,7 @@ export function Feed({ projectId, teamId, projectLabel, teamLogoUrl, canCompose 
           onClick={() => connectSuggestionMutation.mutate(maker.id)}
           className="btn-gold mt-auto min-h-8 w-full justify-center !rounded-lg !px-2 !py-1.5 text-[11px]"
         >
-          <FontAwesomeIcon icon={faUsers} className="h-3.5 w-3.5" aria-hidden="true" />
+          <FontAwesomeIcon icon={faUserPlus} className="h-3.5 w-3.5" aria-hidden="true" />
           {t("makers.associate")}
         </button>
       </article>
@@ -499,8 +514,17 @@ export function Feed({ projectId, teamId, projectLabel, teamLogoUrl, canCompose 
   function renderTeamCard(team: FeedSuggestionTeam) {
     const teamName = team.teamName ?? team.title;
     return (
-      <article className="card flex h-full min-h-40 flex-col gap-2 border-emerald-400/20 p-3">
-        <div className="flex min-w-0 items-center gap-2">
+      <article className="card relative flex h-full min-h-40 flex-col gap-2 border-emerald-400/20 p-3">
+        <button
+          type="button"
+          onClick={() => setDismissedSuggestions((current) => new Set(current).add(`team:${team.id}`))}
+          aria-label={t("feed.dismissSuggestion")}
+          title={t("feed.dismissSuggestion")}
+          className="absolute right-2 top-2 grid size-6 place-items-center rounded-md text-ink-muted transition hover:bg-midnight-deep hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold/60"
+        >
+          <FontAwesomeIcon icon={faXmark} className="h-3 w-3" aria-hidden="true" />
+        </button>
+        <div className="flex min-w-0 items-center gap-2 pr-6">
           <Avatar src={team.logoUrl} name={teamName} size={34} />
           <div className="min-w-0 flex-1">
             <Link href={`/teams/${team.id}`} className="block truncate text-xs font-semibold text-ink hover:text-gold-soft">{teamName}</Link>
