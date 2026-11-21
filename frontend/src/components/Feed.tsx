@@ -95,11 +95,14 @@ async function fetchFeedSuggestionMakers(): Promise<FeedSuggestionMaker[]> {
   return data.makers;
 }
 
-async function fetchFeedSuggestionAssociations(): Promise<FeedSuggestionAssociation[]> {
+async function fetchFeedSuggestionAssociations(): Promise<{ associations: FeedSuggestionAssociation[] }> {
   const response = await fetch("/api/associations");
   if (!response.ok) throw new Error("feed_suggestion_associations_load_failed");
-  const data = await response.json() as { associations: FeedSuggestionAssociation[] };
-  return data.associations;
+  const data = await response.json() as { associations?: FeedSuggestionAssociation[] };
+  if (!Array.isArray(data.associations)) {
+    throw new Error("feed_suggestion_associations_invalid_response");
+  }
+  return { associations: data.associations };
 }
 
 async function fetchFeedSuggestionTeams(): Promise<FeedSuggestionTeam[]> {
@@ -295,7 +298,7 @@ export function Feed({ projectId, teamId, projectLabel, teamLogoUrl, canCompose 
     }
     return items;
   }, []);
-  const associations = suggestionAssociationsQuery.data ?? [];
+  const associations = suggestionAssociationsQuery.data?.associations ?? [];
   const suggestedMaker = suggestionAssociationsQuery.isSuccess
     ? (suggestionMakersQuery.data ?? []).find((maker) => maker.id !== userId && !associations.some((association) => (
       (association.requesterId === userId && association.addresseeId === maker.id)

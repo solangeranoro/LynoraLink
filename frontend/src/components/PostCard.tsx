@@ -149,12 +149,13 @@ export function PostCard({
       return response.json() as Promise<{ associations: UserAssociation[] }>;
     },
   });
-  const isAuthorAssociated = associationStatus === "ACCEPTED" || associationsQuery.data?.associations.some((association) => (
+  const associations = Array.isArray(associationsQuery.data?.associations) ? associationsQuery.data.associations : [];
+  const isAuthorAssociated = associationStatus === "ACCEPTED" || associations.some((association) => (
     association.status === "ACCEPTED"
     && ((association.requesterId === session?.user?.id && association.addresseeId === post.author.id)
       || (association.requesterId === post.author.id && association.addresseeId === session?.user?.id))
   ));
-  const outgoingAssociation = associationsQuery.data?.associations.find((association) => (
+  const outgoingAssociation = associations.find((association) => (
     association.status === "PENDING"
     && association.requesterId === session?.user?.id
     && association.addresseeId === post.author.id
